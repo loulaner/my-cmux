@@ -24,6 +24,7 @@ public struct MobileAuthComposition {
     public let coordinator: AuthCoordinator
     /// The push registration service, activated after notification permission.
     public let pushRegistration: PushRegistrationService
+    private let supportsPush: Bool
     /// The resolved configuration (used for diagnostics + push API base URL).
     public let config: AuthConfig
     /// Which Stack project this build signs in to. DEBUG defaults to
@@ -70,6 +71,8 @@ public struct MobileAuthComposition {
         policy: MobileAuthBuildPolicy = .current,
         diagnosticLog: DiagnosticLog? = nil
     ) {
+        let supportsPush = MobileDistributionCapabilities(infoDictionary: bundle.infoDictionary ?? [:]).supportsPush
+        self.supportsPush = supportsPush
         self.reachability = reachability
         let appNamespace = MobileIOSAppNamespace(
             bundleIdentifier: bundle.bundleIdentifier
@@ -200,6 +203,7 @@ public struct MobileAuthComposition {
             session: .shared
         )
         deferredSignIn.set {
+            guard supportsPush else { return }
             await push.syncTokenIfPossible()
         }
         self.coordinator = coordinator
@@ -217,9 +221,11 @@ public struct MobileAuthComposition {
     /// Begin asynchronous session restore (call once after construction).
     public func start() {
         taskOwner.recordRestoreStarted()
+        let supportsPush = self.supportsPush
         let pushRegistration = self.pushRegistration
         protectedDataAvailability.startObserving { [coordinator, taskOwner, pushRegistration] in
             taskOwner.revalidateSession(using: coordinator) {
+                guard supportsPush else { return }
                 Task {
                     await pushRegistration.syncTokenIfPossible()
                 }

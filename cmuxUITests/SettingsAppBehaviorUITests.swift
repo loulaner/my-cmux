@@ -245,31 +245,16 @@ final class SettingsAppBehaviorUITests: SettingsUITestCase {
         window.staticTexts[text]
     }
 
-    func testMobilePushForwardingIsVisibleAndDefaultsToAlways() {
-        // Open Settings after launch activation, like the other tests: a
-        // window opened at launch ends up behind the main window, and its
-        // controls have no hit point.
+    func testMobileSettingsDoesNotOfferCloudPhonePush() {
         let app = makeLaunchedApp()
         let window = openSettings(app)
         navigate(window, to: "Mobile")
-
-        let forwarding = toggle(
-            window,
-            id: "SettingsMobilePhonePushForwardingToggle"
-        )
-        XCTAssertTrue(isOn(forwarding), "Forward Notifications to Phone should start on")
-
-        let mode = requireElement(
-            candidates: [
-                window.popUpButtons["SettingsMobilePhonePushModePicker"],
-                window.menuButtons["SettingsMobilePhonePushModePicker"],
-                window.descendants(matching: .any)["SettingsMobilePhonePushModePicker"],
-            ],
-            timeout: 4,
-            description: "phone push forwarding mode picker"
-        )
-        XCTAssertTrue(mode.label.contains("Always") || mode.value as? String == "Always")
-        _ = toggle(window, id: "SettingsMobilePhonePushHideContentToggle")
+        XCTAssertTrue(poll(timeout: 4.0) {
+            window.buttons["SettingsMobilePairDeviceButton"].exists
+        }, "Mobile section must be visible before checking removed controls")
+        for identifier in ["SettingsMobilePhonePushForwardingToggle", "SettingsMobilePhonePushModePicker", "SettingsMobilePhonePushHideContentToggle"] {
+            XCTAssertFalse(window.descendants(matching: .any)[identifier].exists)
+        }
     }
 
     // MARK: - TIER 1: Minimal Mode toggle keeps its fixed subtitle

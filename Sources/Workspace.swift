@@ -4673,7 +4673,7 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
         _ action: CmuxSurfaceTabBarBuiltInAction
     ) -> Bool {
         switch action {
-        case .mobileConnect: return CmuxFeatureFlags.shared.isMobileConnectButtonEnabled
+        case .mobileConnect: return MobileRemoteControlPolicy.isEnabled
         case .newAgentChat: return CmuxFeatureFlags.shared.isAgentChatUIEnabled
         case .newSimulator: return CmuxFeatureFlags.shared.isSimulatorEnabled
         case .newBrowser:

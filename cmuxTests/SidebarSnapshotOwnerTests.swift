@@ -1,6 +1,5 @@
 import AppKit
 import CmuxNotifications
-import CmuxUpdater
 import Observation
 import SwiftUI
 import Testing
@@ -70,7 +69,6 @@ struct SidebarSnapshotOwnerTests {
         let initialCoalescing = WindowTerminalPortal.usesCoalescedAnchorFailsafe
         defer { WindowTerminalPortal.usesCoalescedAnchorFailsafe = initialCoalescing }
         let root = VerticalTabsSidebar(
-            updateViewModel: UpdateStateModel(),
             fileExplorerState: FileExplorerState(),
             sessionIndexStore: SessionIndexStore(),
             featureFlags: flags,

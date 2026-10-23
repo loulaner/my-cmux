@@ -25,6 +25,63 @@ import Testing
         )
     }
 
+    @Test func directIPadControlsGridUntilExplicitDisconnect() {
+        var sizing = host(mac: TerminalGridSize(cols: 120, rows: 31), policy: .fitEveryone)
+        sizing.syncPhones([phone("ipad", cols: 63, rows: 69)], controllingClientID: "ipad")
+        #expect(sizing.state.size == TerminalGridSize(cols: 63, rows: 69))
+        sizing.noteActivity("mac:pane")
+        sizing.updateMacViewport(TerminalGridSize(cols: 140, rows: 35))
+        #expect(sizing.state.size == TerminalGridSize(cols: 63, rows: 69))
+        // A transport loss is not a user disconnect. Keep the last iPad grid.
+        sizing.syncPhones([])
+        #expect(sizing.state.size == TerminalGridSize(cols: 63, rows: 69))
+        sizing.syncPhones([phone("ipad", cols: 91, rows: 43)], controllingClientID: "ipad")
+        #expect(sizing.state.size == TerminalGridSize(cols: 91, rows: 43))
+        sizing.disconnect("mobile:ipad", detachment: TerminalSharingDetachment(
+            reason: .disconnectedBy(me.detachActor), at: Date(timeIntervalSince1970: 0)))
+        #expect(sizing.state.policy == .fitEveryone)
+        #expect(sizing.applyTarget == .uncapped)
+        #expect(sizing.state.size == TerminalGridSize(cols: 140, rows: 35))
+    }
+
+    @Test func directReleaseRestoresPreviousPolicyWithoutRevokingOrDetachingDevice() {
+        var sizing = host(policy: .latest)
+        sizing.syncPhones([phone("ipad", cols: 63, rows: 69)], controllingClientID: "ipad")
+        let unrelatedReleased = sizing.releasePhoneControl(clientID: "unrelated")
+        #expect(!unrelatedReleased)
+        #expect(sizing.controllingPhoneID == "mobile:ipad")
+        let released = sizing.releasePhoneControl(clientID: "ipad")
+        #expect(released)
+        sizing.syncPhones([])
+        #expect(sizing.state.policy == .latest)
+        #expect(sizing.applyTarget == .uncapped)
+        #expect(!sizing.isDetached("mobile:ipad"))
+        sizing.syncPhones([phone("ipad", cols: 80, rows: 45)], controllingClientID: "ipad")
+        #expect(sizing.state.size == TerminalGridSize(cols: 80, rows: 45))
+    }
+
+    @Test func directDeviceIdentityPreventsOtherPhoneActivityTakingControl() {
+        var sizing = host()
+        var ipad = phone("ipad", cols: 63, rows: 69)
+        ipad.deviceID = "ipad-install"
+        var other = phone("other", cols: 50, rows: 25)
+        other.deviceID = "other-install"
+        sizing.syncPhones([ipad, other], controllingClientID: "ipad")
+        sizing.setCountsOverride(other.id, true)
+        sizing.noteActivity(other.id)
+        sizing.noteActivity("mac:pane")
+        #expect(sizing.state.size == TerminalGridSize(cols: 63, rows: 69))
+    }
+
+    @Test func matchingMacDimensionsDoNotGiveUpDirectControl() {
+        let grid = TerminalGridSize(cols: 63, rows: 69)
+        var sizing = host(mac: grid)
+        sizing.syncPhones([phone("ipad", cols: 63, rows: 69)], controllingClientID: "ipad")
+        #expect(sizing.applyTarget == .grid(grid))
+        sizing.updateMacViewport(TerminalGridSize(cols: 140, rows: 35))
+        #expect(sizing.applyTarget == .grid(grid))
+    }
+
     @Test func defaultFitsEveryoneIncludingMyPhone() {
         var h = host(policy: .fitEveryone)
         h.syncPhones([phone("a")])

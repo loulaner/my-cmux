@@ -1,0 +1,28 @@
+// Personal-device Release build; never inherits the publisher's signing team.
+#include "Release.xcconfig"
+
+CMUX_APP_BUNDLE_IDENTIFIER = com.loulaner.cmuxpersonal
+CMUX_HOST_BUNDLE_IDENTIFIER = $(CMUX_APP_BUNDLE_IDENTIFIER)
+PRODUCT_BUNDLE_IDENTIFIER = $(CMUX_APP_BUNDLE_IDENTIFIER)
+PRODUCT_NAME = cmux-personal
+PRODUCT_DISPLAY_NAME = cmux Personal
+DEVELOPMENT_TEAM =
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY = Apple Development
+CMUX_APP_CODE_SIGN_ENTITLEMENTS = Config/cmux-personal.entitlements
+CODE_SIGN_ENTITLEMENTS = $(CMUX_APP_CODE_SIGN_ENTITLEMENTS)
+INFOPLIST_FILE = Config/PersonalInfo.plist
+CMUX_NOTIFICATION_SERVICE_BUNDLE_IDENTIFIER =
+CMUX_CLOUD_VPN_BUNDLE_IDENTIFIER =
+CMUX_DEV_TAG =
+SWIFT_ACTIVE_COMPILATION_CONDITIONS =
+// Escape the double slash so xcconfig does not parse the URL as a comment.
+CMUX_API_BASE_URL = https:/$()/cmux.com
+CMUX_IROH_BROKER_BASE_URL = https:/$()/cmux.com
+CMUX_PRESENCE_BASE_URL = https:/$()/presence.cmux.dev
+CMUX_IOS_AUTH_ENV = production
+CMUX_IROH_V2_ENVIRONMENT = production
+CMUX_IROH_V2_FORCE_RELAY = 0
+
+// Signing/provisioning is a separate, user-approved step. Set your Personal
+// Team on the cmux-personal target in Xcode; do not put credentials here.

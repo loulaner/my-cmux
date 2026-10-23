@@ -25,6 +25,9 @@ public struct IrxEndpointConfiguration: Sendable {
     public var pathMode: IrxPathMode
     /// Preferred UDP bind, e.g. "0.0.0.0:58470" on the Mac host; nil = ephemeral.
     public var preferredBindAddress: String?
+    /// Whether a failed preferred bind may retry on an unspecified interface and port.
+    /// Defaults to true for compatibility; interface-restricted hosts must disable it.
+    public var allowsPreferredBindFallback: Bool
     /// The remote side may open this many concurrent bidi streams before any
     /// post-admission raise. Server: 1 (the control stream). Client: 0.
     public var initialRemoteBiStreams: UInt64
@@ -42,11 +45,13 @@ public struct IrxEndpointConfiguration: Sendable {
         preferredBindAddress: String? = nil,
         initialRemoteBiStreams: UInt64,
         initialRemoteUniStreams: UInt64,
-        additionalALPNs: [Data] = []
+        additionalALPNs: [Data] = [],
+        allowsPreferredBindFallback: Bool = true
     ) {
         self.identity = identity
         self.pathMode = pathMode
         self.preferredBindAddress = preferredBindAddress
+        self.allowsPreferredBindFallback = allowsPreferredBindFallback
         self.initialRemoteBiStreams = initialRemoteBiStreams
         self.initialRemoteUniStreams = initialRemoteUniStreams
         self.additionalALPNs = additionalALPNs
@@ -152,31 +157,50 @@ public actor IrxEndpointSupervisor {
         case foreign(alpn: Data, connection: Connection)
     }
 
-    /// Accepts the next inbound connection, or nil when the endpoint is
-    /// closed/unbound (callers rebind via `readyEndpoint`).
+    /// The outcome of consuming one inbound handshake or the endpoint's end-of-stream.
+    public enum AcceptResult: Sendable {
+        /// A TLS-authenticated connection routed by its negotiated protocol.
+        case accepted(AcceptedInbound)
+        /// One incoming handshake failed; the listener may still accept other peers.
+        case handshakeFailed
+        /// No driver exists or the native accept stream has ended.
+        case closed
+    }
+
+    /// Compatibility API returning nil for both handshake failures and closure.
+    ///
+    /// - Returns: The accepted connection, or nil with the historical error semantics.
     public func acceptNextInbound() async -> AcceptedInbound? {
-        guard let driver, !driver.isClosed() else { return nil }
-        guard let incoming = await driver.acceptNext() else { return nil }
+        guard case .accepted(let inbound) = await acceptNextInboundResult() else { return nil }
+        return inbound
+    }
+
+    /// Consumes one native incoming attempt without conflating handshake failure with closure.
+    ///
+    /// - Returns: A connection, a failed consumed handshake, or native end-of-stream.
+    public func acceptNextInboundResult() async -> AcceptResult {
+        guard let driver, !driver.isClosed() else { return .closed }
+        guard let incoming = await driver.acceptNext() else { return .closed }
         do {
             let accepting = try await incoming.accept()
             let alpn = try await accepting.alpn()
             let connection = try await accepting.connect()
             if alpn == IrxProtocol().alpnData {
-                return .irx(
+                return .accepted(.irx(
                     IrxConnection(connection: connection, role: .acceptor, journal: journal,
-                        diagnosticLog: diagnosticLog))
+                        diagnosticLog: diagnosticLog)))
             }
             journal.record(
                 "endpoint", "foreign-alpn-accepted",
                 ["alpn": String(data: alpn, encoding: .utf8) ?? "?"]
             )
-            return .foreign(alpn: alpn, connection: connection)
+            return .accepted(.foreign(alpn: alpn, connection: connection))
         } catch {
             journal.record(
                 "endpoint", "accept-failed",
                 ["error": String(describing: error)]
             )
-            return nil
+            return .handshakeFailed
         }
     }
 
@@ -312,41 +336,8 @@ public actor IrxEndpointSupervisor {
         }
         generation += 1
         let startedAt = DispatchTime.now()
-        let relayMap = RelayMap.empty()
-        for credential in usable {
-            try relayMap.insert(
-                config: RelayConfig(
-                    url: credential.relayURL,
-                    quicPort: nil,
-                    authToken: credential.token
-                )
-            )
-        }
-        var options = EndpointOptions(preset: presetMinimal())
-        options.secretKey = configuration.identity.privateKeyData
-        options.alpns = [IrxProtocol().alpnData] + configuration.additionalALPNs
-        options.relayMode = directOnly ? RelayMode.disabled() : RelayMode.custom(map: relayMap)
-        options.portMappingEnabled = false
-        // NAT traversal stays unauthorized until admission (automatic mode) or
-        // forever (relay-only mode); the authorize call is per-connection.
-        options.deferNatTraversalUntilAuthorized = true
-        options.initialMaxConcurrentBiStreams = configuration.initialRemoteBiStreams
-        options.initialMaxConcurrentUniStreams = configuration.initialRemoteUniStreams
-        if let preferred = configuration.preferredBindAddress {
-            options.bindAddr = preferred
-        }
-        let bound: Endpoint
-        do {
-            bound = try await Endpoint.bind(options: options)
-        } catch where configuration.preferredBindAddress != nil {
-            guard !Task.isCancelled, !deactivated, epoch == lifecycleEpoch else {
-                throw IrxEndpointError.endpointClosed
-            }
-            // Preferred-port squatting falls back to an ephemeral bind; the
-            // advertised route always reflects the port actually bound.
-            options.bindAddr = nil
-            bound = try await Endpoint.bind(options: options)
-        }
+        let options = try bindingOptions(usable: usable)
+        let bound = try await bindConfiguredEndpoint(options: options, epoch: epoch)
         guard !deactivated, epoch == lifecycleEpoch else {
             try? await bound.close()
             throw IrxEndpointError.endpointClosed
@@ -427,6 +418,52 @@ public actor IrxEndpointSupervisor {
             ["generation": String(generation), "bind_to_online_ms": String(readyMs)]
         )
         watchClosure(of: bound, generation: generation)
+        return bound
+    }
+
+    /// Builds the same endpoint options for strict and compatibility binding.
+    private func bindingOptions(usable: [IrxRelayCredential]) throws -> EndpointOptions {
+        let relayMap = RelayMap.empty()
+        for credential in usable {
+            try relayMap.insert(
+                config: RelayConfig(
+                    url: credential.relayURL,
+                    quicPort: nil,
+                    authToken: credential.token
+                )
+            )
+        }
+        var options = EndpointOptions(preset: presetMinimal())
+        options.secretKey = configuration.identity.privateKeyData
+        options.alpns = [IrxProtocol().alpnData] + configuration.additionalALPNs
+        options.relayMode = configuration.pathMode == .directOnly ? RelayMode.disabled() : RelayMode.custom(map: relayMap)
+        options.portMappingEnabled = false
+        // NAT traversal stays unauthorized until admission (automatic mode) or
+        // forever (relay-only mode); the authorize call is per-connection.
+        options.deferNatTraversalUntilAuthorized = true
+        options.initialMaxConcurrentBiStreams = configuration.initialRemoteBiStreams
+        options.initialMaxConcurrentUniStreams = configuration.initialRemoteUniStreams
+        if let preferred = configuration.preferredBindAddress {
+            options.bindAddr = preferred
+        }
+        return options
+    }
+
+    /// A strict interface bind never retries with an unspecified bind address.
+    private func bindConfiguredEndpoint(options initialOptions: EndpointOptions, epoch: UInt64) async throws -> Endpoint {
+        var options = initialOptions
+        let bound: Endpoint
+        do {
+            bound = try await Endpoint.bind(options: options)
+        } catch where configuration.preferredBindAddress != nil && configuration.allowsPreferredBindFallback {
+            guard !Task.isCancelled, !deactivated, epoch == lifecycleEpoch else {
+                throw IrxEndpointError.endpointClosed
+            }
+            // Preferred-port squatting falls back to an ephemeral bind; the
+            // advertised route always reflects the port actually bound.
+            options.bindAddr = nil
+            bound = try await Endpoint.bind(options: options)
+        }
         return bound
     }
 

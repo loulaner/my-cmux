@@ -164,7 +164,7 @@ struct MobileHostIdentityTests {
         let payload = MobileHostService.identityStatusPayload(
             routes: [],
             deviceID: "v2-mac-fixture",
-            phonePushDefaults: defaults
+            defaults: defaults
         )
         #expect(payload["mac_compatible_mac_tags"] as? [String] == ["hello", "irply"])
     }
@@ -176,95 +176,49 @@ struct MobileHostIdentityTests {
         #expect(payload["mac_compatible_mac_tags"] == nil)
     }
 
-    @Test func authenticatedStatusReportsLivePhoneForwardingGateAndOrigin() throws {
-        let suiteName = "mobile-host-push-status-\(UUID().uuidString)"
+    @Test(arguments: ["unset", "true", "false"])
+    func retiredPhonePushDoesNotChangeLegacyPreferencesOrIdentity(legacyValue: String) throws {
+        let suiteName = "retired-phone-push-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        defaults.set(true, forKey: PhonePushSettings.forwardEnabledKey)
-        defaults.set(
-            PhoneForwardingMode.onlyWhenAway.rawValue,
-            forKey: PhonePushSettings.forwardModeKey
-        )
-
+        if legacyValue != "unset" {
+            defaults.set(legacyValue == "true", forKey: "forwardNotificationsToPhone")
+        }
+        defaults.set("onlyWhenAway", forKey: "forwardNotificationsToPhoneMode")
+        defaults.set(true, forKey: "forwardNotificationsHideContent")
+        _ = MobileCompatibleMacTags.set(["personal-peer"], in: defaults)
+        let before = defaults.persistentDomain(forName: suiteName) ?? [:]
         let payload = MobileHostService.identityStatusPayload(
-            routes: [],
-            deviceID: "v2-mac-fixture",
-            phonePushDefaults: defaults,
-            phonePushAdmission: .suppressedMacActive,
-            phonePushQueuePersistenceStatus: .saveFailed,
-            phonePushAPIBaseURL: URL(string: "https://cmux-staging.vercel.app")!
+            routes: [], deviceID: "personal-mac", defaults: defaults
         )
-        let phonePush = try #require(payload["phone_push"] as? [String: Any])
+        #expect(payload["phone_push"] == nil)
+        #expect(payload["mac_device_id"] as? String == "personal-mac")
+        #expect(payload["mac_compatible_mac_tags"] as? [String] == ["personal-peer"])
+        #expect(payload["theme"] != nil)
+        let capabilities = try #require(payload["capabilities"] as? [String])
+        #expect(!capabilities.contains { $0.hasPrefix("phone_push.") })
+        #expect(NSDictionary(dictionary: before).isEqual(to: defaults.persistentDomain(forName: suiteName) ?? [:]))
+    }
 
-        #expect(phonePush["forwarding_enabled"] as? Bool == true)
-        #expect(phonePush["mode"] as? String == "onlyWhenAway")
-        #expect(phonePush["admission"] as? String == "suppressed_mac_active")
-        #expect(phonePush["queue_persistence"] as? String == "save_failed")
-        #expect(phonePush["hide_content"] as? Bool == false)
-        #expect(phonePush["api_origin"] as? String == "https://cmux-staging.vercel.app")
-        #expect(phonePush["account_scope"] as? String == "verified_same_account")
+    @Test(arguments: ["phone_push.settings.update", "phone_push.status.get", "phone_push.test", "phone_push.keys.exchange"])
+    func retiredPhoneMethodsUseUnknownMethodAfterAuthorization(method: String) async {
+        let request = MobileHostRPCRequest(id: "retired-phone", method: method, params: [:], auth: nil)
+        let denied = await MobileHostService.connectionAuthorizationError(
+            for: request, authorization: .stackBearer, stackAuthorization: { _ in nil }
+        )
+        #expect(denied == nil)
+        let result = await TerminalController.shared.mobileHostHandleRPC(request)
+        guard case let .failure(error) = result else {
+            Issue.record("Retired phone RPC must not execute")
+            return
+        }
+        #expect(error.code == "method_not_found")
     }
 
     @Test func publicStatusNeverDisclosesPhoneForwardingState() {
         let payload = MobileHostService.publicStatusPayload(routes: [])
         #expect(payload["phone_push"] == nil)
         #expect(!String(describing: payload).contains("api_origin"))
-    }
-
-    #if DEBUG
-    @Test func debugSuppressionAlsoHidesAuthenticatedPhoneCapabilities() throws {
-        let previous = ProcessInfo.processInfo.environment[
-            "CMUX_DEBUG_SUPPRESS_MOBILE_CAPS"
-        ]
-        setenv(
-            "CMUX_DEBUG_SUPPRESS_MOBILE_CAPS",
-            MobileHostService.phonePushStatusCapability,
-            1
-        )
-        defer {
-            if let previous {
-                setenv("CMUX_DEBUG_SUPPRESS_MOBILE_CAPS", previous, 1)
-            } else {
-                unsetenv("CMUX_DEBUG_SUPPRESS_MOBILE_CAPS")
-            }
-        }
-
-        let payload = MobileHostService.identityStatusPayload(routes: [], deviceID: "v2-mac-fixture")
-        let capabilities = try #require(payload["capabilities"] as? [String])
-        #expect(!capabilities.contains(
-            MobileHostService.phonePushStatusCapability
-        ))
-    }
-    #endif
-
-    @Test func authenticatedPhoneSettingsMutationUpdatesTheSharedStatusSource() throws {
-        let suiteName = "mobile-host-push-mutation-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-
-        let result = TerminalController.shared.v2MobilePhonePushSettingsUpdate(
-            params: [
-                "forwarding_enabled": true,
-                "mode": "always",
-                "hide_content": true,
-            ],
-            defaults: defaults
-        )
-        guard case .ok = result else {
-            Issue.record("Expected phone push settings mutation to succeed")
-            return
-        }
-
-        let payload = MobileHostService.identityStatusPayload(
-            routes: [],
-            deviceID: "v2-mac-fixture",
-            phonePushDefaults: defaults,
-            phonePushAPIBaseURL: URL(string: "https://cmux.com")!
-        )
-        let phonePush = try #require(payload["phone_push"] as? [String: Any])
-        #expect(phonePush["forwarding_enabled"] as? Bool == true)
-        #expect(phonePush["mode"] as? String == "always")
-        #expect(phonePush["hide_content"] as? Bool == true)
     }
 
     @Test func phoneSettingsMutationUsesTheSameAccountAuthorizationGate() async {

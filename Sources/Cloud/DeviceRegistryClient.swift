@@ -18,7 +18,7 @@ import Observation
 /// registered. There is no separate opt-in flag — the registry is core to the
 /// pairing the user already turned on, not a distinct privacy surface.
 ///
-/// Best-effort and non-blocking, mirroring ``PhonePushClient``: a registry
+/// Best-effort and non-blocking: a registry
 /// outage never disturbs the Mac, and pairing still works through the phone's
 /// locally stored routes.
 @MainActor

@@ -8,6 +8,7 @@ import SwiftUI
 /// stays visible in the page sequence.
 struct OnboardingPageViewport<PageContent: View>: View {
     let stage: OnboardingStage
+    let stages: [OnboardingStage]
     let onNavigate: (OnboardingStage) -> Void
     @ViewBuilder let pageContent: (OnboardingStage) -> PageContent
 
@@ -22,15 +23,17 @@ struct OnboardingPageViewport<PageContent: View>: View {
 
     init(
         stage: OnboardingStage,
+        stages: [OnboardingStage] = OnboardingStage.allCases,
         onNavigate: @escaping (OnboardingStage) -> Void,
         @ViewBuilder pageContent: @escaping (OnboardingStage) -> PageContent
     ) {
         self.stage = stage
+        self.stages = stages
         self.onNavigate = onNavigate
         self.pageContent = pageContent
         _scrolledStage = State(initialValue: stage)
-        let pageIndex = OnboardingStage.allCases.firstIndex(of: stage) ?? 0
-        let lastIndex = max(OnboardingStage.allCases.count - 1, 1)
+        let pageIndex = stages.firstIndex(of: stage) ?? 0
+        let lastIndex = max(stages.count - 1, 1)
         initialAnchor = UnitPoint(
             x: CGFloat(pageIndex) / CGFloat(lastIndex),
             y: 0.5
@@ -45,7 +48,7 @@ struct OnboardingPageViewport<PageContent: View>: View {
         GeometryReader { geometry in
             ScrollView(.horizontal) {
                 HStack(spacing: 0) {
-                    ForEach(OnboardingStage.allCases, id: \.self) { pageStage in
+                    ForEach(stages, id: \.self) { pageStage in
                         pageContent(pageStage)
                             .frame(
                                 width: geometry.size.width,

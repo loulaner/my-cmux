@@ -298,24 +298,14 @@ final class MobileHostService {
         routes: [CmxAttachRoute],
         deviceID: String,
         additionalCapabilities: Set<String> = [],
-        phonePushDefaults: UserDefaults = .standard,
-        phonePushAdmission: PhonePushAdmission = .unknown,
-        phonePushQueuePersistenceStatus: PhonePushQueuePersistenceStatus =
-            .unknown,
-        phonePushAPIBaseURL: URL = AuthEnvironment.vmAPIBaseURL,
+        defaults: UserDefaults = .standard,
         now: Date = Date()
     ) -> [String: Any] {
         var payload = publicStatusPayload(routes: [], now: now)
         payload["routes"] = routes.mobileHostJSONObjects(for: .authenticated, at: now)
         payload["capabilities"] = applyingDebugCapabilitySuppressions(
             mobileHostCapabilities
-                + additionalCapabilities
-                    .union([
-                        phonePushStatusCapability,
-                        phonePushSettingsCapability,
-                        phonePushTestCapability,
-                    ])
-                    .sorted()
+                + additionalCapabilities.sorted()
         )
         payload["terminal_theme_revision_epoch"] = terminalThemeRevisionEpoch
         payload["mac_device_id"] = deviceID
@@ -329,23 +319,8 @@ final class MobileHostService {
         // exact-tag phone adopts it (the phone ignores the field from any
         // other reporter), so advertising it unconditionally is safe.
         payload["mac_compatible_mac_tags"] = MobileCompatibleMacTags.tags(
-            in: phonePushDefaults
+            in: defaults
         )
-        payload["phone_push"] = [
-            "forwarding_enabled": PhonePushConfiguration.forwardingEnabled(
-                in: phonePushDefaults
-            ),
-            "mode": PhoneForwardingMode.fromDefaults(phonePushDefaults).rawValue,
-            "admission": phonePushAdmission.rawValue,
-            "queue_persistence": phonePushQueuePersistenceStatus.rawValue,
-            "hide_content": phonePushDefaults.bool(
-                forKey: PhonePushSettings.hideContentKey
-            ),
-            "api_origin": canonicalPhonePushAPIBaseURL(phonePushAPIBaseURL),
-            // Reaching this payload means `verifiedStackCaller` already proved
-            // the presented token belongs to the Mac's current Stack account.
-            "account_scope": "verified_same_account",
-        ]
         if let displayName = MobileHostIdentity.instanceDisplayName() {
             payload["mac_display_name"] = displayName
         }
@@ -357,14 +332,6 @@ final class MobileHostService {
             payload["mac_app_build"] = appBuild
         }
         return payload
-    }
-
-    nonisolated private static func canonicalPhonePushAPIBaseURL(_ url: URL) -> String {
-        var value = url.absoluteString
-        while value.hasSuffix("/") {
-            value.removeLast()
-        }
-        return value
     }
 
     /// The `mobile.host.status` reply for a network caller.
@@ -405,17 +372,7 @@ final class MobileHostService {
         guard verified else {
             return MobileHostPublicStatusCache.result(includeIdentity: false)
         }
-        let phonePushStatus = await MainActor.run {
-            (
-                PhonePushClient.shared.currentAdmission(),
-                PhonePushClient.shared.queuePersistenceStatus
-            )
-        }
-        return MobileHostPublicStatusCache.result(
-            includeIdentity: true,
-            phonePushAdmission: phonePushStatus.0,
-            phonePushQueuePersistenceStatus: phonePushStatus.1
-        )
+        return MobileHostPublicStatusCache.result(includeIdentity: true)
     }
 
     private let callbackQueue = DispatchQueue(label: "dev.cmux.mobile.host-listener")
@@ -918,6 +875,7 @@ final class MobileHostService {
         firstFrameTimeoutNanoseconds: UInt64? = nil,
         promoteUsableSession: @escaping @Sendable () async -> Bool = { true },
         irohAdmissionIsAuthorized: @escaping @Sendable () async -> Bool = { true },
+        localDirectIsAuthorized: @escaping @Sendable () async -> Bool = { false },
         remoteControlDisabledByPolicy: @escaping @Sendable () -> Bool = {
             MobileRemoteControlPolicy.isDisabled
         },
@@ -932,6 +890,10 @@ final class MobileHostService {
         // accepted stream that raced with disabling remote control.
         guard !remoteControlDisabledByPolicy() else {
             mobileHostLog.info("mobile host refused transport: remote control disabled by managed policy")
+            await transport.close()
+            return expectedExit
+        }
+        if case .localDirect = authorization, !(await localDirectIsAuthorized()) {
             await transport.close()
             return expectedExit
         }
@@ -950,7 +912,7 @@ final class MobileHostService {
             // first control frame is valid while the admitted session is
             // settling, so an application timer must not retire it.
             0
-        case .stackBearer:
+        case .stackBearer, .localDirect:
             MobileHostConnection.defaultFirstFrameTimeoutNanoseconds
         }
         let session = MobileHostConnection(
@@ -982,6 +944,10 @@ final class MobileHostService {
                 return true
             },
             isAuthorizationCurrent: {
+                if case .localDirect = authorization {
+                    guard !remoteControlDisabledByPolicy(), await isCurrent() else { return false }
+                    return await localDirectIsAuthorized()
+                }
                 if case .irohAdmission = authorization {
                     return await irohAdmissionIsAuthorized()
                 }
@@ -999,9 +965,6 @@ final class MobileHostService {
                             await MobileHostService.networkStatusResult(for: request)
                         }
                     )
-                }
-                if request.method == "phone_push.keys.exchange" {
-                    return await MobileHostService.shared.handlePhonePushKeyExchange(request)
                 }
                 let result = await TerminalController.shared.mobileHostHandleRPC(
                     request,
@@ -1035,6 +998,15 @@ final class MobileHostService {
             MobileHostRequestActivity.endConnection()
             return expectedExit
         }
+        if case .localDirect = authorization {
+            let authorized = await localDirectIsAuthorized()
+            let current = await isCurrent()
+            if remoteControlDisabledByPolicy() || !authorized || !current {
+                await transport.close()
+                MobileHostRequestActivity.endConnection()
+                return expectedExit
+            }
+        }
         guard registry.insert(
             session,
             id: id,
@@ -1048,7 +1020,15 @@ final class MobileHostService {
             MobileHostRequestActivity.endConnection()
             return expectedExit
         }
-        return await session.run()
+        let exit = await session.run()
+        if case .localDirect = authorization {
+            // A response task can close concurrently with the receive loop's exit.
+            // Release local registry ownership before returning to the TCP owner;
+            // onClose remains idempotent and finishes the existing service cleanup.
+            await session.close(reason: "local direct session ended")
+            registry.remove(id: id)
+        }
+        return exit
     }
 
     nonisolated static func connectionAuthorizationError(
@@ -1062,7 +1042,25 @@ final class MobileHostService {
             return await stackAuthorization(request)
         case .irohAdmission:
             return nil
+        case .localDirect:
+            return MobileLocalDirectRPCPolicy().authorizationError(for: request)
         }
+    }
+
+    nonisolated static func localDirectStatusPayload(hostDeviceID: String) -> [String: Any] {
+        var payload: [String: Any] = [
+            "routes": [],
+            "terminal_fidelity": "render_grid",
+            "capabilities": MobileLocalDirectRPCPolicy().capabilities,
+            "theme": TerminalTheme(ghosttyConfig: GhosttyConfig.loadForCmux()).mobileHostJSONObject,
+            "terminal_theme_revision_epoch": terminalThemeRevisionEpoch,
+            "mac_device_id": hostDeviceID
+        ]
+        if let name = MobileHostIdentity.instanceDisplayName() { payload["mac_display_name"] = name }
+        let build = MobileHostBuildIdentity.current()
+        if let version = build.appVersion { payload["mac_app_version"] = version }
+        if let number = build.appBuild { payload["mac_app_build"] = number }
+        return payload
     }
 
     nonisolated static func connectionStatusResult(
@@ -1075,21 +1073,18 @@ final class MobileHostService {
         switch authorization {
         case .stackBearer:
             return await stackStatus(request)
-        case .irohAdmission:
-            let phonePushStatus = await MainActor.run {
-                (
-                    PhonePushClient.shared.currentAdmission(),
-                    PhonePushClient.shared.queuePersistenceStatus
-                )
+        case .localDirect:
+            guard let hostDeviceID, !hostDeviceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return .failure(MobileHostRPCError(code: "unavailable", message: "Host identity unavailable"))
             }
+            return .ok(localDirectStatusPayload(hostDeviceID: hostDeviceID))
+        case .irohAdmission:
             return MobileHostPublicStatusCache.result(
                 includeIdentity: true,
                 deviceID: hostDeviceID,
                 additionalCapabilities: supportsArtifactLane
                     ? Set([irohArtifactLaneCapability])
-                    : Set(),
-                phonePushAdmission: phonePushStatus.0,
-                phonePushQueuePersistenceStatus: phonePushStatus.1
+                    : Set()
             )
         }
     }
@@ -1197,14 +1192,15 @@ final class MobileHostService {
         registry: MobileHostConnectionRegistry = .shared
     ) {
         registry.remove(id: id)
-        // Drop this connection's sticky viewport reports so a disconnected
-        // device stops pinning the shared grid (and its macOS viewport border
-        // clears) even though it never sent an explicit clear.
+        // Drop connection-scoped reports and generation fences. Legacy viewers
+        // stop pinning; a direct controller retains its last grid in the sizing
+        // host until explicit release, without retaining this dead connection.
         let clientIDs = clientIDsByConnectionID[id] ?? []
         clientIDsByConnectionID.removeValue(forKey: id)
         if !clientIDs.isEmpty {
             TerminalController.shared.clearMobileViewportReports(
                 clientIDs: clientIDs,
+                preservingDirectControl: true,
                 reason: "mobile.connection.closed"
             )
         }

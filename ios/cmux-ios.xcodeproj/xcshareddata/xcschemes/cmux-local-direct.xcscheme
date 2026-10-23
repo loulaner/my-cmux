@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Scheme version="1.7">
+  <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
+    <BuildActionEntries><BuildActionEntry buildForTesting="NO" buildForRunning="YES" buildForProfiling="NO" buildForArchiving="NO" buildForAnalyzing="YES"><BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="D1EC00000000000000000001" BuildableName="cmux-local-direct.app" BlueprintName="cmux-local-direct" ReferencedContainer="container:cmux-ios.xcodeproj"/></BuildActionEntry></BuildActionEntries>
+  </BuildAction>
+  <AnalyzeAction buildConfiguration="Debug"/>
+</Scheme>

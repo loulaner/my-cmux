@@ -18,6 +18,7 @@ struct SignInView: View {
         case code
     }
 
+    private let capabilities: MobileDistributionCapabilities
     private let usesStandaloneChrome: Bool
     @Environment(AuthCoordinator.self) private var authManager
     @Environment(\.analytics) private var analytics
@@ -38,7 +39,11 @@ struct SignInView: View {
     @FocusState private var isEmailFocused: Bool
     @FocusState private var isCodeFocused: Bool
 
-    init(usesStandaloneChrome: Bool = true) {
+    init(
+        usesStandaloneChrome: Bool = true,
+        capabilities: MobileDistributionCapabilities = .init(infoDictionary: Bundle.main.infoDictionary ?? [:])
+    ) {
+        self.capabilities = capabilities
         self.usesStandaloneChrome = usesStandaloneChrome
     }
 
@@ -111,13 +116,14 @@ struct SignInView: View {
                 brandHeader
                 SignInAuthRestoreStatusView()
 
-                VStack(spacing: 12) {
-                    ForEach(OAuthSignInProvider.allCases, id: \.self) { provider in
-                        oauthButton(for: provider)
+                if capabilities.supportsOAuth {
+                    VStack(spacing: 12) {
+                        ForEach(OAuthSignInProvider.allCases, id: \.self) { provider in
+                            oauthButton(for: provider)
+                        }
                     }
+                    DividerLabel(text: L10n.string("mobile.signIn.emailDivider", defaultValue: "or continue with email"))
                 }
-
-                DividerLabel(text: L10n.string("mobile.signIn.emailDivider", defaultValue: "or continue with email"))
 
                 VStack(spacing: 12) {
                     GlassInputPill(height: 50, alignment: .leading) {

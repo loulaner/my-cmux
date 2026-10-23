@@ -2,7 +2,6 @@ import Testing
 import AppKit
 import CmuxSidebar
 import CmuxNotifications
-import CmuxUpdater
 import SwiftUI
 
 #if canImport(cmux_DEV)
@@ -162,7 +161,6 @@ final class SidebarLazyLayoutScaleTests {
         let counter = RowBodyCounter()
 
         let root = VerticalTabsSidebar(
-            updateViewModel: UpdateStateModel(),
             fileExplorerState: FileExplorerState(),
             sessionIndexStore: SessionIndexStore(),
             featureFlags: featureFlags,

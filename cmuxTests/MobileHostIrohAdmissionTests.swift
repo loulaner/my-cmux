@@ -357,26 +357,22 @@ struct IrohTailscaleVersionSkewMacGateTests {
         #expect(host != "127.0.0.1")
     }
 
-    // IROH v2 (#12326) retired the separate legacy TCP listener. Shipped iOS
-    // builds now reach the Mac through the legacy `cmux/mobile/1` dialect on
-    // the same v2 endpoint, gated by the same pairing opt-in. These two tests
-    // keep the original guarantee: on Stable, either the current or the
-    // historical setting starts Iroh and keeps the legacy dialect reachable.
-    @Test func testStableExplicitSettingStartsIrohAndLegacyCompatibilityListener() throws {
-        try assertStablePairingStartsIrohAndLegacyDialect(
+    // Old persisted preferences remain readable but cannot reactivate the retired host.
+    @Test func testStableExplicitSettingCannotReactivateRetiredHost() throws {
+        try assertStablePairingCannotReactivateRetiredHost(
             suffix: "Current",
             key: MobileHostService.listeningEnabledDefaultsKey
         )
     }
 
-    @Test func testStableHistoricalSettingStartsIrohAndLegacyCompatibilityListener() throws {
-        try assertStablePairingStartsIrohAndLegacyDialect(
+    @Test func testStableHistoricalSettingCannotReactivateRetiredHost() throws {
+        try assertStablePairingCannotReactivateRetiredHost(
             suffix: "Historical",
             key: "cmuxMobilePairingHostEnabled"
         )
     }
 
-    private func assertStablePairingStartsIrohAndLegacyDialect(
+    private func assertStablePairingCannotReactivateRetiredHost(
         suffix: String,
         key: String
     ) throws {
@@ -398,10 +394,10 @@ struct IrohTailscaleVersionSkewMacGateTests {
         )
         let shippedLegacyALPN = Data("cmux/mobile/1".utf8)
 
-        #expect(runtime.isNetworkingAllowed)
+        #expect(!runtime.isNetworkingAllowed)
         #expect(MobileHostIrxLegacyDialectServer.legacyALPN == shippedLegacyALPN)
         #expect(MobileHostIrxRuntime.endpointAdditionalALPNs.contains(shippedLegacyALPN))
-        #expect(runtime.acceptsLegacyDialect(alpn: shippedLegacyALPN))
+        #expect(!runtime.acceptsLegacyDialect(alpn: shippedLegacyALPN))
         #expect(!runtime.acceptsLegacyDialect(alpn: Data("cmux/mobile/2".utf8)))
 
         defaults.set(false, forKey: key)

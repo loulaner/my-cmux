@@ -4,7 +4,6 @@ import ObjectiveC.runtime
 import SwiftUI
 import Testing
 import WebKit
-import CmuxUpdater
 
 #if canImport(cmux_DEV)
 @testable import cmux_DEV
@@ -18,7 +17,7 @@ struct FileDropOverlayViewTests {
     private func makeContentViewWindow(windowId: UUID = UUID()) -> NSWindow {
         _ = NSApplication.shared
 
-        let root = ContentView(updateViewModel: UpdateStateModel(), windowId: windowId)
+        let root = ContentView(windowId: windowId)
             .environmentObject(TabManager())
             .environmentObject(TerminalNotificationStore.shared)
             .environmentObject(SidebarState())

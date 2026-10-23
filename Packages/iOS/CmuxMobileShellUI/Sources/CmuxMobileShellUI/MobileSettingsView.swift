@@ -564,59 +564,61 @@ struct MobileSettingsView: View {
                 // toggle the app always had; the delivery-status diagnostics,
                 // Mac forwarding controls, and test actions are a dev surface
                 // and stay DEBUG-only.
-                Section(L10n.string("mobile.settings.notifications", defaultValue: "Push Alerts")) {
-#if DEBUG
-                    MobilePushSettingsContent(
-                        readiness: pushCoordinator.readiness(
+                if pushCoordinator.supportsPush {
+                    Section(L10n.string("mobile.settings.notifications", defaultValue: "Push Alerts")) {
+    #if DEBUG
+                        MobilePushSettingsContent(
+                            readiness: pushCoordinator.readiness(
+                                macStatus: store?.phonePushMacStatus,
+                                macAccountMismatch: store?.connectionRequiresReauth == true,
+                                securePushSetupFailed: store?.phonePushKeyExchangeFailed == true
+                            ),
+                            phoneEnabled: $notificationsEnabled,
                             macStatus: store?.phonePushMacStatus,
-                            macAccountMismatch: store?.connectionRequiresReauth == true,
-                            securePushSetupFailed: store?.phonePushKeyExchangeFailed == true
-                        ),
-                        phoneEnabled: $notificationsEnabled,
-                        macStatus: store?.phonePushMacStatus,
-                        supportsMacSettings: store?.supportsPhonePushSettings == true,
-                        supportsMacTest: store?.supportsPhonePushTest == true,
-                        canConnectMac: startPairingScanner != nil,
-                        onPhoneEnabledChange: updatePhonePushEnabled,
-                        onRepair: repairPhonePush,
-                        onMacMutation: updateMacPhonePush,
-                        onSendTest: sendPhonePushTest
-                    )
-                    Button {
-                        Task { @MainActor in
-                            debugReplyScheduled = await pushCoordinator
-                                .debugScheduleLocalReplyNotification()
-                        }
-                    } label: {
-                        Text(L10n.string(
-                            "mobile.settings.debugReplyTest",
-                            defaultValue: "Test Inline Reply (Local)"
-                        ))
-                    }
-                    .accessibilityIdentifier("MobileSettingsDebugReplyTestButton")
-                    if let debugReplyScheduled {
-                        Text(L10n.string(
-                            debugReplyScheduled
-                                ? "mobile.settings.debugReplyTest.scheduled"
-                                : "mobile.settings.debugReplyTest.failed",
-                            defaultValue: debugReplyScheduled
-                                ? "Scheduled: lock the phone; the notification fires in 5 seconds."
-                                : "Couldn't schedule: open a workspace and select a terminal first."
-                        ))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    }
-#else
-                    if store?.phonePushKeyExchangeFailed == true {
-                        MobilePushSecuritySetupFailureView(
-                            onRetry: retrySecurePushSetup
+                            supportsMacSettings: store?.supportsPhonePushSettings == true,
+                            supportsMacTest: store?.supportsPhonePushTest == true,
+                            canConnectMac: startPairingScanner != nil,
+                            onPhoneEnabledChange: updatePhonePushEnabled,
+                            onRepair: repairPhonePush,
+                            onMacMutation: updateMacPhonePush,
+                            onSendTest: sendPhonePushTest
                         )
+                        Button {
+                            Task { @MainActor in
+                                debugReplyScheduled = await pushCoordinator
+                                    .debugScheduleLocalReplyNotification()
+                            }
+                        } label: {
+                            Text(L10n.string(
+                                "mobile.settings.debugReplyTest",
+                                defaultValue: "Test Inline Reply (Local)"
+                            ))
+                        }
+                        .accessibilityIdentifier("MobileSettingsDebugReplyTestButton")
+                        if let debugReplyScheduled {
+                            Text(L10n.string(
+                                debugReplyScheduled
+                                    ? "mobile.settings.debugReplyTest.scheduled"
+                                    : "mobile.settings.debugReplyTest.failed",
+                                defaultValue: debugReplyScheduled
+                                    ? "Scheduled: lock the phone; the notification fires in 5 seconds."
+                                    : "Couldn't schedule: open a workspace and select a terminal first."
+                            ))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        }
+    #else
+                        if store?.phonePushKeyExchangeFailed == true {
+                            MobilePushSecuritySetupFailureView(
+                                onRetry: retrySecurePushSetup
+                            )
+                        }
+                        MobilePushToggle(
+                            isEnabled: $notificationsEnabled,
+                            applyEnabledIntent: setPhonePushEnabledIntent
+                        )
+    #endif
                     }
-                    MobilePushToggle(
-                        isEnabled: $notificationsEnabled,
-                        applyEnabledIntent: setPhonePushEnabledIntent
-                    )
-#endif
                 }
 
                 Section {

@@ -1,5 +1,6 @@
 import CmuxAuthRuntime
 import CmuxMobileRPC
+import CmuxMobileSupport
 import Foundation
 import Testing
 import UserNotifications
@@ -257,6 +258,40 @@ private final class LifecyclePushURLProtocol: URLProtocol,
 }
 
 @Suite struct MobilePushCoordinatorLifecycleTests {
+    @MainActor
+    @Test func personalArtifactRejectsPushAcrossEntryPointsDespiteStaleOptIn() async {
+        let suiteName = "personal-push-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defaults.set(true, forKey: "cmux.notifications.pushEnabled")
+        let registration = LifecyclePushRegistration(snapshot: PushRegistrationSnapshot(
+            isEnabled: true, hasDeviceToken: true, backendState: .registrationRequired
+        ))
+        var permissionRequests = 0
+        var apnsRequests = 0
+        let coordinator = MobilePushCoordinator(
+            registration: registration,
+            capabilities: .init(infoDictionary: ["CMUXPersonalBuild": true]),
+            defaults: defaults,
+            authorizationStatus: { .authorized },
+            requestAuthorization: { permissionRequests += 1; return true },
+            registerForRemoteNotifications: { apnsRequests += 1 }
+        )
+        #expect(await coordinator.enable() == false)
+        #expect(await coordinator.setEnabledIntent(true).value == false)
+        await coordinator.workspaceListDidBecomeVisible()
+        await coordinator.refreshReadiness()
+        await coordinator.networkDidBecomeReachable()
+        coordinator.retryDeviceTokenRegistration()
+        await coordinator.handleDeviceToken(Data([1, 2, 3]))
+        await coordinator.syncTokenIfPossible()
+        #expect(!coordinator.isEnabled)
+        #expect(permissionRequests == 0)
+        #expect(apnsRequests == 0)
+        #expect(await registration.syncCount == 0)
+        #expect(await registration.snapshot.backendState == .registrationRequired)
+    }
+
     @MainActor
     @Test func readinessForwardsSecurePushSetupFailure() async {
         let registration = LifecyclePushRegistration(snapshot: PushRegistrationSnapshot(

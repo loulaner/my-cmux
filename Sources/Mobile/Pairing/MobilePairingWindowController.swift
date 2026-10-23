@@ -7,7 +7,7 @@ import SwiftUI
 ///
 /// Mirrors the host-side config window pattern: it reuses the existing window
 /// when one is already open (so repeated requests focus instead of spawning
-/// duplicates) and hosts ``MobilePairingView`` in an `NSHostingController`.
+/// duplicates) and hosts ``MobileLocalDirectView`` in an `NSHostingController`.
 @MainActor
 final class MobilePairingWindowController: ReleasingWindowController {
     /// The shared controller. The app target composes window controllers as
@@ -51,14 +51,12 @@ final class MobilePairingWindowController: ReleasingWindowController {
 
     override func makeWindow() -> NSWindow {
         let appearanceMode = UserDefaults.standard.string(forKey: AppearanceSettings.appearanceModeKey)
-        let root = MobilePairingView { [weak self] height in
-            self?.pairingContentHeightDidChange(height)
-        }
+        let root = MobileLocalDirectView()
             .cmuxAppearanceColorScheme(appearanceMode)
         let hostingController = NSHostingController(rootView: root)
 
         let window = NSWindow(contentViewController: hostingController)
-        window.title = String(localized: "mobile.pairing.window.title", defaultValue: "Mobile Pairing")
+        window.title = String(localized: "mobile.direct.title", defaultValue: "iPad Direct Connection")
         window.identifier = NSUserInterfaceItemIdentifier(Self.windowIdentifier)
         // Resizable so the QR (which fills the window width) can be made even
         // larger for scanning at a distance.
@@ -75,6 +73,7 @@ final class MobilePairingWindowController: ReleasingWindowController {
     }
 
     override func managedWindowWillClose(_ window: NSWindow) {
+        MobileLocalDirectHostController.shared.closePairingWindow()
         idealContentHeight = nil
         isUserResizing = false
     }
@@ -137,14 +136,14 @@ final class MobilePairingPanel: Panel {
     let panelType: PanelType = .mobilePairing
 
     var displayTitle: String {
-        String(localized: "mobile.pairing.window.title", defaultValue: "Mobile Pairing")
+        String(localized: "mobile.direct.title", defaultValue: "iPad Direct Connection")
     }
 
     var displayIcon: String? { "iphone" }
 
     func focus() {}
     func unfocus() {}
-    func close() {}
+    func close() { MobileLocalDirectHostController.shared.closePairingWindow() }
     func triggerFlash(reason: WorkspaceAttentionFlashReason) { _ = reason }
 }
 
@@ -153,7 +152,7 @@ struct MobilePairingPanelView: View {
     let onRequestPanelFocus: () -> Void
 
     var body: some View {
-        MobilePairingView()
+        MobileLocalDirectView()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: appearance.contentBackgroundColor))
             .environment(\.colorScheme, appearance.backgroundColor.isLightColor ? .light : .dark)

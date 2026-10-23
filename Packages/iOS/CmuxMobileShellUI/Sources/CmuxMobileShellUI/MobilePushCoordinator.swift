@@ -5,6 +5,7 @@ import CmuxMobileRPC
 import CmuxMobilePairedMac
 import CmuxMobileShell
 import CmuxMobileShellModel
+import CmuxMobileSupport
 import Foundation
 import Observation
 import OSLog
@@ -84,6 +85,8 @@ public final class MobilePushCoordinator {
     private nonisolated(unsafe) let defaults: UserDefaults
     private static let enabledKey = "cmux.notifications.pushEnabled"
     private var enabledMirror: Bool
+    /// Whether the signed artifact includes remote notification support.
+    public let supportsPush: Bool
     @ObservationIgnored private var settingsIntentGeneration: UInt64 = 0
     @ObservationIgnored private var settingsIntentTask: Task<Bool, Never>?
 
@@ -197,6 +200,7 @@ public final class MobilePushCoordinator {
     ///   - registration: The injected push-registration service.
     ///   - analytics: The injected fire-and-forget analytics emitter. Defaults to
     ///     ``NoopAnalytics`` for previews/tests.
+    ///   - capabilities: Optional services supported by the signed artifact.
     ///   - diagnosticLog: The app-root privacy-safe diagnostics recorder.
     ///   - defaults: The store backing the opt-in flag (must match the suite the
     ///     registration service uses). Defaults to `.standard`.
@@ -210,6 +214,7 @@ public final class MobilePushCoordinator {
     ///     to `Date.init`.
     public init(
         registration: any PushRegistering,
+        capabilities: MobileDistributionCapabilities = .init(infoDictionary: Bundle.main.infoDictionary ?? [:]),
         analytics: any AnalyticsEmitting = NoopAnalytics(),
         diagnosticLog: DiagnosticLog? = nil,
         phoneAPIOrigin: String = "https://cmux.com",
@@ -240,6 +245,7 @@ public final class MobilePushCoordinator {
         notificationSettingsTimeout: Duration = .seconds(5),
         authorizationRequestTimeout: Duration = .seconds(120)
     ) {
+        self.supportsPush = capabilities.supportsPush
         self.registration = registration
         self.replyRetrySleep = replyRetrySleep
         self.backgroundRuntime = backgroundRuntime
@@ -253,7 +259,7 @@ public final class MobilePushCoordinator {
         self.diagnosticLog = diagnosticLog
         self.phoneAPIOrigin = phoneAPIOrigin
         self.defaults = defaults
-        self.enabledMirror = defaults.bool(forKey: Self.enabledKey)
+        self.enabledMirror = capabilities.supportsPush && defaults.bool(forKey: Self.enabledKey)
         self.deliveredNotificationClearer = deliveredNotificationClearer
         self.pendingDismissQueue = pendingDismissQueue
         self.now = now
@@ -298,6 +304,7 @@ public final class MobilePushCoordinator {
         _ enabled: Bool,
         trigger: String = "settings_toggle"
     ) -> Task<Bool, Never> {
+        guard supportsPush else { return Task { false } }
         settingsIntentTask?.cancel()
         let generation = beginSettingsIntent(enabled)
         let registration = registration
@@ -365,6 +372,7 @@ public final class MobilePushCoordinator {
     /// registration after system authorization permits delivery. Call once at
     /// launch from the AppDelegate.
     public func configure(delegate: any UNUserNotificationCenterDelegate) {
+        guard supportsPush else { return }
         diagnosticLog?.recordAppEvent(.pushConfigured)
         let center = UNUserNotificationCenter.current()
         center.delegate = delegate
@@ -414,6 +422,7 @@ public final class MobilePushCoordinator {
     /// never to an automatic surface, so people see the value of notifications
     /// before iOS burns the app's one prompt.
     public func workspaceListDidBecomeVisible() async {
+        guard supportsPush else { return }
         let initialSettingsGeneration = settingsIntentGeneration
         if defaults.object(forKey: Self.enabledKey) as? Bool == false {
             return
@@ -524,6 +533,7 @@ public final class MobilePushCoordinator {
 
     /// Hand a freshly-registered APNs token to the network layer.
     public func handleDeviceToken(_ token: Data) async {
+        guard supportsPush else { return }
         diagnosticLog?.recordAppEvent(.pushDeviceTokenReceived, count: token.count)
         diagnosticLog?.recordAppEvent(.pushBackendSyncStarted)
         await registration.register(deviceToken: token)
@@ -536,6 +546,7 @@ public final class MobilePushCoordinator {
     /// Make the APNs callback failure visible without retaining Apple's
     /// free-form error text, which can contain unstable device details.
     public func handleDeviceTokenFailure(error: (any Error)? = nil) async {
+        guard supportsPush else { return }
         diagnosticLog?.recordAppEvent(
             .pushDeviceTokenRegistrationFailed,
             failure: error.map(DiagnosticFailureKind.classify) ?? .unknown
@@ -548,6 +559,7 @@ public final class MobilePushCoordinator {
 
     /// User-triggered repair for a failed APNs token callback.
     public func retryDeviceTokenRegistration() {
+        guard supportsPush else { return }
         diagnosticLog?.recordAppEvent(.pushRemoteRegistrationRequested)
         hasRequestedRemoteRegistration = true
         registerForRemoteNotifications()
@@ -555,6 +567,7 @@ public final class MobilePushCoordinator {
 
     /// Re-upload the cached token when possible (e.g. after sign-in).
     public func syncTokenIfPossible() async {
+        guard supportsPush else { return }
         diagnosticLog?.recordAppEvent(.pushBackendSyncStarted)
         await registration.syncTokenIfPossible()
         let snapshot = await registration.snapshot
@@ -568,6 +581,7 @@ public final class MobilePushCoordinator {
     /// Call on every foreground transition because users can revoke permission
     /// in iOS Settings while cmux is suspended.
     public func refreshReadiness() async {
+        guard supportsPush else { return }
         guard let settings = await readNotificationSettingsBounded() else {
             return
         }
@@ -763,6 +777,7 @@ public final class MobilePushCoordinator {
     }
 
     private func requestRemoteRegistrationIfNeeded() {
+        guard supportsPush else { return }
         guard !hasRequestedRemoteRegistration else { return }
         diagnosticLog?.recordAppEvent(.pushRemoteRegistrationRequested)
         hasRequestedRemoteRegistration = true
@@ -789,6 +804,7 @@ public final class MobilePushCoordinator {
     private func recoverRegistrationIfNeeded(
         settingsGeneration: UInt64? = nil
     ) async {
+        guard supportsPush else { return }
         let current = await registration.snapshot
         guard settingsGeneration.map({
             isCurrentSettingsIntent($0, enabled: true)

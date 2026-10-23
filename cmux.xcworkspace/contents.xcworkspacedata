@@ -316,12 +316,6 @@
          location = "group:CmuxTestSupport">
       </FileRef>
       <FileRef
-         location = "group:CmuxUpdater">
-      </FileRef>
-      <FileRef
-         location = "group:CmuxUpdaterUI">
-      </FileRef>
-      <FileRef
          location = "group:CmuxWindowing">
       </FileRef>
       <FileRef

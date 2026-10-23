@@ -7,6 +7,7 @@ import SwiftUI
 /// A short product tour presented after sign-in, ending in same-account
 /// computer discovery with explicit Mac-side pairing opt-in.
 struct OnboardingFlowView: View {
+    private let supportsPush: Bool
     let context: OnboardingContext
     let isAuthenticated: Bool
     let connectionPhase: OnboardingConnectionPhase
@@ -30,6 +31,7 @@ struct OnboardingFlowView: View {
 
     init(
         initialStage: OnboardingStage,
+        capabilities: MobileDistributionCapabilities = .init(infoDictionary: Bundle.main.infoDictionary ?? [:]),
         context: OnboardingContext,
         isAuthenticated: Bool,
         connectionPhase: OnboardingConnectionPhase,
@@ -44,6 +46,7 @@ struct OnboardingFlowView: View {
         onSetKeepAwake: @escaping (Bool) async -> Bool = { _ in false },
         onComplete: @escaping () -> Void
     ) {
+        self.supportsPush = capabilities.supportsPush
         self.context = context
         self.isAuthenticated = isAuthenticated
         self.connectionPhase = connectionPhase
@@ -57,7 +60,7 @@ struct OnboardingFlowView: View {
         self.onStartTailscalePairing = onStartTailscalePairing
         self.onSetKeepAwake = onSetKeepAwake
         self.onComplete = onComplete
-        _stage = State(initialValue: initialStage)
+        _stage = State(initialValue: initialStage == .push && !capabilities.supportsPush ? .pairing : initialStage)
     }
 
     var body: some View {
@@ -70,6 +73,7 @@ struct OnboardingFlowView: View {
             onSecondary: handleSecondary,
             pageContent: OnboardingPageViewport(
                 stage: stage,
+                stages: OnboardingStage.allCases.filter { supportsPush || $0 != .push },
                 onNavigate: { navigate(to: $0) }
             ) { pageStage in
                 page(for: pageStage)
@@ -137,7 +141,7 @@ struct OnboardingFlowView: View {
         case .push:
             showNotifications()
         case .pairing:
-            showPush()
+            if supportsPush { showPush() } else { showNotifications() }
         case .connect:
             showPairing()
         }
@@ -171,7 +175,7 @@ struct OnboardingFlowView: View {
     }
 
     private func showPush() {
-        navigate(to: .push)
+        navigate(to: supportsPush ? .push : .pairing)
     }
 
     private func showPairing() {
@@ -186,7 +190,7 @@ struct OnboardingFlowView: View {
     /// Advances to Pairing after the system alert resolves either way; the
     /// grant/deny outcome is recorded by the push coordinator.
     private func enablePush() {
-        guard !isPushEnableInFlight else { return }
+        guard supportsPush, !isPushEnableInFlight else { return }
         isPushEnableInFlight = true
         analytics.capture("ios_onboarding_push_enable_tapped", eventProperties)
         // The enable must outlive a page change: the coordinator finishes

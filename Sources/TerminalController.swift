@@ -15506,11 +15506,19 @@ class TerminalController {
             // The v2 method carries the authenticated host identity with the
             // workspace snapshot so a cold reconnect does not need a second
             // relay round trip. Older clients continue using `workspace.list`.
-            result = v2MobileWorkspaceListWithHostStatus(params: request.params)
+            if case .localDirect = executionContext?.authorization {
+                result = v2MobileWorkspaceList(params: request.params)
+            } else {
+                result = v2MobileWorkspaceListWithHostStatus(params: request.params)
+            }
         case "workspace.list":
-            result = v2Bool(request.params, "include_host_status") == true
-                ? v2MobileWorkspaceListWithHostStatus(params: request.params)
-                : v2MobileWorkspaceList(params: request.params)
+            if case .localDirect = executionContext?.authorization {
+                result = v2MobileWorkspaceList(params: request.params)
+            } else {
+                result = v2Bool(request.params, "include_host_status") == true
+                    ? v2MobileWorkspaceListWithHostStatus(params: request.params)
+                    : v2MobileWorkspaceList(params: request.params)
+            }
         case "mobile.workspace.changes.summary",
              "mobile.workspace.changes.files",
              "mobile.workspace.changes.file_diff",
@@ -15544,11 +15552,11 @@ class TerminalController {
         case "mobile.terminal.replay", "terminal.replay":
             result = v2MobileTerminalReplay(params: request.params)
         case "mobile.terminal.viewport", "terminal.viewport":
-            result = v2MobileTerminalViewport(params: request.params)
+            result = v2MobileTerminalViewport(params: request.params, authorization: executionContext?.authorization)
         case "mobile.terminal.scroll", "terminal.scroll":
             result = v2MobileTerminalScroll(params: request.params)
         case "mobile.terminal.reattach":
-            result = v2MobileTerminalReattach(params: request.params)
+            result = v2MobileTerminalReattach(params: request.params, authorization: executionContext?.authorization)
         case "mobile.terminal.size_policy.set":
             result = v2MobileTerminalSizePolicySet(params: request.params)
         case "mobile.terminal.participant.disconnect":
@@ -15642,15 +15650,6 @@ class TerminalController {
             result = await v2MobileDogfoodFeedbackSubmit(params: request.params)
         case "mobile.sync.fetch":
             result = v2MobileSyncFetch(params: request.params)
-        case "phone_push.settings.update":
-            result = v2MobilePhonePushSettingsUpdate(params: request.params)
-        case "phone_push.status.get":
-            // The payload is intentionally content-free. This authenticated
-            // request supplies the same-account token that the client's paired
-            // host-status exchange reuses for the private readiness block.
-            result = .ok(["ok": true])
-        case "phone_push.test":
-            result = v2MobilePhonePushTest()
         case "caffeine.status":
             result = v2CaffeineStatus()
         case "caffeine.set":
@@ -16087,7 +16086,7 @@ class TerminalController {
         )
     }
 
-    func v2MobileTerminalReplay(params: [String: Any]) -> V2CallResult {
+    func v2MobileTerminalReplay(params: [String: Any], controllingClientID: String? = nil) -> V2CallResult {
         let traceID = v2String(params, "trace_id")
             .flatMap(DiagnosticTerminalTraceID.init(stringValue:))
         let traceStartedAt = DispatchTime.now().uptimeNanoseconds
@@ -16131,6 +16130,8 @@ class TerminalController {
         let expectedViewport = applyMobileViewportReport(
             params: params,
             terminalTarget: terminalTarget,
+            sticky: controllingClientID != nil,
+            controllingClientID: controllingClientID,
             reason: "mobile.terminal.replay"
         )
         if hasViewportReportFields, expectedViewport == nil {
@@ -16296,7 +16297,7 @@ class TerminalController {
     /// render to match. This is the iOS/macOS half of the tmux-style shared
     /// resize: the smallest attached viewport wins and every device shows the
     /// same cols×rows with a clear border around the live area.
-    func v2MobileTerminalViewport(params: [String: Any]) -> V2CallResult {
+    func v2MobileTerminalViewport(params: [String: Any], controllingClientID: String? = nil) -> V2CallResult {
         if let error = mobileWorkspaceIDValidationError(params: params) {
             return error
         }
@@ -16335,6 +16336,7 @@ class TerminalController {
                 params: params,
                 terminalTarget: terminalTarget,
                 sticky: true,
+                controllingClientID: controllingClientID,
                 reason: "mobile.terminal.viewport"
             )
             allowLiveSurfaceFallback = true
@@ -16767,6 +16769,7 @@ class TerminalController {
         params: [String: Any],
         terminalTarget: ControlTerminalSocketTarget,
         sticky: Bool = false,
+        controllingClientID: String? = nil,
         reason: String = "mobile.terminal.input"
     ) -> (columns: Int, rows: Int)? {
         let terminalPanel = terminalTarget.panel
@@ -16835,6 +16838,7 @@ class TerminalController {
             surfaceID: terminalPanel.id,
             reports: reports,
             countsOverride: mobileCountsOverrideParam(params).map { (clientID: clientID, value: $0) },
+            controllingClientID: controllingClientID,
             reason: reason
         )
     }
@@ -16904,7 +16908,8 @@ class TerminalController {
         guard let surface = terminalSocketTarget(surfaceID: surfaceID)?.surface else { return nil }
         switch target {
         case .cap(let columns, let rows):
-            return surface.applyMobileViewportLimit(columns: columns, rows: rows, reason: reason)
+            return surface.applyMobileViewportLimit(columns: columns, rows: rows,
+                exactGrid: localSizingHostsBySurfaceID[surfaceID]?.controllingPhoneID != nil, reason: reason)
         case .uncapped:
             surface.clearMobileViewportLimit(reason: reason)
             return nil
@@ -16963,11 +16968,14 @@ class TerminalController {
     func clearMobileViewportReport(
         surfaceID: UUID,
         clientID: String, generation: UInt64? = nil, requireGeneration: Bool = false,
+        preservingDirectControl: Bool = false,
         reason: String
     ) -> (columns: Int, rows: Int)? {
         if requireGeneration, let generation { if let existingGeneration = mobileViewportReportsBySurfaceID[surfaceID]?[clientID]?.generation ?? mobileViewportGenerationsBySurfaceID[surfaceID]?[clientID], existingGeneration > generation { return nil }; mobileViewportGenerationsBySurfaceID[surfaceID, default: [:]][clientID] = generation }
         else if requireGeneration, (mobileViewportReportsBySurfaceID[surfaceID]?[clientID]?.generation ?? mobileViewportGenerationsBySurfaceID[surfaceID]?[clientID]) != nil { return nil }
         else if var generations = mobileViewportGenerationsBySurfaceID[surfaceID] { generations.removeValue(forKey: clientID); mobileViewportGenerationsBySurfaceID[surfaceID] = generations.isEmpty ? nil : generations }
+        releaseDirectSizingControl(surfaceID: surfaceID, clientID: clientID,
+                                   preservingControl: preservingDirectControl, reason: reason)
         guard var reports = mobileViewportReportsBySurfaceID[surfaceID], reports[clientID] != nil else { return nil }
         reports.removeValue(forKey: clientID)
         if reports.isEmpty {
@@ -16986,11 +16994,13 @@ class TerminalController {
     /// surfaces. Called when a mobile connection closes so a disconnected
     /// device stops pinning the grid even though it never sent an explicit
     /// clear. Sticky reports rely on this signal instead of the TTL.
-    func clearMobileViewportReports(clientIDs: Set<String>, reason: String) {
+    func clearMobileViewportReports(clientIDs: Set<String>, preservingDirectControl: Bool = false, reason: String) {
         guard !clientIDs.isEmpty else { return }
-        for surfaceID in Set(mobileViewportReportsBySurfaceID.keys).union(mobileViewportGenerationsBySurfaceID.keys) {
+        for surfaceID in Set(mobileViewportReportsBySurfaceID.keys)
+            .union(mobileViewportGenerationsBySurfaceID.keys).union(localSizingHostsBySurfaceID.keys) {
             for clientID in clientIDs {
-                _ = clearMobileViewportReport(surfaceID: surfaceID, clientID: clientID, reason: reason)
+                _ = clearMobileViewportReport(surfaceID: surfaceID, clientID: clientID,
+                                              preservingDirectControl: preservingDirectControl, reason: reason)
             }
         }
     }

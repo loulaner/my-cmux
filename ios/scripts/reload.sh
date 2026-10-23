@@ -1,6 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Explicit direct lane dispatches before any cloud defaults, credentials or queue setup.
+cmux_direct_selector=0
+for cmux_connection_argument in "$@"; do
+  if [[ "$cmux_direct_selector" == 1 ]]; then
+    if [[ "$cmux_connection_argument" == local-direct ]]; then
+      exec python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/local_direct_device_install.py" "$@"
+    fi
+    echo "Unsupported --connection-mode" >&2
+    exit 2
+  fi
+  case "$cmux_connection_argument" in
+    --connection-mode) cmux_direct_selector=1 ;;
+    --connection-mode=local-direct)
+      exec python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/local_direct_device_install.py" "$@" ;;
+    --connection-mode=*) echo "Unsupported --connection-mode" >&2; exit 2 ;;
+  esac
+done
+if [[ "$cmux_direct_selector" == 1 ]]; then
+  echo "Missing --connection-mode value" >&2
+  exit 2
+fi
+unset cmux_connection_argument cmux_direct_selector
+
 usage() {
   cat <<'EOF'
 Usage: ios/scripts/reload.sh --tag <tag> [--simulator <name>] [--simulator-id <id>] [--no-launch]

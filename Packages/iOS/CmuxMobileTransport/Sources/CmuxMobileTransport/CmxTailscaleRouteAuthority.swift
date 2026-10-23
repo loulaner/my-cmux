@@ -180,7 +180,7 @@ final class CmxSystemTailscaleRouteAuthority: CmxTailscaleRouteAuthorizing, Send
     }
 }
 
-private struct CmxSystemInterfaceSnapshotReader {
+struct CmxSystemInterfaceSnapshotReader {
     private struct Builder {
         let identity: CmxNetworkInterfaceIdentity
         var isUp: Bool

@@ -48,6 +48,7 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
     var onZoom: ((TerminalFontZoomDirection) -> Void)?
     var onToolbarDiagnosticAction: ((TerminalToolbarDiagnosticAction) -> Void)?
     var onHideKeyboard: (() -> Void)?
+    private let toolbarPresentation: TerminalToolbarPresentation
     /// Fired by the trailing "customize" button so the SwiftUI host can present
     /// the toolbar shortcuts editor.
     var onOpenToolbarSettings: (() -> Void)?
@@ -213,7 +214,7 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
     /// rather than surfacing a broken edit menu.
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
         if action == #selector(paste(_:)) {
-            return UIPasteboard.general.hasStrings || UIPasteboard.general.hasImages
+            return UIPasteboard.general.hasStrings || (toolbarPresentation == .standard && UIPasteboard.general.hasImages)
         }
         return false
     }
@@ -474,13 +475,13 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
         // invariant immune to `contentOffset`, which is what the populate comment
         // below already claimed. It is not config/remote dependent, so it is built
         // once here (not rebuilt by `populateAccessoryActions`).
-        let composerButton = makeAccessoryButton(for: .composer)
+        let composerButton = toolbarPresentation == .standard ? makeAccessoryButton(for: .composer) : nil
         self.composerButton = composerButton
 
         container.addSubview(backgroundView)
         container.addSubview(dismissButton)
         container.addSubview(nub)
-        container.addSubview(composerButton)
+        if let composerButton { container.addSubview(composerButton) }
         container.addSubview(scrollView)
 
         let backgroundLeadingConstraint = backgroundView.leadingAnchor.constraint(equalTo: container.leadingAnchor)
@@ -505,6 +506,13 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
         // controls have breathing room.
         let buttonRow = UILayoutGuide()
         container.addLayoutGuide(buttonRow)
+
+        if let composerButton {
+            NSLayoutConstraint.activate([
+                composerButton.leadingAnchor.constraint(equalTo: nub.trailingAnchor, constant: 6),
+                composerButton.centerYAnchor.constraint(equalTo: buttonRow.centerYAnchor),
+            ])
+        }
 
         NSLayoutConstraint.activate([
             backgroundLeadingConstraint,
@@ -543,10 +551,8 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
             // scroll view starts FLUSH after it; the 4pt inter-button gap is a
             // leading content inset (see above) so scrolled keys fade out at
             // the composer's edge rather than at a line 4pt short of it.
-            composerButton.leadingAnchor.constraint(equalTo: nub.trailingAnchor, constant: 6),
-            composerButton.centerYAnchor.constraint(equalTo: buttonRow.centerYAnchor),
-
-            scrollView.leadingAnchor.constraint(equalTo: composerButton.trailingAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: composerButton?.trailingAnchor ?? nub.trailingAnchor,
+                                                constant: composerButton == nil ? 6 : 0),
             scrollTrailingConstraint,
             scrollView.topAnchor.constraint(equalTo: buttonRow.topAnchor),
             scrollView.bottomAnchor.constraint(equalTo: buttonRow.bottomAnchor),
@@ -753,7 +759,9 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
         //
         // The user-configurable region: built-in shortcuts/modifiers/zoom/paste
         // and custom actions, all in the user's saved order.
-        for item in TerminalAccessoryConfiguration.shared.enabledItems {
+        let items = toolbarPresentation.fixedActions.map { $0.map { ResolvedToolbarItem.builtin($0) } }
+            ?? TerminalAccessoryConfiguration.shared.enabledItems
+        for item in items {
             switch item {
             case let .builtin(action):
                 // ⌘ only makes sense against a Mac remote; skip it otherwise
@@ -770,7 +778,7 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
         // whole bottom chrome (toolbar + composer) until the next terminal tap.
         stack.addArrangedSubview(makeHideChromeButton())
         // The "customize" button pinned at the very end of the bar.
-        stack.addArrangedSubview(makeToolbarSettingsButton())
+        if toolbarPresentation == .standard { stack.addArrangedSubview(makeToolbarSettingsButton()) }
 
         // A modifier the user just hid (or ⌘ on a non-Mac remote) is no longer
         // rendered, so it would otherwise stay armed/sticky with no visible
@@ -863,7 +871,8 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
         }
     }
 
-    init() {
+    init(toolbarPresentation: TerminalToolbarPresentation = .standard) {
+        self.toolbarPresentation = toolbarPresentation
         super.init(frame: .zero)
         backgroundColor = .clear
         tintColor = .clear
@@ -874,12 +883,11 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
         // dismissal. Leaving `inputAccessoryView` nil means the keyboard shows
         // without its own accessory (the docked bar rides above it on the
         // host's notification-driven keyboard edge).
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleAccessoryConfigurationChanged),
-            name: TerminalAccessoryConfiguration.didChangeNotification,
-            object: nil
-        )
+        if toolbarPresentation == .standard {
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(handleAccessoryConfigurationChanged),
+                name: TerminalAccessoryConfiguration.didChangeNotification, object: nil)
+        }
     }
 
     required init?(coder: NSCoder) {
@@ -1064,6 +1072,7 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
 
     @objc
     private func handleOpenToolbarSettings() {
+        guard toolbarPresentation == .standard else { return }
         onOpenToolbarSettings?()
     }
 
@@ -1075,6 +1084,7 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
     /// Fire a custom action's bytes. Custom actions are macros, so any armed
     /// modifier is cleared first to avoid silently modifying the macro's output.
     private func handleCustomAction(_ custom: CustomToolbarAction) {
+        guard toolbarPresentation == .standard else { return }
         disarmAllModifiers()
         refreshAccessoryButtonStyles()
         guard let output = custom.output else { return }
@@ -1288,6 +1298,7 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
         _ action: TerminalInputAccessoryAction,
         sourceView: UIView? = nil
     ) {
+        guard toolbarPresentation.allows(action) else { return }
         onToolbarDiagnosticAction?(.accessory(action))
         if action == .composer {
             // Opening the composer moves first responder off this proxy, so clear
@@ -1392,7 +1403,7 @@ final class TerminalInputTextView: UIView, UIKeyInput, UITextInput {
     /// is the expected confirmation for an explicit Paste tap.
     private func handlePasteAction() {
         let pasteboard = UIPasteboard.general
-        if pasteboard.hasImages, let image = pasteboard.image {
+        if toolbarPresentation == .standard, pasteboard.hasImages, let image = pasteboard.image {
             let maxImageBytes = 8 * 1024 * 1024
             if let png = image.pngData(), png.count <= maxImageBytes {
                 onPasteImage?(png, "png")

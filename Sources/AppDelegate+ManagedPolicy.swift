@@ -21,15 +21,10 @@ extension AppDelegate {
             enforceBrowserURLAllowlistPolicy: { [weak self] in
                 self?.enforceBrowserURLAllowlistPolicy()
             },
-            enforceRemoteControlPolicy: {
-                // syncToSettings() tears the mobile host down under the
-                // policy (including live connections) and re-arms it when
-                // the policy lifts.
-                MobileHostService.shared.syncToSettings()
-            },
-            enforceIncomingAccessPolicy: {
-                MobileHostService.shared.syncToSettings()
-            },
+            // The direct controller observes ManagedDevicePolicy changes itself.
+            // Do not reconcile the retired mobile IROH owner on policy changes.
+            enforceRemoteControlPolicy: {},
+            enforceIncomingAccessPolicy: {},
             enforceCloudPolicy: { [weak self] in
                 self?.applyManagedCloudPolicy()
             },
@@ -54,7 +49,6 @@ extension AppDelegate {
     /// persisted; only controllers, retries, and transport tasks are stopped.
     func applyCloudFeatureFlag(enabled: Bool) {
         devicesRegistry?.evaluate()
-        MobileHostService.shared.syncToSettings()
         if !enabled {
             MachineCreateCoordinator.shared.cancelAllForAuthTransition(cleanupCreatedMachines: false)
             CloudVMActionLauncher.shared.cancelAllForAuthTransition()
@@ -96,25 +90,6 @@ extension AppDelegate {
             // keeps a lift symmetrical with activation.
             await service.setEnabled(userEnabled)
         }
-    }
-
-    /// `DisableAutoUpdate`: a manual "Check for Updates…" explains the managed
-    /// state instead of silently doing nothing. Returns true when the check
-    /// may proceed.
-    func managedAutoUpdateAllowsCheck() -> Bool {
-        guard ManagedDevicePolicy().isEnforced(.disableAutoUpdate) else { return true }
-        let alert = NSAlert()
-        alert.messageText = String(
-            localized: "managedPolicy.autoUpdate.disabled",
-            defaultValue: "Software updates are managed by your organization."
-        )
-        alert.informativeText = String(
-            localized: "managedPolicy.autoUpdate.disabledDetail",
-            defaultValue: "cmux does not check for or install updates on this Mac. Your organization deploys new versions."
-        )
-        alert.alertStyle = .informational
-        alert.runModal()
-        return false
     }
 
     /// `DisableRemoteConnections` activation. Every live cmux-created remote

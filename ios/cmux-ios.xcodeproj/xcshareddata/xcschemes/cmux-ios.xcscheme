@@ -29,6 +29,8 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <TestPlans>
+         <TestPlanReference reference = "container:cmux/local-terminal-acceptance.xctestplan">
+         </TestPlanReference>
          <TestPlanReference
             reference = "container:cmux/cmux.xctestplan"
             default = "YES">

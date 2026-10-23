@@ -17,11 +17,9 @@ private final class MobileHostV2RelayAddressCallback: AddrChangeCallback, Sendab
     func onChange(addr: EndpointAddr) async throws { await handler() }
 }
 
-/// The sole Mac IROH owner for an authenticated Stack account and opted-in
-/// installation. The endpoint remains registered under the team that owns its
-/// current host generation while the sidebar selects another team; account
-/// device links therefore keep borrowing the live endpoint instead of being
-/// torn down for a selector-only change.
+/// Retired Mac mobile IROH owner, retained temporarily for compilation and cleanup.
+/// Direct TCP is the only supported mobile host; no preference or environment
+/// override may reactivate this runtime.
 @MainActor
 final class MobileHostIrxRuntime: MobileHostPairingRuntime {
     static let shared = MobileHostIrxRuntime(publishesPublicHostStatus: true)
@@ -189,14 +187,11 @@ final class MobileHostIrxRuntime: MobileHostPairingRuntime {
     /// Whether an inbound connection on `alpn` is handed to the legacy dialect
     /// server. It follows the same pairing opt-in as the v2 runtime.
     func acceptsLegacyDialect(alpn: Data) -> Bool {
-        pairingEnabled() && alpn == MobileHostIrxLegacyDialectServer.legacyALPN
+        isNetworkingAllowed && pairingEnabled() && alpn == MobileHostIrxLegacyDialectServer.legacyALPN
     }
 
-    var isNetworkingAllowed: Bool {
-        (pairingEnabled() || DevicesFeature.isEnabled || MobileRemoteControlPolicy.allowsIncomingAccess())
-            && !managedDevicePolicy.isEnforced(.disableIrohNetworking)
-            && !managedDevicePolicy.isEnforced(.disableRemoteControl)
-    }
+    /// Product retirement is unconditional, independent of auth, flags, and managed policy.
+    var isNetworkingAllowed: Bool { false }
 
     private func isCurrent(_ token: UUID) -> Bool {
         guard generationToken == token, wantsHost, isNetworkingAllowed,
@@ -261,33 +256,8 @@ final class MobileHostIrxRuntime: MobileHostPairingRuntime {
         }
     }
 
-    func configure(auth: AuthCoordinator) {
-        self.auth = auth
-        authObservationTask?.cancel()
-        authObservationTask = Task { @MainActor [weak self, weak auth] in
-            guard let auth else { return }
-            await auth.awaitBootstrapped()
-            for await scope in auth.authenticatedTeamScopes() {
-                guard !Task.isCancelled else { return }
-                if let scope, scope != self?.signingOutScope { self?.wantsHost = true }
-                await self?.reconcile()
-            }
-        }
-        featureFlagTask?.cancel()
-        featureFlagTask = Task { @MainActor [weak self] in
-            for await _ in NotificationCenter.default.notifications(named: .cmuxFeatureFlagsDidChange) {
-                guard !Task.isCancelled else { return }
-                await self?.accountDirectoryFlagChanged()
-            }
-        }
-        wakeTask?.cancel()
-        wakeTask = Task { @MainActor [weak self] in
-            for await _ in NSWorkspace.shared.notificationCenter.notifications(named: NSWorkspace.didWakeNotification) {
-                guard !Task.isCancelled else { return }
-                await self?.foreground()
-            }
-        }
-    }
+    /// Retired: do not retain auth or register auth, feature-flag, or wake observers.
+    func configure(auth: AuthCoordinator) {}
 
     func applyManagedNetworkingPolicy() async {
         wantsHost = true
@@ -1209,7 +1179,7 @@ final class MobileHostIrxRuntime: MobileHostPairingRuntime {
             journal: journal
         )
         let laneLoop = Task {
-            await Self.runLaneLoop(
+            await MobileHostIrxLaneServer().run(
                 irx, admittedPeer: admittedPeer, artifactRegistry: artifactRegistry,
                 controlTransport: controlTransport,
                 tunnelHost: tunnelHost,
@@ -1274,149 +1244,6 @@ final class MobileHostIrxRuntime: MobileHostPairingRuntime {
         await registry.remove(deviceID: peer.bindingID, sessionID: sessionID)
     }
 
-    /// Post-admission lane dispatch: keepalive echo, terminal streams over
-    /// the byte tee, artifact reads. Quotas mirror the legacy router.
-    private nonisolated static func runLaneLoop(
-        _ irx: IrxConnection,
-        admittedPeer: CmxIrohAdmittedPeer,
-        artifactRegistry: MobileHostIrohArtifactTransferRegistry,
-        controlTransport: IrxControlByteTransport,
-        tunnelHost: IrxTunnelHost?,
-        journal: IrxJournal,
-        onInteractiveSurface: @escaping MobileHostIrxTerminalLaneServer.InteractiveSurfaceObserver,
-        onAcceptedInput: @escaping MobileHostIrxTerminalLaneServer.AcceptedInputObserver
-    ) async {
-        let terminalLaneQuota = MobileHostIrxTerminalLaneQuota()
-        while !Task.isCancelled {
-            guard let lane = await irx.acceptLane() else { return }
-            journal.record(
-                "host-lanes", "lane-accepted",
-                [
-                    "lane": lane.descriptor.lane.rawValue,
-                    "resource": lane.descriptor.resource ?? "-",
-                ]
-            )
-            switch lane.descriptor.lane {
-            case .keepalive:
-                _ = irx.respondKeepalive(on: lane)
-            case .terminal:
-                guard await terminalLaneQuota.reserve() else {
-                    await lane.writer.reset(errorCode: 3)
-                    await lane.reader.stop(errorCode: 3)
-                    continue
-                }
-                let resource = lane.descriptor.resource ?? ""
-                let cursor = lane.descriptor.cursor
-                Task {
-                    await MobileHostIrxTerminalLaneServer.serve(
-                        resourceID: resource,
-                        cursor: cursor,
-                        stream: lane.bidirectional(),
-                        journal: journal,
-                        onInteractiveSurface: onInteractiveSurface,
-                        onAcceptedInput: onAcceptedInput
-                    )
-                    await terminalLaneQuota.release()
-                }
-            case .terminalInput:
-                guard await terminalLaneQuota.reserve() else {
-                    await lane.writer.reset(errorCode: 3)
-                    await lane.reader.stop(errorCode: 3)
-                    continue
-                }
-                let resource = lane.descriptor.resource ?? ""
-                Task {
-                    await MobileHostIrxTerminalLaneServer.serveInputOnly(
-                        resourceID: resource,
-                        stream: lane.bidirectional(),
-                        journal: journal,
-                        onInteractiveSurface: onInteractiveSurface,
-                        onAcceptedInput: onAcceptedInput
-                    )
-                    await terminalLaneQuota.release()
-                }
-            case .artifact:
-                guard let resource = try? CmxIrohResourceID(lane.descriptor.resource ?? "")
-                else {
-                    await lane.writer.reset(errorCode: 2)
-                    await lane.reader.stop(errorCode: 2)
-                    continue
-                }
-                let offset = lane.descriptor.offset ?? 0
-                Task {
-                    let handler = MobileHostIrohArtifactLaneHandler(registry: artifactRegistry)
-                    _ = await handler.handleArtifactLane(
-                        resourceID: resource,
-                        offset: offset,
-                        stream: lane.bidirectional(),
-                        peer: admittedPeer
-                    )
-                }
-            case .simulatorStream:
-                guard let resource = try? CmxIrohResourceID(lane.descriptor.resource ?? "")
-                else {
-                    await lane.writer.reset(errorCode: 2)
-                    await lane.reader.stop(errorCode: 2)
-                    continue
-                }
-                // No lane count here: the v2 stream coordinator enforces
-                // last-writer-wins per panel, so a new attach supersedes and
-                // closes the previous session's lane.
-                Task {
-                    let stream = lane.bidirectional()
-                    let handler = MobileHostIrohSimulatorStreamLaneHandler()
-                    let didTakeOwnership = await handler.handleSimulatorStreamLane(
-                        resourceID: resource,
-                        stream: stream,
-                        peer: admittedPeer
-                    )
-                    if !didTakeOwnership {
-                        await stream.sendStream.reset(errorCode: 2)
-                        await stream.receiveStream.stop(errorCode: 2)
-                    }
-                }
-            case .controlRepair:
-                // The phone replaces a silent control stream without closing
-                // the connection its terminal lanes share. Off the accept
-                // loop: the acknowledgement write must not delay other lanes.
-                Task {
-                    let replaced = await controlTransport.acceptControlLaneReplacement(lane)
-                    journal.record(
-                        "host-lanes", replaced ? "control-replaced" : "control-replace-refused")
-                }
-            case .tcpConnect, .listeningPorts:
-                guard let tunnelHost else {
-                    await lane.writer.reset(errorCode: 2)
-                    await lane.reader.stop(errorCode: 2)
-                    continue
-                }
-                await tunnelHost.accept(lane)
-            case .control, .events:
-                // control arrives only pre-admission; events is server-opened.
-                await lane.writer.reset(errorCode: 2)
-                await lane.reader.stop(errorCode: 2)
-            }
-        }
-    }
-}
-
-/// Tracks active IRX terminal lanes rather than cumulative opens. Replay
-/// barriers intentionally close and reopen lanes, so a connection must return
-/// its credit when a serving task finishes or the fast input lane eventually
-/// becomes permanently unavailable after four reopen cycles.
-private actor MobileHostIrxTerminalLaneQuota {
-    private static let maximum = 4
-    private var activeCount = 0
-
-    func reserve() -> Bool {
-        guard activeCount < Self.maximum else { return false }
-        activeCount += 1
-        return true
-    }
-
-    func release() {
-        activeCount = max(0, activeCount - 1)
-    }
 }
 
 /// Mac side of the phone's "On iPhone" browser for paired Macs: the phone's

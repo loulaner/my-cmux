@@ -150,12 +150,12 @@ struct SettingsSearchIndexTests {
     }
 
     @Test(arguments: ["push", "notifications", "iphone"])
-    func pushNotificationQueriesFindTheMobileForwardingRow(query: String) {
+    func notificationQueriesDoNotOfferRetiredCloudPushRows(query: String) {
         let result = SettingsSearchIndex(catalog: SettingCatalog()).match(
             query
         )
-        #expect(result.contains {
-            $0.id == "setting:mobile:phone-push-forwarding"
+        #expect(!result.contains {
+            $0.id.hasPrefix("setting:mobile:phone-push-")
         })
     }
 

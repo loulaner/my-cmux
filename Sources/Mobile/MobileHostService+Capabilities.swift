@@ -94,9 +94,6 @@ extension MobileHostService {
         "notification.feed.mark_read",
         "notification.feed.mark_unread",
         "notification.reconcile",
-        "phone_push.settings.update",
-        "phone_push.status.get",
-        "phone_push.test",
         "terminal.create",
         "terminal.input",
         "terminal.mouse",
@@ -136,12 +133,6 @@ extension MobileHostService {
     nonisolated static let terminalInputOrderedCapability = "terminal.input.ordered.v1"
     nonisolated static let terminalSharedSizingCapability = "terminal.shared_sizing.v1"
     nonisolated static let workspaceChangesCapability = "workspace.changes.v1"
-    /// Authenticated status includes the Mac's independent phone-forwarding
-    /// gate, presence mode, account proof, and API endpoint identity.
-    nonisolated static let phonePushStatusCapability = "phone_push.status.v1"
-    nonisolated static let phonePushSettingsCapability = "phone_push.settings.v1"
-    /// Authenticated request to enqueue a truthful, correlated test alert.
-    nonisolated static let phonePushTestCapability = "phone_push.test.v1"
     /// Read and mutate cmux's process-scoped idle-sleep assertion.
     nonisolated static let caffeineControlCapability = "caffeine.control.v1"
     nonisolated static let taskCreateCapability = "workspace.task_create.v1"
@@ -225,7 +216,6 @@ extension MobileHostService {
             "notification.dismiss.v1",
             "notification.feed.v1",
             "notification.reconcile.v1",
-            "phone_push.keys.exchange.v1",
             "terminal.bytes.v1",
             "terminal.render_grid.v1",
             "terminal.render_grid.verified_replay.v1",

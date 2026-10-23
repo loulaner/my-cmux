@@ -23,6 +23,11 @@ public struct LocalTerminalSizingHost: Sendable {
     private var macParticipant: TerminalSizingParticipant
     /// Phones that reattached as viewers; their next attach has `counts_override: false`.
     private var viewerOnNextAttach: Set<String> = []
+    /// Direct iPad control survives connection loss; only an explicit release ends it.
+    private var directControl: (participantID: String, previousPolicy: TerminalSizingPolicy)?
+
+    /// The direct viewer currently controlling the grid, if any.
+    public var controllingPhoneID: String? { directControl?.participantID }
 
     /// The participant id of a paired phone.
     ///
@@ -65,7 +70,7 @@ public struct LocalTerminalSizingHost: Sendable {
     /// Mac view never sets the grid, so its pane stays pinned to it.
     public var applyTarget: TerminalSizingApplyTarget {
         let size = state.size
-        if macDetachment == nil, let macViewport, macViewport == size { return .uncapped }
+        if directControl == nil, macDetachment == nil, let macViewport, macViewport == size { return .uncapped }
         return .grid(size)
     }
 
@@ -93,10 +98,12 @@ public struct LocalTerminalSizingHost: Sendable {
     /// phones in the list are ignored. Identity and counts overrides of phones
     /// already attached are kept.
     ///
-    /// - Parameter phones: every phone currently reporting, with viewports.
+    /// - Parameters:
+    ///   - phones: every phone currently reporting, with viewports.
+    ///   - controllingClientID: an authenticated direct viewer taking sizing control.
     /// - Returns: whether the published state changed.
     @discardableResult
-    public mutating func syncPhones(_ phones: [TerminalSizingParticipant]) -> Bool {
+    public mutating func syncPhones(_ phones: [TerminalSizingParticipant], controllingClientID: String? = nil) -> Bool {
         var changed = false
         var wanted = Set<String>()
         for var phone in phones where phone.id != macParticipantID && !isDetached(phone.id) {
@@ -110,10 +117,34 @@ public struct LocalTerminalSizingHost: Sendable {
                 changed = engine.attach(phone) || changed
             }
         }
-        for id in phoneParticipantIDs where !wanted.contains(id) {
+        for id in phoneParticipantIDs where !wanted.contains(id) && id != controllingPhoneID {
             changed = engine.detach(id) || changed
         }
+        if let controllingClientID {
+            let participantID = Self.phoneParticipantID(clientID: controllingClientID)
+            if let participant = state.participant(participantID)?.participant {
+                let previousPolicy = directControl?.previousPolicy ?? state.policy
+                directControl = (participantID, previousPolicy)
+                changed = engine.setCountsOverride(participantID, true) || changed
+                changed = engine.setPolicy(TerminalSizingPolicy(mode: .priority, priority: [participant.priorityKey])) || changed
+            }
+        }
         return changed
+    }
+
+    /// Ends direct sizing control without destroying the terminal or revoking credentials.
+    /// The caller also removes this viewer's report; stale activity cannot keep it pinned.
+    @discardableResult
+    public mutating func releasePhoneControl(clientID: String) -> Bool {
+        releasePhoneControl(participantID: Self.phoneParticipantID(clientID: clientID))
+    }
+
+    private mutating func releasePhoneControl(participantID: String) -> Bool {
+        guard let control = directControl, control.participantID == participantID else { return false }
+        directControl = nil
+        engine.detach(participantID)
+        engine.setPolicy(control.previousPolicy)
+        return true
     }
 
     /// Explicit input or focus from a participant.
@@ -153,6 +184,7 @@ public struct LocalTerminalSizingHost: Sendable {
             detachedPhones[id] = detachment
             viewerOnNextAttach.remove(id)
         }
+        _ = releasePhoneControl(participantID: id)
         engine.detach(id)
         return true
     }
@@ -184,6 +216,7 @@ public struct LocalTerminalSizingHost: Sendable {
     public mutating func forgetPhone(_ id: String) -> Bool {
         detachedPhones[id] = nil
         viewerOnNextAttach.remove(id)
-        return engine.detach(id)
+        let released = releasePhoneControl(participantID: id)
+        return engine.detach(id) || released
     }
 }

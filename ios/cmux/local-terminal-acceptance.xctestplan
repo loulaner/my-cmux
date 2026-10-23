@@ -1,0 +1,37 @@
+{
+  "configurations": [
+    {
+      "id": "EF93B5B2-B1CE-4CA1-B289-E26192998095",
+      "name": "Local terminal acceptance",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "testExecutionOrdering": "lexical",
+    "targetForVariableExpansion": {
+      "containerPath": "container:cmux-ios.xcodeproj",
+      "identifier": "8B41F6442DEDD0D5001A66F9",
+      "name": "cmux"
+    }
+  },
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:cmux-ios.xcodeproj",
+        "identifier": "C1AC00000000000000000001",
+        "name": "cmuxLocalTerminalTests"
+      }
+    },
+    {
+      "target": {
+        "containerPath": "container:cmux-ios.xcodeproj",
+        "identifier": "8B41F65B2DEDD0D6001A66F9",
+        "name": "cmuxUITests"
+      },
+      "selectedTests": [
+        "LocalTerminalRotationUITests"
+      ]
+    }
+  ],
+  "version": 1
+}

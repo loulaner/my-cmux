@@ -19,6 +19,7 @@ let package = Package(
         .package(path: "../../Shared/CmuxTerminalSizing"),
         .package(path: "../CmuxMobileShellModel"),
         .package(path: "../CmuxMobileSupport"),
+        .package(path: "../CmuxMobileTransport"),
     ],
     targets: [
         .target(
@@ -39,6 +40,7 @@ let package = Package(
             name: "CmuxMobileRPCTests",
             dependencies: [
                 "CmuxMobileRPC",
+                "CmuxMobileTransport",
                 "CMUXMobileCore",
                 "CmuxMobileShellModel",
                 "CmuxTerminalSizing",

@@ -1,5 +1,4 @@
 import AppKit
-import CmuxUpdater
 import QuartzCore
 import SwiftUI
 import Testing
@@ -268,7 +267,6 @@ struct SidebarHiddenPresentationTests {
         var revealRowInputProjections = 0
         var isMeasuringRevealInvalidations = false
         let root = ContentView(
-            updateViewModel: UpdateStateModel(),
             windowId: UUID(),
             featureFlags: featureFlags
         )

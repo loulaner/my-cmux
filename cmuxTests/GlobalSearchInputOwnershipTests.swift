@@ -528,7 +528,6 @@ private final class GlobalSearchPaletteRequestRecorder {
             onJumpToLatestUnread: {},
             onOpenTaskManager: {},
             onToggleSleepyMode: {},
-            onCheckForUpdates: {},
             onOpenPreferences: {},
             onQuitApp: {}
         )

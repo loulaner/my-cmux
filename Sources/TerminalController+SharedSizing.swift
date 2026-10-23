@@ -46,6 +46,7 @@ extension TerminalController {
         surfaceID: UUID,
         reports: [String: MobileViewportReport],
         countsOverride: (clientID: String, value: Bool?)? = nil,
+        controllingClientID: String? = nil,
         immediate: Bool = false,
         reason: String
     ) -> (columns: Int, rows: Int)? {
@@ -65,7 +66,8 @@ extension TerminalController {
         if let viewport = localSizingControllersBySurfaceID[surfaceID]?.naturalViewport() {
             host.updateMacViewport(viewport)
         }
-        host.syncPhones(Array(phoneParticipants(reports: reports, surfaceID: surfaceID).values))
+        host.syncPhones(Array(phoneParticipants(reports: reports, surfaceID: surfaceID).values),
+                        controllingClientID: controllingClientID)
         if let countsOverride {
             host.setCountsOverride(
                 LocalTerminalSizingHost.phoneParticipantID(clientID: countsOverride.clientID),
@@ -446,6 +448,44 @@ extension TerminalController {
         return (value as? Bool).map { .some($0) }
     }
 
+    /// Only admitted direct sessions take control; other transports keep their existing sizing behavior.
+    func v2MobileTerminalViewport(params: [String: Any], authorization: MobileHostConnectionAuthorizationContext?) -> V2CallResult {
+        guard case let .localDirect(device) = authorization else {
+            return v2MobileTerminalViewport(params: params)
+        }
+        return v2LocalDirectTerminalViewport(params: params, deviceID: device.deviceID)
+    }
+
+    /// Direct admission supplies the device identity; the client cannot choose whose control to release.
+    private func v2LocalDirectTerminalViewport(params: [String: Any], deviceID: String) -> V2CallResult {
+        if v2Bool(params, "clear_all") == true {
+            clearMobileViewportReports(clientIDs: [deviceID], reason: "local_direct.manual_disconnect")
+            return .ok(["cleared": true])
+        }
+        var scoped = params
+        scoped["client_id"] = deviceID
+        scoped["device_id"] = deviceID
+        return v2MobileTerminalViewport(params: scoped, controllingClientID: deviceID)
+    }
+
+    /// Release also works while the socket is down and its report has already been cleaned up.
+    func releaseDirectSizingControl(surfaceID: UUID, clientID: String, preservingControl: Bool, reason: String) {
+        guard !preservingControl, var host = localSizingHostsBySurfaceID[surfaceID] else { return }
+        let previous = host.state
+        guard host.releasePhoneControl(clientID: clientID) else { return }
+        localSizingHostsBySurfaceID[surfaceID] = host
+        applyLocalSizing(surfaceID: surfaceID, previous: previous, immediate: true, reason: reason)
+    }
+
+    /// Explicit listener shutdown releases direct viewers only; other sharing paths are unchanged.
+    func releaseAllDirectSizingControl(reason: String) {
+        let prefix = LocalTerminalSizingHost.phoneParticipantID(clientID: "")
+        let clients = Set(localSizingHostsBySurfaceID.values.compactMap { host in
+            host.controllingPhoneID.map { String($0.dropFirst(prefix.count)) }
+        })
+        clearMobileViewportReports(clientIDs: clients, reason: reason)
+    }
+
     // MARK: - Local controller actions
 
     func localSizingSetPolicy(surfaceID: UUID, policy: TerminalSizingPolicy) -> Bool {
@@ -553,7 +593,14 @@ extension TerminalController {
 
     /// `mobile.terminal.reattach {surface_id, client_id, as_viewer}`: lifts a
     /// disconnect and answers like `mobile.terminal.replay`.
-    func v2MobileTerminalReattach(params: [String: Any]) -> V2CallResult {
+    func v2MobileTerminalReattach(params: [String: Any], authorization: MobileHostConnectionAuthorizationContext? = nil) -> V2CallResult {
+        var params = params
+        var controllingClientID: String?
+        if case let .localDirect(device) = authorization {
+            params["client_id"] = device.deviceID
+            params["device_id"] = device.deviceID
+            controllingClientID = device.deviceID
+        }
         guard let resolved = mobileCanonicalTerminalTarget(params: params) else {
             return .err(code: "not_found", message: "Terminal surface not found", data: nil)
         }
@@ -572,7 +619,7 @@ extension TerminalController {
         if asViewer, cloudSizingRelaysBySurfaceID[surfaceID]?.value?.relaysPhones == true {
             replayParams["counts_override"] = false
         }
-        return v2MobileTerminalReplay(params: replayParams)
+        return v2MobileTerminalReplay(params: replayParams, controllingClientID: controllingClientID)
     }
 
     /// `mobile.terminal.size_policy.set {surface_id, policy}`.

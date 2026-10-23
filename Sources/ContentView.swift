@@ -23,8 +23,6 @@ import CmuxSurfaceCatalogModel
 import CmuxSidebarRemoteRender
 import CmuxSwiftRender
 import CmuxSwiftRenderUI
-import CmuxUpdater
-import CmuxUpdaterUI
 import ImageIO
 import Observation
 import CmuxProductAnalytics
@@ -885,7 +883,6 @@ struct ContentView: View {
         case forkableAgentAvailability(String)
     }
 
-    var updateViewModel: UpdateStateModel
     let windowId: UUID
     let featureFlags: CmuxFeatureFlags
     let sidebarUnread: SidebarUnreadModel
@@ -894,14 +891,12 @@ struct ContentView: View {
 
     @MainActor
     init(
-        updateViewModel: UpdateStateModel,
         windowId: UUID,
         featureFlags: CmuxFeatureFlags? = nil,
         sidebarUnread: SidebarUnreadModel? = nil,
         titlebarControlsLayoutModel: TitlebarControlsLayoutModel? = nil,
         devicesModel: DevicesPanelViewModel? = nil
     ) {
-        self.updateViewModel = updateViewModel
         self.devicesModel = devicesModel
         self.windowId = windowId
         self.featureFlags = featureFlags ?? .shared
@@ -1700,7 +1695,6 @@ struct ContentView: View {
 
     private var sidebarView: some View {
         let sidebar = VerticalTabsSidebar(
-            updateViewModel: updateViewModel,
             fileExplorerState: fileExplorerState,
             sessionIndexStore: sessionIndexStore,
             featureFlags: featureFlags,
@@ -7551,10 +7545,6 @@ struct ContentView: View {
             }
         }
 
-        if case .updateAvailable = updateViewModel.effectiveState {
-            snapshot.setBool(CommandPaletteContextKeys.updateHasAvailable, true)
-        }
-
         return snapshot
     }
 
@@ -7950,31 +7940,6 @@ struct ContentView: View {
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty },
                 when: { !$0.bool(CommandPaletteContextKeys.defaultTerminalIsDefault) }
-            )
-        )
-        contributions.append(
-            CommandPaletteCommandContribution(
-                commandId: "palette.checkForUpdates",
-                title: constant(String(localized: "command.checkForUpdates.title", defaultValue: "Check for Updates")),
-                subtitle: constant(String(localized: "command.checkForUpdates.subtitle", defaultValue: "Global")),
-                keywords: ["update", "upgrade", "release"]
-            )
-        )
-        contributions.append(
-            CommandPaletteCommandContribution(
-                commandId: "palette.applyUpdateIfAvailable",
-                title: constant(String(localized: "command.applyUpdateIfAvailable.title", defaultValue: "Apply Update (If Available)")),
-                subtitle: constant(String(localized: "command.applyUpdateIfAvailable.subtitle", defaultValue: "Global")),
-                keywords: ["apply", "install", "update", "available"],
-                when: { $0.bool(CommandPaletteContextKeys.updateHasAvailable) }
-            )
-        )
-        contributions.append(
-            CommandPaletteCommandContribution(
-                commandId: "palette.attemptUpdate",
-                title: constant(String(localized: "command.attemptUpdate.title", defaultValue: "Attempt Update")),
-                subtitle: constant(String(localized: "command.attemptUpdate.subtitle", defaultValue: "Global")),
-                keywords: ["attempt", "check", "update", "upgrade", "release"]
             )
         )
         contributions.append(
@@ -9223,15 +9188,6 @@ struct ContentView: View {
         registerProCommandHandlers(&registry)
         registry.register(commandId: "palette.makeDefaultTerminal") {
             DefaultTerminalUserAction.setAsDefault(debugSource: "palette.makeDefaultTerminal")
-        }
-        registry.register(commandId: "palette.checkForUpdates") {
-            AppDelegate.shared?.checkForUpdates(nil)
-        }
-        registry.register(commandId: "palette.applyUpdateIfAvailable") {
-            AppDelegate.shared?.applyUpdateIfAvailable(nil)
-        }
-        registry.register(commandId: "palette.attemptUpdate") {
-            AppDelegate.shared?.attemptUpdate(nil)
         }
         registry.register(commandId: "palette.restartSocketListener") {
             AppDelegate.shared?.restartSocketListener(nil)
@@ -11354,7 +11310,6 @@ struct VerticalTabsSidebar: View, Equatable {
     static func == (lhs: VerticalTabsSidebar, rhs: VerticalTabsSidebar) -> Bool {
         lhs.windowId == rhs.windowId
             && lhs.observedWindowReference.window === rhs.observedWindowReference.window
-            && lhs.updateViewModel === rhs.updateViewModel
             && lhs.fileExplorerState === rhs.fileExplorerState
             && lhs.sessionIndexStore === rhs.sessionIndexStore
             && lhs.featureFlags === rhs.featureFlags
@@ -11364,7 +11319,6 @@ struct VerticalTabsSidebar: View, Equatable {
             && lhs.chromeBackgroundColor.isEqual(rhs.chromeBackgroundColor)
     }
 
-    var updateViewModel: UpdateStateModel
     @ObservedObject var fileExplorerState: FileExplorerState
     let sessionIndexStore: SessionIndexStore
     var featureFlags: CmuxFeatureFlags = .shared
@@ -11981,7 +11935,6 @@ struct VerticalTabsSidebar: View, Equatable {
             }
             if isPresented {
                 SidebarFooter(
-                    updateViewModel: updateViewModel,
                     fileExplorerState: fileExplorerState,
                     modifierKeyMonitor: modifierKeyMonitor,
                     onSendFeedback: onSendFeedback
@@ -15688,16 +15641,15 @@ struct SidebarWorkspaceRowFramePreferenceKey: PreferenceKey {
 }
 
 private struct SidebarFooter: View {
-    var updateViewModel: UpdateStateModel
     @ObservedObject var fileExplorerState: FileExplorerState
     let modifierKeyMonitor: WindowScopedShortcutHintModifierMonitor
     let onSendFeedback: () -> Void
 
     var body: some View {
 #if DEBUG
-        SidebarDevFooter(updateViewModel: updateViewModel, fileExplorerState: fileExplorerState, modifierKeyMonitor: modifierKeyMonitor, onSendFeedback: onSendFeedback)
+        SidebarDevFooter(fileExplorerState: fileExplorerState, modifierKeyMonitor: modifierKeyMonitor, onSendFeedback: onSendFeedback)
 #else
-        SidebarFooterButtons(updateViewModel: updateViewModel, fileExplorerState: fileExplorerState, modifierKeyMonitor: modifierKeyMonitor, onSendFeedback: onSendFeedback)
+        SidebarFooterButtons(fileExplorerState: fileExplorerState, modifierKeyMonitor: modifierKeyMonitor, onSendFeedback: onSendFeedback)
             .padding(.leading, 6)
             .padding(.trailing, 10)
             .padding(.bottom, 6)
@@ -15708,7 +15660,6 @@ private struct SidebarFooter: View {
 struct SidebarFooterButtons: View {
     @Environment(\.cmuxAccentColor) private var cmuxAccent
     private var accountFlow: HostAccountFlow? { AppDelegate.shared?.auth?.accountFlow }
-    var updateViewModel: UpdateStateModel
     @ObservedObject var fileExplorerState: FileExplorerState
     let modifierKeyMonitor: WindowScopedShortcutHintModifierMonitor
     let onSendFeedback: () -> Void
@@ -15750,7 +15701,7 @@ struct SidebarFooterButtons: View {
                     if shows(.account), CmuxFeatureFlags.shared.isSidebarAccountButtonEnabled {
                         SidebarAccountMenuButton()
                     }
-                    if shows(.mobileConnect), CmuxFeatureFlags.shared.isMobileConnectButtonEnabled {
+                    if shows(.mobileConnect), MobileRemoteControlPolicy.isEnabled {
                         SidebarMobileConnectButton()
                     }
                     if shows(.help) {
@@ -15794,9 +15745,6 @@ struct SidebarFooterButtons: View {
                 .accessibilityIdentifier("SidebarExtensionMenuButton")
                 .background(TitlebarControlAnchorView { extensionBrowserAnchorView = $0 })
             }
-            if shows(.update), let updateActionsHost = AppDelegate.shared {
-                UpdatePill(model: updateViewModel, accent: cmuxAccent.color, actions: updateActionsHost).windowHintTarget(updateViewModel.text)
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .task(id: billingPlanRefreshID) {
@@ -15816,7 +15764,6 @@ private enum SidebarHelpMenuAction {
     case github
     case githubIssues
     case discord
-    case checkForUpdates
     case sendFeedback
     case welcome
 }
@@ -15975,12 +15922,6 @@ private struct SidebarHelpMenuButton: View {
                     isExternalLink: true
                 )
             }
-            helpOptionButton(
-                title: String(localized: "command.checkForUpdates.title", defaultValue: "Check for Updates"),
-                action: .checkForUpdates,
-                accessibilityIdentifier: "SidebarHelpMenuOptionCheckForUpdates",
-                isExternalLink: false
-            )
         }
         .padding(8)
         .frame(minWidth: 200)
@@ -16079,10 +16020,6 @@ private struct SidebarHelpMenuButton: View {
         case .discord:
             guard let discordURL else { return }
             NSWorkspace.shared.open(discordURL)
-        case .checkForUpdates:
-            Task { @MainActor in
-                AppDelegate.shared?.checkForUpdates(nil)
-            }
         case .sendFeedback:
             isPopoverPresented = false
             onSendFeedback()

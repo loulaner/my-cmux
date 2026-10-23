@@ -386,6 +386,8 @@ public final class TerminalSurface: Identifiable, ObservableObject {
     var lastXScale: CGFloat = 0
     var lastYScale: CGFloat = 0
     var mobileViewportCellLimit: (columns: Int, rows: Int)?
+    /// An admitted direct viewer owns the exact PTY grid, even when the Mac pane is smaller.
+    var mobileViewportUsesExactGrid = false
     /// tmux-assigned cell grid for manual-IO mirror panes. A mirror's grid
     /// must EQUAL tmux's assignment, not merely fit it: a wider grid never
     /// sets wrap flags where tmux wrapped (unwrapped reads split one tmux

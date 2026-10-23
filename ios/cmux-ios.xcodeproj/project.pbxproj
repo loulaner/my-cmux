@@ -7,28 +7,53 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		8B8A10012DF5000000A66F90 /* cmuxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10172DF5000000A66F90 /* cmuxApp.swift */; };
-		8B8A10F02DF5000000A66F90 /* CmuxAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10F12DF5000000A66F90 /* CmuxAppDelegate.swift */; };
-		8B8A10AA2DF5000000A66F90 /* AppCompositionRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10AB2DF5000000A66F90 /* AppCompositionRoot.swift */; };
-		8B8A10AC2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10AD2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift */; };
-		8B8A10022DF5000000A66F90 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A10192DF5000000A66F90 /* Assets.xcassets */; };
-		8B8A10032DF5000000A66F90 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A101A2DF5000000A66F90 /* InfoPlist.xcstrings */; };
-		8B8A10042DF5000000A66F90 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A101B2DF5000000A66F90 /* Localizable.xcstrings */; };
-		8B8A10E02DF5000000A66F90 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A10E12DF5000000A66F90 /* PrivacyInfo.xcprivacy */; };
-		8B8A10052DF5000000A66F90 /* cmuxUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A101C2DF5000000A66F90 /* cmuxUITests.swift */; };
 		A17662012F00000000A66F90 /* AgentFeedQuestionUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17662022F00000000A66F90 /* AgentFeedQuestionUITests.swift */; };
-		A7EFF0012F00000000A66F90 /* TaskComposerEffortPickerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7EFF0022F00000000A66F90 /* TaskComposerEffortPickerUITests.swift */; };
-		8B8A10252DF5000000A66F90 /* TerminalThemeParityUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10262DF5000000A66F90 /* TerminalThemeParityUITests.swift */; };
+		8B8A10AA2DF5000000A66F90 /* AppCompositionRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10AB2DF5000000A66F90 /* AppCompositionRoot.swift */; };
+		F36F002FBF4F0A0469BF8FC6 /* AppCompositionRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10AB2DF5000000A66F90 /* AppCompositionRoot.swift */; };
+		8B8A10022DF5000000A66F90 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A10192DF5000000A66F90 /* Assets.xcassets */; };
+		E496437F7E57E2FF221DDA7A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A10192DF5000000A66F90 /* Assets.xcassets */; };
+		5556DAA39B95C41D9F53AE97 /* cmuxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10172DF5000000A66F90 /* cmuxApp.swift */; };
+		8B8A10012DF5000000A66F90 /* cmuxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10172DF5000000A66F90 /* cmuxApp.swift */; };
+		192C7826BC3A6B15F73F89A0 /* CmuxAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10F12DF5000000A66F90 /* CmuxAppDelegate.swift */; };
+		8B8A10F02DF5000000A66F90 /* CmuxAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10F12DF5000000A66F90 /* CmuxAppDelegate.swift */; };
+		8B41F6832DEDD23B001A66F9 /* cmuxFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6822DEDD23B001A66F9 /* cmuxFeature */; };
+		8B41F6852DEDD25C001A66F9 /* cmuxFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6842DEDD25C001A66F9 /* cmuxFeature */; };
+		9B8CB2318DB77F30D403FBC7 /* cmuxFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6842DEDD25C001A66F9 /* cmuxFeature */; };
+		8B7E20112DF3A00100A66F90 /* CmuxIrohReleaseGateSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20122DF3A00100A66F90 /* CmuxIrohReleaseGateSupport */; };
+		F0FFD7D4F0F6934B98C6C853 /* CmuxIrohReleaseGateSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20122DF3A00100A66F90 /* CmuxIrohReleaseGateSupport */; };
+		8B7E20012DF3A00100A66F90 /* CMUXMobileCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20032DF3A00100A66F90 /* CMUXMobileCore */; };
+		8B7E20022DF3A00100A66F90 /* CMUXMobileCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20042DF3A00100A66F90 /* CMUXMobileCore */; };
+		E17B6E195A8793CCB163E96D /* CMUXMobileCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20032DF3A00100A66F90 /* CMUXMobileCore */; };
+		8B7E20052DF3A00100A66F90 /* CmuxMobileTransport in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20062DF3A00100A66F90 /* CmuxMobileTransport */; };
+		B5C3B5A89A2516A9141EB825 /* CmuxMobileTransport in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20062DF3A00100A66F90 /* CmuxMobileTransport */; };
+		D4E2A0090000000000000001 /* CmuxPhonePush in NotificationService Frameworks */ = {isa = PBXBuildFile; productRef = D4E2A00A0000000000000001 /* CmuxPhonePush */; };
+		8B8A10052DF5000000A66F90 /* cmuxUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A101C2DF5000000A66F90 /* cmuxUITests.swift */; };
+		6E3C64AAEC893B879868309A /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A101A2DF5000000A66F90 /* InfoPlist.xcstrings */; };
+		8B8A10032DF5000000A66F90 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A101A2DF5000000A66F90 /* InfoPlist.xcstrings */; };
+		2D7B1FB735BC538DE0256B34 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A101B2DF5000000A66F90 /* Localizable.xcstrings */; };
+		8B8A10042DF5000000A66F90 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A101B2DF5000000A66F90 /* Localizable.xcstrings */; };
+		8B8A10AC2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10AD2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift */; };
+		E3E4082CC5CF90D254D3D6BB /* MobileAppLifecycleDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10AD2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift */; };
+		8B8A10E02DF5000000A66F90 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A10E12DF5000000A66F90 /* PrivacyInfo.xcprivacy */; };
+		D725C7915FD269124C63BE63 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A10E12DF5000000A66F90 /* PrivacyInfo.xcprivacy */; };
 		8B8A10302DF5000000A66F90 /* PushReadinessUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10312DF5000000A66F90 /* PushReadinessUITests.swift */; };
 		8B8A10E22DF5000000A66F90 /* SnapshotHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10E32DF5000000A66F90 /* SnapshotHelper.swift */; };
 		8B8A10E42DF5000000A66F90 /* SnapshotUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10E52DF5000000A66F90 /* SnapshotUITests.swift */; };
-		8B41F6832DEDD23B001A66F9 /* cmuxFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6822DEDD23B001A66F9 /* cmuxFeature */; };
-		8B41F6852DEDD25C001A66F9 /* cmuxFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6842DEDD25C001A66F9 /* cmuxFeature */; };
-		8B7E20012DF3A00100A66F90 /* CMUXMobileCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20032DF3A00100A66F90 /* CMUXMobileCore */; };
-		8B7E20022DF3A00100A66F90 /* CMUXMobileCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20042DF3A00100A66F90 /* CMUXMobileCore */; };
-		8B7E20052DF3A00100A66F90 /* CmuxMobileTransport in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20062DF3A00100A66F90 /* CmuxMobileTransport */; };
-		8B7E20112DF3A00100A66F90 /* CmuxIrohReleaseGateSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20122DF3A00100A66F90 /* CmuxIrohReleaseGateSupport */; };
-		D4E2A0090000000000000001 /* CmuxPhonePush in NotificationService Frameworks */ = {isa = PBXBuildFile; productRef = D4E2A00A0000000000000001 /* CmuxPhonePush */; };
+		A7EFF0012F00000000A66F90 /* TaskComposerEffortPickerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7EFF0022F00000000A66F90 /* TaskComposerEffortPickerUITests.swift */; };
+		8B8A10252DF5000000A66F90 /* TerminalThemeParityUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10262DF5000000A66F90 /* TerminalThemeParityUITests.swift */; };
+		C1AC0000000000000000001E /* LocalTerminalRendererRPCFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1AC00000000000000000014 /* LocalTerminalRendererRPCFixture.swift */; };
+		C1AC0000000000000000001F /* MobileLocalDirectRendererAcceptanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1AC00000000000000000015 /* MobileLocalDirectRendererAcceptanceTests.swift */; };
+		C1AC00000000000000000020 /* TerminalToolbarPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1AC00000000000000000016 /* TerminalToolbarPresentationTests.swift */; };
+        C1AC00000000000000000042 /* LocalTerminalUIAcceptance.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1AC00000000000000000040; };
+        C1AC00000000000000000043 /* LocalTerminalRendererRPCFixture.swift in App Sources */ = {isa = PBXBuildFile; fileRef = C1AC00000000000000000014; };
+        C1AC00000000000000000044 /* LocalTerminalRotationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1AC00000000000000000041; };
+		D1EC00000000000000000014 = { isa = "PBXBuildFile"; fileRef = "8B8A10172DF5000000A66F90"; };
+		D1EC00000000000000000015 = { isa = "PBXBuildFile"; productRef = "8B41F6842DEDD25C001A66F9"; };
+		D1EC00000000000000000016 = { isa = "PBXBuildFile"; fileRef = "8B8A10192DF5000000A66F90"; };
+		D1EC00000000000000000017 = { isa = "PBXBuildFile"; fileRef = "8B8A101B2DF5000000A66F90"; };
+		D1EC00000000000000000018 = { isa = "PBXBuildFile"; fileRef = "8B8A10E12DF5000000A66F90"; };
+		D1EC00000000000000000019 = { isa = "PBXBuildFile"; fileRef = "D1EC0000000000000000000D"; };
+		C1AC00000000000000000051 /* MobileLocalDirectStorageAcceptanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1AC00000000000000000050 /* MobileLocalDirectStorageAcceptanceTests.swift */; };
 /* End PBXBuildFile section */
 		D4E2A0010000000000000001 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E2A0020000000000000001 /* NotificationService.swift */; };
 		D4E2A0010000000000000002 /* NotificationService.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = D4E2A0030000000000000001 /* NotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -66,30 +91,46 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A17662022F00000000A66F90 /* AgentFeedQuestionUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentFeedQuestionUITests.swift; sourceTree = "<group>"; };
+		8B8A10AB2DF5000000A66F90 /* AppCompositionRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCompositionRoot.swift; sourceTree = "<group>"; };
+		8B8A10192DF5000000A66F90 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		7E23A50C35E04CE64005B8AF /* cmux-personal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "cmux-personal.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B3C84F853AA64BE63C68AA3 /* cmux-personal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = cmux-personal.entitlements; sourceTree = "<group>"; };
 		8B41F6452DEDD0D5001A66F9 /* cmux.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = cmux.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		8B41F65C2DEDD0D6001A66F9 /* cmux.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = cmux.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		8B8A10112DF5000000A66F90 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
-		8B8A10122DF5000000A66F90 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
-		8B8A10132DF5000000A66F90 /* Tests.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Tests.xcconfig; sourceTree = "<group>"; };
-		8B8A10142DF5000000A66F90 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
-		8B8A10152DF5000000A66F90 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8B8A10162DF5000000A66F90 /* cmux.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = cmux.entitlements; sourceTree = "<group>"; };
+		8B41F65C2DEDD0D6001A66F9 /* cmux.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = cmux.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8B8A10182DF5000000A66F90 /* cmux.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = file; path = cmux.xctestplan; sourceTree = "<group>"; };
 		8B8A10172DF5000000A66F90 /* cmuxApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = cmuxApp.swift; sourceTree = "<group>"; };
 		8B8A10F12DF5000000A66F90 /* CmuxAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CmuxAppDelegate.swift; sourceTree = "<group>"; };
-		8B8A10AB2DF5000000A66F90 /* AppCompositionRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCompositionRoot.swift; sourceTree = "<group>"; };
-		8B8A10AD2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAppLifecycleDiagnostics.swift; sourceTree = "<group>"; };
-		8B8A10182DF5000000A66F90 /* cmux.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = file; path = cmux.xctestplan; sourceTree = "<group>"; };
-		8B8A10192DF5000000A66F90 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8B8A101C2DF5000000A66F90 /* cmuxUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = cmuxUITests.swift; sourceTree = "<group>"; };
+		8B8A10112DF5000000A66F90 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		8B8A10152DF5000000A66F90 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8B8A101A2DF5000000A66F90 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		8B8A101B2DF5000000A66F90 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		8B8A10AD2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAppLifecycleDiagnostics.swift; sourceTree = "<group>"; };
+		1A417E23DB6A5C8E026F845C /* PersonalInfo.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PersonalInfo.plist; sourceTree = "<group>"; };
+		D740699F3554AC1E1DEBC8FC /* PersonalRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = PersonalRelease.xcconfig; sourceTree = "<group>"; };
 		8B8A10E12DF5000000A66F90 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		8B8A101C2DF5000000A66F90 /* cmuxUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = cmuxUITests.swift; sourceTree = "<group>"; };
-		A17662022F00000000A66F90 /* AgentFeedQuestionUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentFeedQuestionUITests.swift; sourceTree = "<group>"; };
-		A7EFF0022F00000000A66F90 /* TaskComposerEffortPickerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskComposerEffortPickerUITests.swift; sourceTree = "<group>"; };
-		8B8A10262DF5000000A66F90 /* TerminalThemeParityUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalThemeParityUITests.swift; sourceTree = "<group>"; };
 		8B8A10312DF5000000A66F90 /* PushReadinessUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushReadinessUITests.swift; sourceTree = "<group>"; };
+		8B8A10122DF5000000A66F90 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		8B8A10142DF5000000A66F90 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 		8B8A10E32DF5000000A66F90 /* SnapshotHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotHelper.swift; sourceTree = "<group>"; };
 		8B8A10E52DF5000000A66F90 /* SnapshotUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotUITests.swift; sourceTree = "<group>"; };
+		A7EFF0022F00000000A66F90 /* TaskComposerEffortPickerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskComposerEffortPickerUITests.swift; sourceTree = "<group>"; };
+		8B8A10262DF5000000A66F90 /* TerminalThemeParityUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalThemeParityUITests.swift; sourceTree = "<group>"; };
+		8B8A10132DF5000000A66F90 /* Tests.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Tests.xcconfig; sourceTree = "<group>"; };
+		C1AC00000000000000000014 /* LocalTerminalRendererRPCFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalTerminalRendererRPCFixture.swift; sourceTree = "<group>"; };
+		C1AC00000000000000000015 /* MobileLocalDirectRendererAcceptanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileLocalDirectRendererAcceptanceTests.swift; sourceTree = "<group>"; };
+		C1AC00000000000000000016 /* TerminalToolbarPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalToolbarPresentationTests.swift; sourceTree = "<group>"; };
+		C1AC00000000000000000002 /* cmuxLocalTerminalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = cmuxLocalTerminalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+        C1AC00000000000000000040 /* LocalTerminalUIAcceptance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalTerminalUIAcceptance.swift; sourceTree = "<group>"; };
+        C1AC00000000000000000041 /* LocalTerminalRotationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalTerminalRotationUITests.swift; sourceTree = "<group>"; };
+		D1EC00000000000000000002 = { isa = "PBXFileReference"; path = "cmux-local-direct.app"; lastKnownFileType = "wrapper.application"; sourceTree = "BUILT_PRODUCTS_DIR"; };
+		D1EC0000000000000000000A = { isa = "PBXFileReference"; path = "LocalDirectDebug.xcconfig"; lastKnownFileType = "text.xcconfig"; sourceTree = "<group>"; };
+		D1EC0000000000000000000B = { isa = "PBXFileReference"; path = "LocalDirectInfo.plist"; lastKnownFileType = "text.plist.xml"; sourceTree = "<group>"; };
+		D1EC0000000000000000000C = { isa = "PBXFileReference"; path = "cmux-local-direct.entitlements"; lastKnownFileType = "text.plist.entitlements"; sourceTree = "<group>"; };
+		D1EC0000000000000000000D = { isa = "PBXFileReference"; path = "LocalDirect/InfoPlist.xcstrings"; lastKnownFileType = "text.json.xcstrings"; sourceTree = "<group>"; };
+		C1AC00000000000000000050 /* MobileLocalDirectStorageAcceptanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileLocalDirectStorageAcceptanceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		D4E2A0020000000000000001 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		D4E2A0030000000000000001 /* NotificationService.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = NotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -105,8 +146,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8B7E20112DF3A00100A66F90 /* CmuxIrohReleaseGateSupport in Frameworks */,
 				8B41F6852DEDD25C001A66F9 /* cmuxFeature in Frameworks */,
+				8B7E20112DF3A00100A66F90 /* CmuxIrohReleaseGateSupport in Frameworks */,
 				8B7E20012DF3A00100A66F90 /* CMUXMobileCore in Frameworks */,
 				8B7E20052DF3A00100A66F90 /* CmuxMobileTransport in Frameworks */,
 			);
@@ -121,6 +162,19 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6BFF765AEB3E23496F7E8D1D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9B8CB2318DB77F30D403FBC7 /* cmuxFeature in Frameworks */,
+				F0FFD7D4F0F6934B98C6C853 /* CmuxIrohReleaseGateSupport in Frameworks */,
+				E17B6E195A8793CCB163E96D /* CMUXMobileCore in Frameworks */,
+				B5C3B5A89A2516A9141EB825 /* CmuxMobileTransport in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C1AC00000000000000000005 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		D1EC00000000000000000004 = { isa = "PBXFrameworksBuildPhase"; buildActionMask = "2147483647"; files = ("D1EC00000000000000000015", ); runOnlyForDeploymentPostprocessing = "0"; };
 /* End PBXFrameworksBuildPhase section */
 		D4E2A0040000000000000001 /* NotificationService Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (D4E2A0090000000000000001 /* CmuxPhonePush in NotificationService Frameworks */); runOnlyForDeploymentPostprocessing = 0; };
 		C10DA0040000000000000002 /* CloudVPN Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (C10DA0010000000000000007 /* WireGuardKit in CloudVPN Frameworks */, C10DA0010000000000000008 /* CmuxCloudTunnelCore in CloudVPN Frameworks */); runOnlyForDeploymentPostprocessing = 0; };
@@ -146,6 +200,7 @@
 		8B41F65F2DEDD0D6001A66F9 /* cmuxUITests */ = {
 			isa = PBXGroup;
 			children = (
+                C1AC00000000000000000041,
 				8B8A101C2DF5000000A66F90 /* cmuxUITests.swift */,
 				A17662022F00000000A66F90 /* AgentFeedQuestionUITests.swift */,
 				A7EFF0022F00000000A66F90 /* TaskComposerEffortPickerUITests.swift */,
@@ -160,6 +215,7 @@
 		8B41F63C2DEDD0D5001A66F9 = {
 			isa = PBXGroup;
 			children = (
+				C1AC00000000000000000003 /* cmuxLocalTerminalTests */,
 				8BD71C052DEE41D800CEDD92 /* Config */,
 				8B41F6472DEDD0D5001A66F9 /* cmux */,
 				8B41F65F2DEDD0D6001A66F9 /* cmuxUITests */,
@@ -171,6 +227,10 @@
 		8B41F6462DEDD0D5001A66F9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				D1EC00000000000000000002,
+
+				C1AC00000000000000000002 /* cmuxLocalTerminalTests.xctest */,
+				7E23A50C35E04CE64005B8AF /* cmux-personal.app */,
 				8B41F6452DEDD0D5001A66F9 /* cmux.app */,
 				8B41F65C2DEDD0D6001A66F9 /* cmux.xctest */,
 				D4E2A0030000000000000001 /* NotificationService.appex */,
@@ -198,6 +258,14 @@
 		8BD71C052DEE41D800CEDD92 /* Config */ = {
 			isa = PBXGroup;
 			children = (
+				D1EC0000000000000000000A,
+				D1EC0000000000000000000B,
+				D1EC0000000000000000000C,
+				D1EC0000000000000000000D,
+
+				9B3C84F853AA64BE63C68AA3 /* cmux-personal.entitlements */,
+				1A417E23DB6A5C8E026F845C /* PersonalInfo.plist */,
+				D740699F3554AC1E1DEBC8FC /* PersonalRelease.xcconfig */,
 				8B8A10112DF5000000A66F90 /* Debug.xcconfig */,
 				8B8A10122DF5000000A66F90 /* Release.xcconfig */,
 				8B8A10132DF5000000A66F90 /* Tests.xcconfig */,
@@ -208,6 +276,7 @@
 			path = Config;
 			sourceTree = "<group>";
 		};
+		C1AC00000000000000000003 /* cmuxLocalTerminalTests */ = {isa = PBXGroup; children = (C1AC00000000000000000050, C1AC00000000000000000040, C1AC00000000000000000014, C1AC00000000000000000015, C1AC00000000000000000016,); path = cmuxLocalTerminalTests; sourceTree = "<group>"; };
 /* End PBXGroup section */
 		D4E2A0050000000000000001 /* NotificationService */ = {isa = PBXGroup; children = (D4E2A0020000000000000001 /* NotificationService.swift */); path = "../NotificationService"; sourceTree = "<group>"; };
 		C10DA0030000000000000001 /* CloudVPN */ = {isa = PBXGroup; children = (C10DA0020000000000000001 /* PacketTunnelProvider.swift */, C10DA0020000000000000003 /* CloudTunnelWireGuardAdapter.swift */, C10DA0020000000000000004 /* CloudTunnelProviderCompletion.swift */, C10DA0020000000000000005 /* CloudVPNConfigurationKeychain.swift */, C10DA0020000000000000006 /* CloudVPNRoutePolicy.swift */); path = "../CloudVPN"; sourceTree = "<group>"; };
@@ -287,6 +356,43 @@
 			productReference = C10DA0020000000000000002 /* CloudVPN.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		15F266260B742B6E555545AC /* cmux-personal */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A0ADCD2C6BD7E0997E0E52FF /* Build configuration list for PBXNativeTarget "cmux" */;
+			buildPhases = (
+				094DB71927A0047E68645854 /* Sources */,
+				6BFF765AEB3E23496F7E8D1D /* Frameworks */,
+				D7E19803D26AC1554B09658F /* Resources */,
+				ECE71621085107459E3B184A /* Copy Markdown Viewer Assets */,
+			);
+			buildRules = (
+			);
+			dependencies = ();
+			name = "cmux-personal";
+			packageProductDependencies = (
+				8B7E20122DF3A00100A66F90 /* CmuxIrohReleaseGateSupport */,
+				8B41F6842DEDD25C001A66F9 /* cmuxFeature */,
+				8B7E20032DF3A00100A66F90 /* CMUXMobileCore */,
+				8B7E20062DF3A00100A66F90 /* CmuxMobileTransport */,
+				D4E2A00A0000000000000001 /* CmuxPhonePush */,
+			);
+			productName = "cmux-personal";
+			productReference = 7E23A50C35E04CE64005B8AF /* cmux-personal.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C1AC00000000000000000001 /* cmuxLocalTerminalTests */ = {
+            isa = PBXNativeTarget;
+            buildConfigurationList = C1AC00000000000000000007;
+            buildPhases = (C1AC00000000000000000004, C1AC00000000000000000005,);
+            buildRules = ();
+            dependencies = (C1AC00000000000000000006,);
+            name = cmuxLocalTerminalTests;
+            packageProductDependencies = ();
+            productName = cmuxLocalTerminalTests;
+            productReference = C1AC00000000000000000002;
+            productType = "com.apple.product-type.bundle.unit-test";
+        };
+		D1EC00000000000000000001 = { isa = "PBXNativeTarget"; buildConfigurationList = "D1EC00000000000000000007"; buildPhases = ("D1EC00000000000000000003", "D1EC00000000000000000004", "D1EC00000000000000000005", ); buildRules = (); dependencies = (); name = "cmux-local-direct"; productName = "cmux-local-direct"; productReference = "D1EC00000000000000000002"; productType = "com.apple.product-type.application"; packageProductDependencies = ("8B41F6842DEDD25C001A66F9", ); };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -334,6 +440,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				D1EC00000000000000000001,
+				C1AC00000000000000000001 /* cmuxLocalTerminalTests */,
+				15F266260B742B6E555545AC /* cmux-personal */,
 				8B41F6442DEDD0D5001A66F9 /* cmux */,
 				8B41F65B2DEDD0D6001A66F9 /* cmuxUITests */,
 				D4E2A0070000000000000001 /* NotificationService */,
@@ -399,6 +508,39 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/../scripts/build-wireguard-go.sh\"\n";
 		};
+		ECE71621085107459E3B184A /* Copy Markdown Viewer Assets */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../Resources/markdown-viewer",
+				"$(SRCROOT)/scripts/copy-markdown-viewer-assets.sh",
+			);
+			name = "Copy Markdown Viewer Assets";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/markdown-viewer/shell.html",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/markdown-viewer/highlight-github.css",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/markdown-viewer/highlight-github-dark.css",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/markdown-viewer/github-markdown.css",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/markdown-viewer/marked.min.js.deflate",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/markdown-viewer/highlight.min.js.deflate",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/markdown-viewer/viewer-navigation.js.deflate",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/markdown-viewer/markdown-sanitizer.js.deflate",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/markdown-viewer/mermaid.min.js.deflate",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/markdown-viewer/vega.min.js.deflate",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/markdown-viewer/vega-lite.min.js.deflate",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/markdown-viewer/vega-embed.min.js.deflate",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/scripts/copy-markdown-viewer-assets.sh\"\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXResourcesBuildPhase section */
@@ -420,6 +562,18 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D7E19803D26AC1554B09658F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E496437F7E57E2FF221DDA7A /* Assets.xcassets in Resources */,
+				6E3C64AAEC893B879868309A /* InfoPlist.xcstrings in Resources */,
+				2D7B1FB735BC538DE0256B34 /* Localizable.xcstrings in Resources */,
+				D725C7915FD269124C63BE63 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D1EC00000000000000000005 = { isa = "PBXResourcesBuildPhase"; buildActionMask = "2147483647"; files = ("D1EC00000000000000000016", "D1EC00000000000000000017", "D1EC00000000000000000018", "D1EC00000000000000000019", ); runOnlyForDeploymentPostprocessing = "0"; };
 /* End PBXResourcesBuildPhase section */
 		D4E2A0060000000000000001 /* Embed App Extensions */ = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = (D4E2A0010000000000000002 /* NotificationService.appex in Embed App Extensions */, C10DA0010000000000000002 /* CloudVPN.appex in Embed App Extensions */); runOnlyForDeploymentPostprocessing = 0; };
 
@@ -428,9 +582,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                C1AC00000000000000000042,
+                C1AC00000000000000000043,
+
+				8B8A10AA2DF5000000A66F90 /* AppCompositionRoot.swift in Sources */,
 				8B8A10012DF5000000A66F90 /* cmuxApp.swift in Sources */,
 				8B8A10F02DF5000000A66F90 /* CmuxAppDelegate.swift in Sources */,
-				8B8A10AA2DF5000000A66F90 /* AppCompositionRoot.swift in Sources */,
 				8B8A10AC2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -439,16 +596,31 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8B8A10052DF5000000A66F90 /* cmuxUITests.swift in Sources */,
+                C1AC00000000000000000044,
+
 				A17662012F00000000A66F90 /* AgentFeedQuestionUITests.swift in Sources */,
+				8B8A10052DF5000000A66F90 /* cmuxUITests.swift in Sources */,
+				8B8A10302DF5000000A66F90 /* PushReadinessUITests.swift in Sources */,
+				8B8A10E22DF5000000A66F90 /* SnapshotHelper.swift in Sources */,
+				8B8A10E42DF5000000A66F90 /* SnapshotUITests.swift in Sources */,
 				A7EFF0012F00000000A66F90 /* TaskComposerEffortPickerUITests.swift in Sources */,
 				8B8A10252DF5000000A66F90 /* TerminalThemeParityUITests.swift in Sources */,
-				8B8A10302DF5000000A66F90 /* PushReadinessUITests.swift in Sources */,
-				8B8A10E42DF5000000A66F90 /* SnapshotUITests.swift in Sources */,
-				8B8A10E22DF5000000A66F90 /* SnapshotHelper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		094DB71927A0047E68645854 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F36F002FBF4F0A0469BF8FC6 /* AppCompositionRoot.swift in Sources */,
+				5556DAA39B95C41D9F53AE97 /* cmuxApp.swift in Sources */,
+				192C7826BC3A6B15F73F89A0 /* CmuxAppDelegate.swift in Sources */,
+				E3E4082CC5CF90D254D3D6BB /* MobileAppLifecycleDiagnostics.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C1AC00000000000000000004 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C1AC00000000000000000051, C1AC0000000000000000001E, C1AC0000000000000000001F, C1AC00000000000000000020,); runOnlyForDeploymentPostprocessing = 0; };
+		D1EC00000000000000000003 = { isa = "PBXSourcesBuildPhase"; buildActionMask = "2147483647"; files = ("D1EC00000000000000000014", ); runOnlyForDeploymentPostprocessing = "0"; };
 /* End PBXSourcesBuildPhase section */
 		D4E2A0080000000000000001 /* NotificationService Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (D4E2A0010000000000000001 /* NotificationService.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
 		C10DA0040000000000000001 /* CloudVPN Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C10DA0010000000000000001 /* PacketTunnelProvider.swift in CloudVPN Sources */, C10DA0010000000000000003 /* CloudTunnelWireGuardAdapter.swift in CloudVPN Sources */, C10DA0010000000000000004 /* CloudTunnelProviderCompletion.swift in CloudVPN Sources */, C10DA0010000000000000005 /* CloudVPNConfigurationKeychain.swift in CloudVPN Sources */, C10DA0010000000000000006 /* CloudVPNRoutePolicy.swift in CloudVPN Sources */); runOnlyForDeploymentPostprocessing = 0; };
@@ -469,6 +641,7 @@
 			target = 8B41F6442DEDD0D5001A66F9 /* cmux */;
 			targetProxy = 8B41F65D2DEDD0D6001A66F9 /* PBXContainerItemProxy */;
 		};
+		C1AC00000000000000000006 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 8B41F6442DEDD0D5001A66F9 /* cmux */; targetProxy = 8B41F65D2DEDD0D6001A66F9 /* PBXContainerItemProxy */; };
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -677,6 +850,72 @@
 		D4E2A00D0000000000000001 /* Release */ = { isa = XCBuildConfiguration; baseConfigurationReference = 8B8A10122DF5000000A66F90 /* Release.xcconfig */; buildSettings = { CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = "$(CMUX_NOTIFICATION_SERVICE_CODE_SIGN_ENTITLEMENTS)"; CMUX_HOST_BUNDLE_IDENTIFIER = "$(CMUX_APP_BUNDLE_IDENTIFIER)"; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = NotificationService/Info.plist; INFOPLIST_KEY_CFBundleIdentifier = "$(CMUX_NOTIFICATION_SERVICE_BUNDLE_IDENTIFIER)"; PRODUCT_BUNDLE_IDENTIFIER = "$(CMUX_NOTIFICATION_SERVICE_BUNDLE_IDENTIFIER)"; PRODUCT_NAME = NotificationService; SWIFT_VERSION = 5.0; WRAPPER_EXTENSION = appex; }; name = Release; };
 		C10DA0050000000000000003 /* Debug */ = { isa = XCBuildConfiguration; baseConfigurationReference = 8B8A10112DF5000000A66F90 /* Debug.xcconfig */; buildSettings = { CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = "$(CMUX_CLOUD_VPN_CODE_SIGN_ENTITLEMENTS)"; ENABLE_USER_SCRIPT_SANDBOXING = NO; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = CloudVPN/Info.plist; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks"); LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(BUILT_PRODUCTS_DIR)"); PRODUCT_BUNDLE_IDENTIFIER = "$(CMUX_CLOUD_VPN_BUNDLE_IDENTIFIER)"; PRODUCT_NAME = CloudVPN; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; WRAPPER_EXTENSION = appex; }; name = Debug; };
 		C10DA0050000000000000004 /* Release */ = { isa = XCBuildConfiguration; baseConfigurationReference = 8B8A10122DF5000000A66F90 /* Release.xcconfig */; buildSettings = { CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = "$(CMUX_CLOUD_VPN_CODE_SIGN_ENTITLEMENTS)"; ENABLE_USER_SCRIPT_SANDBOXING = NO; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = CloudVPN/Info.plist; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks"); LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(BUILT_PRODUCTS_DIR)"); PRODUCT_BUNDLE_IDENTIFIER = "$(CMUX_CLOUD_VPN_BUNDLE_IDENTIFIER)"; PRODUCT_NAME = CloudVPN; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; WRAPPER_EXTENSION = appex; }; name = Release; };
+		B586265E6362DB7E62FAD88D /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D740699F3554AC1E1DEBC8FC /* PersonalRelease.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CMUX_IROH_RELAY_POLICY_KEY_ID = "cmux-production-relay-policy-2026-07";
+				CMUX_IROH_RELAY_POLICY_NEXT_KEY_ID = "cmux-production-relay-policy-2026-08";
+				CMUX_IROH_RELAY_POLICY_NEXT_PUBLIC_KEY_BASE64 = "k+FND+WlELCkHs9QnWg1TfTuHXBwyv2907umX+mUOOU=";
+				CMUX_IROH_RELAY_POLICY_PUBLIC_KEY_BASE64 = "qoBinRqX4TI1Ro6xAuOQxKUkeZT3pkFJuERP/+R+9aw=";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/PersonalInfo.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_DISPLAY_NAME)";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		C1AC00000000000000000008 /* Debug */ = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                BUNDLE_LOADER = "$(TEST_HOST)";
+                CODE_SIGN_ENTITLEMENTS = "";
+                GENERATE_INFOPLIST_FILE = YES;
+                IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+                LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+                OTHER_LDFLAGS = "$(inherited) -lc++";
+                PRODUCT_BUNDLE_IDENTIFIER = "dev.cmux.ios.local-terminal-acceptance.tests";
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SDKROOT = iphoneos;
+                SUPPORTED_PLATFORMS = iphonesimulator;
+                SWIFT_VERSION = 6.0;
+                TARGETED_DEVICE_FAMILY = "1,2";
+                TEST_HOST = "$(BUILT_PRODUCTS_DIR)/cmux.app/cmux";
+            };
+            name = Debug;
+        };
+		C1AC00000000000000000009 /* Release */ = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                BUNDLE_LOADER = "$(TEST_HOST)";
+                CODE_SIGN_ENTITLEMENTS = "";
+                GENERATE_INFOPLIST_FILE = YES;
+                IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+                LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+                OTHER_LDFLAGS = "$(inherited) -lc++";
+                PRODUCT_BUNDLE_IDENTIFIER = "dev.cmux.ios.local-terminal-acceptance.tests";
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SDKROOT = iphoneos;
+                SUPPORTED_PLATFORMS = iphonesimulator;
+                SWIFT_VERSION = 6.0;
+                TARGETED_DEVICE_FAMILY = "1,2";
+                TEST_HOST = "$(BUILT_PRODUCTS_DIR)/cmux.app/cmux";
+            };
+            name = Release;
+        };
+		D1EC00000000000000000006 = { isa = "XCBuildConfiguration"; baseConfigurationReference = "D1EC0000000000000000000A"; buildSettings = { ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon"; ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = "AccentColor"; SWIFT_VERSION = "5.0"; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", ); }; name = "Debug"; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -709,6 +948,14 @@
 		};
 		D4E2A00B0000000000000001 /* Build configuration list for NotificationService */ = { isa = XCConfigurationList; buildConfigurations = (D4E2A00C0000000000000001 /* Debug */, D4E2A00D0000000000000001 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 		C10DA0050000000000000002 /* Build configuration list for CloudVPN */ = { isa = XCConfigurationList; buildConfigurations = (C10DA0050000000000000003 /* Debug */, C10DA0050000000000000004 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A0ADCD2C6BD7E0997E0E52FF /* Personal configurations */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (B586265E6362DB7E62FAD88D /* Release */);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C1AC00000000000000000007 /* Build configuration list for cmuxLocalTerminalTests */ = {isa = XCConfigurationList; buildConfigurations = (C1AC00000000000000000008, C1AC00000000000000000009,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		D1EC00000000000000000007 = { isa = "XCConfigurationList"; buildConfigurations = ("D1EC00000000000000000006", ); defaultConfigurationIsVisible = "0"; defaultConfigurationName = "Debug"; };
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */

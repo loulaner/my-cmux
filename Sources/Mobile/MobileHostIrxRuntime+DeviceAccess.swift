@@ -8,7 +8,7 @@ extension MobileHostIrxRuntime {
     /// client stays pinned to the team that created it until the registry has
     /// replaced it.
     func makeDeviceClient(identity: AuthenticatedSessionIdentity, teamID: String?) -> DeviceIrxClient? {
-        guard DevicesFeature.isEnabled else { return nil }
+        guard isNetworkingAllowed, DevicesFeature.isEnabled else { return nil }
         let accountDirectoryEnabled = AccountMacDirectoryFeature.isEnabled()
         let client = DeviceIrxClient(context: { [weak self] in
             guard let self else { throw DeviceLinkError.notConnected }

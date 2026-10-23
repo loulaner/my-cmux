@@ -6,7 +6,6 @@ import CmuxFoundation
 import CmuxSettingsUI
 import CmuxSidebar
 import CmuxSidebarProviderKit
-import CmuxUpdater
 import CmuxWorkspaces
 import SwiftUI
 
@@ -408,7 +407,6 @@ private struct SidebarFooterIconButtonStyleBody: View {
 
 #if DEBUG
 struct SidebarDevFooter: View {
-    var updateViewModel: UpdateStateModel
     @ObservedObject var fileExplorerState: FileExplorerState
     let modifierKeyMonitor: WindowScopedShortcutHintModifierMonitor
     let onSendFeedback: () -> Void
@@ -417,7 +415,7 @@ struct SidebarDevFooter: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            SidebarFooterButtons(updateViewModel: updateViewModel, fileExplorerState: fileExplorerState, modifierKeyMonitor: modifierKeyMonitor, onSendFeedback: onSendFeedback)
+            SidebarFooterButtons(fileExplorerState: fileExplorerState, modifierKeyMonitor: modifierKeyMonitor, onSendFeedback: onSendFeedback)
             if showSidebarDevBuildBanner {
                 Text(String(localized: "debug.devBuildBanner.title", defaultValue: "THIS IS A DEV BUILD"))
                     .cmuxFont(size: 11, weight: .semibold)

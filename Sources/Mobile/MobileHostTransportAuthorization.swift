@@ -14,6 +14,7 @@ import os
 
 enum MobileHostConnectionAuthorizationContext: Equatable, Sendable {
     case stackBearer
+    case localDirect(CmxLocalDevice)
     case irohAdmission(CmxIrohAdmittedPeer)
 }
 
@@ -161,6 +162,14 @@ final class MobileHostConnectionRegistry: @unchecked Sendable {
             NotificationCenter.default.post(name: .mobileHostStatusDidChange, object: nil)
         }
         return values
+    }
+
+    /// Removes only this local device's control sessions; terminals remain owned by workspaces.
+    func removeLocalDirectConnections(deviceID: String) -> [MobileHostConnection] {
+        removeConnections { authorization in
+            guard case let .localDirect(device) = authorization else { return false }
+            return device.deviceID == deviceID
+        }
     }
 
     func removeStackBearerConnections() -> [MobileHostConnection] {
@@ -374,10 +383,7 @@ enum MobileHostPublicStatusCache {
     static func result(
         includeIdentity: Bool = false,
         deviceID authorizedDeviceID: String? = nil,
-        additionalCapabilities: Set<String> = [],
-        phonePushAdmission: PhonePushAdmission = .unknown,
-        phonePushQueuePersistenceStatus: PhonePushQueuePersistenceStatus =
-            .unknown
+        additionalCapabilities: Set<String> = []
     ) -> MobileHostRPCResult {
         lock.lock()
         let cachedRoutes = mergedRoutesLocked()
@@ -399,9 +405,7 @@ enum MobileHostPublicStatusCache {
         return .ok(MobileHostService.identityStatusPayload(
             routes: cachedRoutes,
             deviceID: deviceID,
-            additionalCapabilities: additionalCapabilities,
-            phonePushAdmission: phonePushAdmission,
-            phonePushQueuePersistenceStatus: phonePushQueuePersistenceStatus
+            additionalCapabilities: additionalCapabilities
         ))
     }
 

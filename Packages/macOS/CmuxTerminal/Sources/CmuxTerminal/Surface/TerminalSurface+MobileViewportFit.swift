@@ -69,19 +69,23 @@ extension TerminalSurface {
     public func applyMobileViewportLimit(
         columns: Int,
         rows: Int,
+        exactGrid: Bool = false,
         reason: String
     ) -> (columns: Int, rows: Int)? {
         guard let surface = liveSurfaceForGhosttyAccess(reason: "applyMobileViewportLimit") else {
             paneHost.setMobileViewportBorder(size: nil, drawRight: false, drawBottom: false)
             return nil
         }
+        let exact = exactGrid && !ioMode.usesManualIO
+        let modeChanged = mobileViewportUsesExactGrid != exact
+        mobileViewportUsesExactGrid = exact
         if ioMode.usesManualIO {
             // Remote/tmux mirrors keep legacy capping; their remote grid is
             // authoritative and font fitting is intentionally out of v1 scope.
             return legacyApplyMobileViewportLimit(surface: surface, columns: columns, rows: rows, reason: reason)
         }
         let requestedLimit = (columns: max(1, columns), rows: max(1, rows))
-        if Self.mobileViewportLimitMatches(
+        if !modeChanged, Self.mobileViewportLimitMatches(
             current: mobileViewportCellLimit,
             requestedColumns: requestedLimit.columns,
             requestedRows: requestedLimit.rows
@@ -313,6 +317,7 @@ extension TerminalSurface {
     @discardableResult
     @MainActor
     public func clearMobileViewportLimit(reason: String) -> Bool {
+        mobileViewportUsesExactGrid = false
         mobileViewportCellLimit = nil
         paneHost.setMobileViewportBorder(size: nil, drawRight: false, drawBottom: false)
 
@@ -382,6 +387,13 @@ extension TerminalSurface {
             ?? baseFont
         var measurement = mobileViewportMeasurement(surface: surface)
         var geometry = mobileViewportGeometry(paneWidth: paneWidth, paneHeight: paneHeight, measurement: measurement)
+        if mobileViewportUsesExactGrid {
+            // The iPad owns the PTY grid. A smaller Mac view displays that grid;
+            // it must not shrink the remote terminal to fit its own pane.
+            return .grant(geometry.grantPixelBox(columns: grantedColumns, rows: grantedRows),
+                          columns: grantedColumns, rows: grantedRows, baseFont: baseFont,
+                          currentFont: currentFont, fontChanged: false)
+        }
         var targetFont = geometry.integerCellTargetFontPointSize(
             baseFontPointSize: baseFont,
             currentFontPointSize: currentFont,

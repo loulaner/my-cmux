@@ -97,8 +97,6 @@ public struct CommandPaletteContextKeys: Hashable, Sendable {
     public static let panelHasUnread = CommandPaletteContextKeys(rawValue: "panel.hasUnread")
     /// Whether the focused panel can move to a new workspace.
     public static let panelCanMoveToNewWorkspace = CommandPaletteContextKeys(rawValue: "panel.canMoveToNewWorkspace")
-    /// Whether an app update is available.
-    public static let updateHasAvailable = CommandPaletteContextKeys(rawValue: "update.hasAvailable")
     /// Whether the cmux CLI is installed in PATH.
     public static let cliInstalledInPATH = CommandPaletteContextKeys(rawValue: "cli.installedInPATH")
     /// Whether cmux is the default terminal.

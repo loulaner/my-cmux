@@ -459,14 +459,14 @@ struct ManagedCapabilityPolicyGateTests {
         #expect(runtime.controlService == nil)
     }
 
-    @Test func irohRuntimeAllowsNetworkingWhenNoPolicyIsForced() {
+    @Test func retiredIrohRuntimeDeniesNetworkingWithoutManagedPolicy() {
         let runtime = MobileHostIrxRuntime(
             managedDevicePolicy: ManagedDevicePolicy(
                 releaseDomainDefaults: nil,
                 forcedObject: { _, _ in nil }
             ), pairingEnabled: { true }
         )
-        #expect(runtime.isNetworkingAllowed)
+        #expect(!runtime.isNetworkingAllowed)
     }
 
     @Test("Mac discovery and incoming hosting capabilities stay independent of iOS pairing")
@@ -496,11 +496,7 @@ struct ManagedCapabilityPolicyGateTests {
         ))
     }
 
-    /// `MobileHostService.stop()` and `syncToSettings()` both fire IRX policy
-    /// work from unstructured tasks. Interleaved stops and reconciles must
-    /// drain in order and leave one consistent state, never a lift that
-    /// no-ops against a half-finished teardown or a late stop that clears the
-    /// account after a re-arm.
+    /// Interleaved cleanup and policy changes must keep the retired owner idle.
     @Test func concurrentPolicyTransitionsDrainInOrder() async throws {
         let suite = "ManagedCapabilityPolicyGateTests.irohRace.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
@@ -526,7 +522,7 @@ struct ManagedCapabilityPolicyGateTests {
         }
 
         defaults.removeObject(forKey: key)
-        #expect(runtime.isNetworkingAllowed)
+        #expect(!runtime.isNetworkingAllowed)
     }
 
     @Test func liftingIrohPolicyDoesNotSpawnAnEndpointWithoutAnAccount() async throws {
@@ -545,7 +541,7 @@ struct ManagedCapabilityPolicyGateTests {
         #expect(runtime.settingsPhase == .idle)
 
         defaults.removeObject(forKey: ManagedDevicePolicyKey.disableIrohNetworking.rawValue)
-        #expect(runtime.isNetworkingAllowed)
+        #expect(!runtime.isNetworkingAllowed)
         await runtime.applyManagedNetworkingPolicy()
         #expect(runtime.settingsPhase == .idle)
         #expect(runtime.controlService == nil)

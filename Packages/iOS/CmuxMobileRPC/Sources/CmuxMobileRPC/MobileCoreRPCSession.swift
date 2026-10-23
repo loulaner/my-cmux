@@ -85,6 +85,10 @@ actor MobileCoreRPCSession {
     private let diagnosticTransport: DiagnosticTransportKind?
     private let transportConnectObserver: TransportConnectObserver?
     private let tearDownRegistrationHook: TearDownRegistrationHook?
+    private var connectionLifecycleEpoch: UInt64 = 0
+    private var connectReservation: MobileRPCConnectReservation?
+    private let connectReservationWaitHook: (@Sendable () async -> Void)?
+    private let connectReservationHook: (@Sendable () async -> Void)?
     /// Current shell ownership role. Connected transports that support role
     /// rebinding receive updates without replacing their admitted session.
     private var transportSessionPurpose: CmxTransportSessionPurpose?
@@ -196,7 +200,9 @@ actor MobileCoreRPCSession {
         diagnosticTransport: DiagnosticTransportKind? = nil,
         transportConnectObserver: TransportConnectObserver? = nil,
         initialTransportSessionPurpose: CmxTransportSessionPurpose? = nil,
-        tearDownRegistrationHook: TearDownRegistrationHook? = nil
+        tearDownRegistrationHook: TearDownRegistrationHook? = nil,
+        connectReservationHook: (@Sendable () async -> Void)? = nil,
+        connectReservationWaitHook: (@Sendable () async -> Void)? = nil
     ) {
         self.connectAttemptKey = connectAttemptKey
         self.connectAttemptRegistry = connectAttemptRegistry
@@ -211,6 +217,8 @@ actor MobileCoreRPCSession {
         self.transportConnectObserver = transportConnectObserver
         self.transportSessionPurpose = initialTransportSessionPurpose
         self.tearDownRegistrationHook = tearDownRegistrationHook
+        self.connectReservationHook = connectReservationHook
+        self.connectReservationWaitHook = connectReservationWaitHook
     }
 
     deinit {
@@ -436,6 +444,7 @@ actor MobileCoreRPCSession {
             }
             return
         }
+        connectionLifecycleEpoch &+= 1
         isTearingDown = true
         // Evidence is per connection. A replacement transport must not
         // inherit a streak accumulated against the one it replaces, or its
@@ -532,17 +541,19 @@ actor MobileCoreRPCSession {
     }
 
     /// Wait until every installed transport detached by teardown has completed
-    /// `close()` and every abandoned dial has either closed or transferred its
-    /// late cleanup to the shared route registry. Ordinary reconnects do not
+    /// `close()`, every pre-publication reservation has settled, and every
+    /// abandoned dial has either closed or transferred its late cleanup to the shared route registry. Ordinary reconnects do not
     /// block on this bounded drain, but a same-peer ownership handoff observes
     /// it before redialing.
     func waitForTransportDrain() async {
         while !transportCloseTasks.isEmpty
-            || !abandonedConnectionCleanupTasks.isEmpty {
+            || !abandonedConnectionCleanupTasks.isEmpty || connectReservation != nil {
+            let reservation = connectReservation
             let installedTransportCloses =
                 Array(transportCloseTasks.values)
             let abandonedConnectCleanups =
                 Array(abandonedConnectionCleanupTasks.values)
+            if let reservation { _ = try? await reservation.completion.value }
             for close in installedTransportCloses {
                 await close.value
             }
@@ -555,6 +566,19 @@ actor MobileCoreRPCSession {
     // MARK: - private
 
     private func ensureConnected(timeoutNanoseconds: UInt64) async throws -> any CmxByteTransport {
+        try await ensureConnected(deadline: RPCRequestDeadline(timeoutNanoseconds: timeoutNanoseconds),
+                                  lifecycleEpoch: connectionLifecycleEpoch)
+    }
+
+    private func finishConnectReservation(_ reservation: MobileRPCConnectReservation) {
+        if connectReservation?.id == reservation.id { connectReservation = nil }
+        reservation.finish()
+    }
+
+    private func ensureConnected(deadline: RPCRequestDeadline, lifecycleEpoch: UInt64) async throws -> any CmxByteTransport {
+        try Task.checkCancellation()
+        guard lifecycleEpoch == connectionLifecycleEpoch else { throw MobileShellConnectionError.connectionClosed }
+        _ = try deadline.remainingNanoseconds()
         // `tearDown` is actor-reentrant while it awaits transport close and
         // abandoned-connect cleanup. Reject requests that arrive in that
         // window so a stale client cannot install a replacement transport
@@ -585,9 +609,34 @@ actor MobileCoreRPCSession {
             cancellationClose = existing.cancellationClose
             connectionTask?.waiters.insert(waiterID)
         } else {
-            switch await connectAttemptRegistry.beginConnect(
-                key: connectAttemptKey
-            ) {
+            if let reservation = connectReservation {
+                await connectReservationWaitHook?()
+                try await taskTimeout.value(reservation.completion, timeoutNanoseconds: deadline.remainingNanoseconds())
+                return try await ensureConnected(deadline: deadline, lifecycleEpoch: lifecycleEpoch)
+            }
+            // Publish ownership before the first actor hop. It covers registry admission,
+            // rejected-factory disposal, and all error cleanup up to connectionTask publication.
+            let reservation = MobileRPCConnectReservation()
+            connectReservation = reservation
+            defer { finishConnectReservation(reservation) }
+            let admission = await connectAttemptRegistry.beginConnect(key: connectAttemptKey)
+            await connectReservationHook?()
+            do {
+                try Task.checkCancellation()
+                guard !isTearingDown, lifecycleEpoch == connectionLifecycleEpoch else {
+                    throw MobileShellConnectionError.connectionClosed
+                }
+                _ = try deadline.remainingNanoseconds()
+            } catch {
+                if case let .granted(lease) = admission { await connectAttemptRegistry.finishConnect(lease: lease) }
+                throw error // Never create a candidate after this cleanup suspension.
+            }
+            if transport != nil || connectionTask != nil {
+                if case let .granted(lease) = admission { await connectAttemptRegistry.finishConnect(lease: lease) }
+                finishConnectReservation(reservation)
+                return try await ensureConnected(deadline: deadline, lifecycleEpoch: lifecycleEpoch)
+            }
+            switch admission {
             case .granted(let lease):
                 connectLease = lease
             case .busy:
@@ -764,6 +813,7 @@ actor MobileCoreRPCSession {
                 waiters: [waiterID],
                 completed: false
             )
+            finishConnectReservation(reservation)
             Task.detached { [weak self] in
                 _ = await task.result
                 await self?.markConnectingCompleted(id: connectionID)
@@ -773,7 +823,7 @@ actor MobileCoreRPCSession {
         let candidate: any CmxByteTransport
         let callerCancelled: Bool
         do {
-            let connected = try await taskTimeout.value(task, timeoutNanoseconds: timeoutNanoseconds)
+            let connected = try await taskTimeout.value(task, timeoutNanoseconds: deadline.remainingNanoseconds())
             if let didReceiveConnectedCandidate {
                 await didReceiveConnectedCandidate(connected)
             }

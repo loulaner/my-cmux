@@ -36,6 +36,24 @@ Every phone build requires the same-tag Mac dev build (the iOS app is unusable w
 
 If the iPhone is unreachable at build time, the signed build is parked in `scripts/iphone-install-queue.sh`. Each entry stores the chosen profile, normalized account, and credentials-file path. Drain revalidates that snapshot before device mutation and uses installed stable copies of the launcher and auth helpers, so an old or pruned feature worktree cannot change policy. Install or refresh that control plane with `scripts/install-iphone-queue-agent.sh install`. Report `scripts/iphone-install-queue.sh list` in the handoff; `drain` retries delivery and `clear` abandons a queued build.
 
+## Explicit local-direct device lane
+
+`ios/scripts/reload.sh --connection-mode local-direct --tag local-terminal-device
+--device-only --device-id <id> --team <team> --build-receipt <private-path>
+--mac-receipt <private-path>` is the separate manual-approval lane. It revalidates
+an existing signed minimal-capability app and the live, isolated same-tag Mac;
+it does not build, read cloud credentials, mint tickets or enter the offline queue.
+Other cloud/opt-out arguments are rejected. The default reload/cloud lane above
+is unchanged.
+
+Installation and launch return **INSTALLED_PENDING_PAIRING**, exit **75**,
+**NOT_QUEUED**, not authenticated delivery or acceptance. A locked/offline device
+also exits 75 without queueing. The user enables Tailscale, keeps the iPad unlocked,
+opens short-lived pairing on the isolated Mac and manually approves the iPad.
+Never approve on the user's behalf. Acceptance requires a real terminal marker
+on the same PTY, saved-credential reconnect with pairing closed, and rejection
+after revocation while the PTY survives. Installation alone is not success.
+
 ## Local simulators
 
 For local simulator verification, use an isolated device, never an existing

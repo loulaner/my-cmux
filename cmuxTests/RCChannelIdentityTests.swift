@@ -1,5 +1,4 @@
 import CmuxSettings
-import CmuxUpdater
 import Foundation
 import XCTest
 
@@ -12,7 +11,7 @@ import XCTest
 /// The `rc` release channel (`com.cmuxterm.app.rc`, "cmux RC.app") is a fourth
 /// lane next to stable, nightly, and staging. These tests pin the identity
 /// surfaces that key off the channel: build flavor, socket path, icon
-/// persistence, and the update feed.
+/// and icon persistence.
 final class RCChannelIdentityTests: XCTestCase {
     @MainActor
     func testBundleIconPersistenceSkipsRCBundles() {
@@ -82,15 +81,6 @@ final class RCChannelIdentityTests: XCTestCase {
         )
     }
 
-    func testResolvedFeedDetectsRCFromInfoFeedURL() {
-        let resolved = UpdateFeedResolver(hostArchitecture: .arm64).resolve(
-            infoFeedURL: "https://files.cmux.com/rc/appcast.xml"
-        )
-        XCTAssertEqual(resolved.url, "https://files.cmux.com/rc/appcast-arm64.xml")
-        XCTAssertEqual(resolved.channel, .rc)
-        XCTAssertFalse(resolved.isNightly)
-        XCTAssertFalse(resolved.usedFallback)
-    }
 }
 
 extension GhosttyConfigPathResolverTests {

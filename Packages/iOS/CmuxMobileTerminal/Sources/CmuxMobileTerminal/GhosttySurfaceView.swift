@@ -23,6 +23,7 @@ public final class GhosttySurfaceView: UIView, TerminalSurfaceHosting {
     /// ``enqueueSurfaceFree(_:generation:on:completion:)`` for the free
     /// that runs after the view is gone.
     private let runtime: GhosttyRuntime
+    private let toolbarPresentation: TerminalToolbarPresentation
     /// Renderer-effective colors used by this surface and its UIKit chrome.
     public var terminalTheme: TerminalTheme = .monokai {
         didSet { if terminalTheme != oldValue { inputProxy.terminalTheme = terminalTheme; refreshThemeColors() } }
@@ -951,7 +952,7 @@ public final class GhosttySurfaceView: UIView, TerminalSurfaceHosting {
     )
 
     lazy var inputProxy: TerminalInputTextView = {
-        let inputProxy = TerminalInputTextView()
+        let inputProxy = TerminalInputTextView(toolbarPresentation: toolbarPresentation)
         inputProxy.terminalTheme = terminalTheme
         inputProxy.onFirstResponderChanged = { [weak self] isFirstResponder in
             self?.inputSession.send(
@@ -1105,9 +1106,11 @@ public final class GhosttySurfaceView: UIView, TerminalSurfaceHosting {
     ///   - terminalTheme: Renderer-effective colors used by surrounding UIKit chrome.
     ///   - terminalConfigTheme: Raw Ghostty configuration defaults. Defaults to
     ///     `terminalTheme` for callers that do not mirror a remote surface.
+    ///   - toolbarPresentation: Per-surface accessory policy; saved standard settings remain unchanged.
     public init(runtime: GhosttyRuntime, delegate: GhosttySurfaceViewDelegate,
                 fontSize: Float32 = 10, terminalTheme: TerminalTheme = .monokai,
-                terminalConfigTheme: TerminalTheme? = nil) {
+                terminalConfigTheme: TerminalTheme? = nil, toolbarPresentation: TerminalToolbarPresentation = .standard) {
+        self.toolbarPresentation = toolbarPresentation
         self.runtime = runtime
         self.delegate = delegate
         self.fontSize = fontSize

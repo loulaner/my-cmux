@@ -21,6 +21,26 @@ struct UserDefaultsSettingsStoreTests {
         }
     }
 
+    @Test(arguments: ["unset", "true", "false"])
+    func retiredPhonePushDefaultsSurviveNormalSettingsInitialization(legacyValue: String) async throws {
+        let suiteName = "retired-phone-settings-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        if legacyValue != "unset" {
+            defaults.set(legacyValue == "true", forKey: "forwardNotificationsToPhone")
+        }
+        defaults.set("onlyWhenAway", forKey: "forwardNotificationsToPhoneMode")
+        defaults.set(true, forKey: "forwardNotificationsHideContent")
+        let before = defaults.persistentDomain(forName: suiteName) ?? [:]
+        let catalog = SettingCatalog()
+        let store = UserDefaultsSettingsStore(
+            defaults: try #require(UserDefaults(suiteName: suiteName)),
+            migrating: catalog.all
+        )
+        #expect(await store.value(for: catalog.mobile.iOSPairingDisplayName) == "")
+        #expect(NSDictionary(dictionary: before).isEqual(to: defaults.persistentDomain(forName: suiteName) ?? [:]))
+    }
+
     @Test func readsDefaultWhenUnset() async {
         let (store, catalog) = makeStore()
         let value = await store.value(for: catalog.app.appearance)

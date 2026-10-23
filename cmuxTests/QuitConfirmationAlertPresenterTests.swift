@@ -71,14 +71,6 @@ struct QuitConfirmationAlertPresenterTests {
                 quitReason: .sessionEnd
             )
         )
-        #expect(
-            !AppDelegate.shouldEvaluateQuitConfirmationDirtyWorkspaces(
-                isQuitWarningConfirmed: false,
-                buildFlavor: .stable,
-                confirmQuitMode: .dirtyOnly,
-                quitReason: .updateRelaunch
-            )
-        )
     }
 
     /// Regression coverage for issue #10788: `simulate_shortcut cmd+q` arrives
