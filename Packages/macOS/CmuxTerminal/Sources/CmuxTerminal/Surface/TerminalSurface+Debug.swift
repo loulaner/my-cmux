@@ -51,8 +51,8 @@ extension TerminalSurface {
     }
 
 #if DEBUG
-    static let surfaceLogPath = "/tmp/cmux-ghostty-surface.log"
-    static let sizeLogPath = "/tmp/cmux-ghostty-size.log"
+    static let surfaceLogPath = "/tmp/mycmux-ghostty-surface.log"
+    static let sizeLogPath = "/tmp/mycmux-ghostty-size.log"
 
     /// The last applied runtime pixel size.
     public func debugCurrentPixelSize() -> (width: UInt32, height: UInt32) {

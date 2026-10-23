@@ -301,7 +301,7 @@ struct ComputerUseOnboardingView: View {
                 // and offers nothing for a grant (ComputerUseHelperTrust).
                 Text(String(
                     localized: "computerUse.onboarding.helperUnavailable",
-                    defaultValue: "Computer Use is unavailable in this dev build. Install cmux NIGHTLY to use it."
+                    defaultValue: "Computer Use is unavailable in this build."
                 ))
                 .font(.system(size: 12.5))
                 .foregroundStyle(overviewSecondaryText)

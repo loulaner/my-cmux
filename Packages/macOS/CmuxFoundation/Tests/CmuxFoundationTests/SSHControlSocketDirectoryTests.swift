@@ -14,7 +14,7 @@ struct SSHControlSocketDirectoryTests {
 
         let directory = try #require(SSHControlSocketDirectory.prepare(home: home.path, userID: userID))
 
-        #expect(directory == home.resolvedPath + "/.cmux/ssh")
+        #expect(directory == home.resolvedPath + "/.local/state/my-cmux/ssh")
         var info = stat()
         try #require(lstat(directory, &info) == 0)
         #expect(info.st_mode & 0o777 == 0o700)
@@ -32,10 +32,10 @@ struct SSHControlSocketDirectoryTests {
     }
 
     @Test("A directory other users can write to is refused", arguments: [
-        (".cmux", mode_t(0o777)),
-        (".cmux", mode_t(0o775)),
-        (".cmux/ssh", mode_t(0o777)),
-        (".cmux/ssh", mode_t(0o720)),
+        (".local/state/my-cmux", mode_t(0o777)),
+        (".local/state/my-cmux", mode_t(0o775)),
+        (".local/state/my-cmux/ssh", mode_t(0o777)),
+        (".local/state/my-cmux/ssh", mode_t(0o720)),
     ])
     func refusesWritableDirectory(component: String, mode: mode_t) throws {
         let home = try TemporaryHome()
@@ -50,8 +50,8 @@ struct SSHControlSocketDirectoryTests {
     func refusesLinkToSharedTemporaryDirectory() throws {
         let home = try TemporaryHome()
         defer { home.remove() }
-        try #require(mkdir(home.path + "/.cmux", 0o700) == 0)
-        try #require(symlink("/tmp", home.path + "/.cmux/ssh") == 0)
+        try FileManager.default.createDirectory(atPath: home.path + "/.local/state/my-cmux", withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        try #require(symlink("/tmp", home.path + "/.local/state/my-cmux/ssh") == 0)
 
         #expect(SSHControlSocketDirectory.prepare(home: home.path, userID: userID) == nil)
     }
@@ -87,7 +87,7 @@ private struct TemporaryHome {
     let resolvedPath: String
 
     init() throws {
-        var template = Array("/tmp/cmux-home.XXXXXX".utf8CString)
+        var template = Array("/tmp/mXXXXXX".utf8CString)
         guard let created = mkdtemp(&template) else {
             throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
         }

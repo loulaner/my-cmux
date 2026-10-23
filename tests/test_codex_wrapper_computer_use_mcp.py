@@ -510,7 +510,7 @@ def expect_scrubbed_mcp_env(
     if state_dir is not None:
         expect(
             json.loads(state_dir).endswith(
-                f"/Library/Application Support/cmux/cmux-cua/runtime/{state_scope}/state"
+                f"/Library/Application Support/MyCMUX/cmux-cua/runtime/{state_scope}/state"
             ),
             f"{context}: unexpected state dir {state_dir}",
             failures,

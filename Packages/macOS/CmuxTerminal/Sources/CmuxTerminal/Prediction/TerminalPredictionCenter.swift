@@ -359,12 +359,12 @@ public final class TerminalPredictionCenter {
 
     #if DEBUG
     /// Dev builds append every keystroke and output batch a remote surface's
-    /// engine sees to /tmp/cmux-prediction-trace.log while
-    /// /tmp/cmux-prediction-trace.on exists, with the glyphs drawn after it.
+    /// engine sees to /tmp/mycmux-prediction-trace.log while
+    /// /tmp/mycmux-prediction-trace.on exists, with the glyphs drawn after it.
     /// That is how a withdrawal seen on screen is traced to the bytes behind it.
-    private let traceFlagPath = "/tmp/cmux-prediction-trace.on"
+    private let traceFlagPath = "/tmp/mycmux-prediction-trace.on"
     private lazy var traceHandle: FileHandle? = {
-        let path = "/tmp/cmux-prediction-trace.log"
+        let path = "/tmp/mycmux-prediction-trace.log"
         if !FileManager.default.fileExists(atPath: path) {
             FileManager.default.createFile(atPath: path, contents: nil)
         }

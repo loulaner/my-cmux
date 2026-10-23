@@ -23,14 +23,14 @@ extension AgentJournalLifecycleCenter {
             return nil
         }
         let bundleID = bundleIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let resolvedBundleID = bundleID?.isEmpty == false ? bundleID! : "com.cmuxterm.app"
+        let resolvedBundleID = bundleID?.isEmpty == false ? bundleID! : "com.loulaner.mycmux"
         let safeBundleID = resolvedBundleID.replacingOccurrences(
             of: "[^A-Za-z0-9._-]",
             with: "_",
             options: .regularExpression
         )
         return appSupport
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent("agent-journal-\(safeBundleID).sqlite3", isDirectory: false)
     }
 }

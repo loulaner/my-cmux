@@ -11,7 +11,7 @@ final class MobileLocalDirectHostController {
         // Preserve an explicitly isolated home: Foundation rewrites /private/tmp
         // to the /tmp symlink, which our no-follow storage correctly rejects.
         URL(fileURLWithPath: ProcessInfo.processInfo.environment["CFFIXED_USER_HOME"] ?? NSHomeDirectory())
-            .appendingPathComponent("Library/Application Support")
+            .appendingPathComponent("Library/Application Support/MyCMUX")
             .appendingPathComponent(Bundle.main.bundleIdentifier ?? "cmux-unidentified")
             .appendingPathComponent("local-direct"))
 

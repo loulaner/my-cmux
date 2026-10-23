@@ -25,9 +25,11 @@ enum SSHControlSocketDirectory {
     ///   or can't go into a `ControlPath` verbatim.
     static func prepare(home: String, userID: Int) -> String? {
         guard home.hasPrefix("/") else { return nil }
-        let cmuxDirectory = (home as NSString).appendingPathComponent(".cmux")
+        let localDirectory = (home as NSString).appendingPathComponent(".local")
+        let stateDirectory = (localDirectory as NSString).appendingPathComponent("state")
+        let cmuxDirectory = (stateDirectory as NSString).appendingPathComponent("my-cmux")
         let socketDirectory = (cmuxDirectory as NSString).appendingPathComponent("ssh")
-        for directory in [cmuxDirectory, socketDirectory] {
+        for directory in [localDirectory, stateDirectory, cmuxDirectory, socketDirectory] {
             if mkdir(directory, 0o700) != 0, errno != EEXIST { return nil }
         }
         guard let resolvedPointer = realpath(socketDirectory, nil) else { return nil }

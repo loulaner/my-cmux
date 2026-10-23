@@ -114,7 +114,7 @@ function writeReadinessReceipt(eventJSON) {
       "-c",
       [
         'source "$1"',
-        'cmux_attach_write_readiness_receipt "$2" "$3" iosrdy dev.cmux.ios.iosrdy physical_device phone-a iosrdy /tmp/cmux-debug-iosrdy.sock 8421 1 "$4"',
+        'cmux_attach_write_readiness_receipt "$2" "$3" iosrdy dev.cmux.ios.iosrdy physical_device phone-a iosrdy /tmp/mycmux-debug-iosrdy.sock 8421 1 "$4"',
       ].join("\n"),
       "mobile-readiness-receipt-test",
       validator,
@@ -317,7 +317,7 @@ async function ensureMacAfterRelaunch({ forceRelaunch = false, readyAtCall = 2 }
           '  count="$(cat "$CMUX_TEST_CALL_COUNTER" 2>/dev/null || printf 0)"',
           '  count="$((count + 1))"',
           '  printf "%s" "$count" > "$CMUX_TEST_CALL_COUNTER"',
-          '  if [[ "$count" -ge "$CMUX_TEST_READY_AT_CALL" ]]; then printf "cmux-ios-dev://attach?v=2&kind=iroh"; return 0; fi',
+          '  if [[ "$count" -ge "$CMUX_TEST_READY_AT_CALL" ]]; then printf "cmux-ios-com.loulaner.mycmux.ios.debug://attach?v=2&kind=iroh"; return 0; fi',
           '  return 1',
           '}',
           'cmux_attach_terminate_bundle_app() { printf "%s\\n" "$*" > "$CMUX_TEST_PKILL_ARGS"; return 0; }',
@@ -358,7 +358,7 @@ async function ensureMacAfterRelaunch({ forceRelaunch = false, readyAtCall = 2 }
 
 function attachPayload(kind) {
   return {
-    attach_url: `cmux-ios-dev://attach?v=2&kind=${kind}`,
+    attach_url: `cmux-ios-com.loulaner.mycmux.ios.debug://attach?v=2&kind=${kind}`,
     routes: [{ id: kind, kind }],
     ticket: {
       routes: [{ id: kind, kind }],
@@ -577,7 +577,7 @@ test("dogfood readiness writes a secret-free identity and latency receipt", () =
     target: "physical_device",
     target_id: "phone-a",
     mac_tag: "iosrdy",
-    socket_path: "/tmp/cmux-debug-iosrdy.sock",
+    socket_path: "/tmp/mycmux-debug-iosrdy.sock",
     readiness_latency_ms: 8421,
     attempt_count: 1,
     connection_id: "connection-a",
@@ -612,7 +612,7 @@ test("tagged macOS launches require a personal credential file by default", () =
   const macReload = fs.readFileSync(path.join(repoRoot, "scripts/reload.sh"), "utf8");
 
   assert.match(macReload, /tagged launches require authenticated dev credentials/u);
-  assert.match(macReload, /cmuxterm-dev\.env.*cmux\.env/su);
+  assert.match(macReload, /dev-auth\.env.*agent-auth\.env/su);
   assert.match(macReload, /AUTH_PROFILE="personal"/u);
 });
 
@@ -839,7 +839,7 @@ test("ensure-mac self-heals an unarmed running exact-tag app", async () => {
   assert.equal(result.callCount, 2);
   assert.match(
     result.pkillArgs,
-    /^com\.cmuxterm\.app\.debug\.ready .* 5$/,
+    /^com\.loulaner\.mycmux\.debug\.ready .* 5$/,
   );
 });
 
@@ -849,7 +849,7 @@ test("ensure-mac rotates an armed exact-tag app before using explicit credential
   assert.equal(result.callCount, 1);
   assert.match(
     result.pkillArgs,
-    /^com\.cmuxterm\.app\.debug\.ready .* 5$/,
+    /^com\.loulaner\.mycmux\.debug\.ready .* 5$/,
   );
 });
 
@@ -972,9 +972,9 @@ test("ensure-mac fails closed before a simulator can launch unpaired", () => {
   const binDir = path.join(tempRoot, "bin");
   const xcrunLog = path.join(tempRoot, "xcrun.log");
   fs.mkdirSync(binDir);
-  fs.mkdirSync(path.join(tempRoot, ".secrets"));
+  fs.mkdirSync(path.join(tempRoot, ".config/my-cmux"), { recursive: true });
   fs.writeFileSync(
-    path.join(tempRoot, ".secrets/cmuxterm-dev.env"),
+    path.join(tempRoot, ".config/my-cmux/dev-auth.env"),
     "CMUX_UITEST_STACK_EMAIL=agent@example.com\nCMUX_UITEST_STACK_PASSWORD=test-password\n",
     { mode: 0o600 },
   );
@@ -1119,9 +1119,9 @@ test("release gate points Mac and iOS at one explicit presence backend", () => {
 test("physical-route attach reports a missing tagged Mac before blaming Iroh", () => {
   const tag = `missing-mac-${process.pid}`;
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cmux-missing-mac-test-"));
-  fs.mkdirSync(path.join(tempRoot, ".secrets"));
+  fs.mkdirSync(path.join(tempRoot, ".config/my-cmux"), { recursive: true });
   fs.writeFileSync(
-    path.join(tempRoot, ".secrets/cmuxterm-dev.env"),
+    path.join(tempRoot, ".config/my-cmux/dev-auth.env"),
     "CMUX_UITEST_STACK_EMAIL=agent@example.com\nCMUX_UITEST_STACK_PASSWORD=test-password\n",
     { mode: 0o600 },
   );

@@ -282,35 +282,16 @@ final class MobilePairingModel {
     private static func targetDisplayName(
         bundleIdentifier: String
     ) -> String {
-        switch bundleIdentifier {
-        case "com.cmux.app":
-            return String(
-                localized: "mobile.pairing.target.appStore",
-                defaultValue: "cmux"
-            )
-        case "dev.cmux.app.beta":
-            return String(
-                localized: "mobile.pairing.target.beta",
-                defaultValue: "cmux BETA"
-            )
-        case "dev.cmux.app.internal":
-            return String(
-                localized: "mobile.pairing.target.internal",
-                defaultValue: "cmux INTERNAL"
-            )
-        case "dev.cmux.app.demo":
-            return String(
-                localized: "mobile.pairing.target.demo",
-                defaultValue: "cmux DEMO"
-            )
-        default:
-            let format = String(
-                localized: "mobile.pairing.target.dev",
-                defaultValue: "cmux DEV %@"
-            )
-            let tag = bundleIdentifier.split(separator: ".").last ?? ""
-            return String(format: format, locale: .current, String(tag))
+        if bundleIdentifier == "com.loulaner.mycmux.ios" {
+            return String(localized: "mobile.pairing.target.appStore", defaultValue: "MyCMUX")
         }
+        if bundleIdentifier == "com.loulaner.mycmux.ios.debug" {
+            return String(localized: "mobile.pairing.target.untaggedDev", defaultValue: "MyCMUX DEV")
+        }
+        let prefix = "com.loulaner.mycmux.ios.debug."
+        let tag = bundleIdentifier.hasPrefix(prefix) ? String(bundleIdentifier.dropFirst(prefix.count)) : ""
+        let format = String(localized: "mobile.pairing.target.dev", defaultValue: "MyCMUX DEV %@")
+        return String(format: format, locale: .current, tag)
     }
 
     /// Cancels the connection observation. Call when the window closes.

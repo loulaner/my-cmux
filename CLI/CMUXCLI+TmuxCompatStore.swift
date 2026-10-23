@@ -41,7 +41,7 @@ extension CMUXCLI {
         let homePath = ProcessInfo.processInfo.environment["HOME"]
             ?? NSString(string: "~").expandingTildeInPath
         return URL(fileURLWithPath: homePath)
-            .appendingPathComponent(".cmuxterm")
+            .appendingPathComponent(".local/state/my-cmux")
             .appendingPathComponent("tmux-compat-store.json")
     }
 

@@ -295,7 +295,8 @@ private func cmuxCodexHookScriptFilename(from command: String) -> String? {
     }
     let directoryComponents = url.deletingLastPathComponent().pathComponents
     guard directoryComponents.count >= 2,
-          Array(directoryComponents.suffix(2)) == [".cmux", "hooks"]
+          (Array(directoryComponents.suffix(4)) == [".local", "state", "my-cmux", "hooks"]
+           || Array(directoryComponents.suffix(2)) == [".cmux", "hooks"])
     else {
         return nil
     }

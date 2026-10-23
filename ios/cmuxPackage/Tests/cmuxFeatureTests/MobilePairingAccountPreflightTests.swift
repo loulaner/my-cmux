@@ -34,6 +34,17 @@ import Testing
         )
     }
 
+    @Test func oldSchemesCannotBypassUserIDBinding() throws {
+        for old in ["cmux-ios", "cmux-ios-dev", "cmux-ios-com.cmux.app", "cmux-ios-dev.cmux.ios.one"] {
+            #expect(CmxPairingURLScheme(rawValue: old) == nil)
+            let result = MobilePairingAccountPreflight(
+                scannedScheme: old, actualUserID: "wrong-user", actualEmail: "same@example.com",
+                isDevelopmentAuthEnvironment: false
+            ).failure(for: try ticket(macUserID: "owner", macUserEmail: "same@example.com"))
+            #expect(result == .authFailed)
+        }
+    }
+
     @Test func devPhoneScanningReleaseMacQRNamesTheAuthEnvironment() throws {
         // A release Mac's QR (scheme cmux-ios) carries its production Stack
         // user id; the phone's dev-channel id can never equal it, same email
@@ -83,7 +94,7 @@ import Testing
         // URL schemes are case-insensitive; a re-encoded/uppercased link must
         // not lose the truthful classification.
         let category = MobilePairingAccountPreflight(
-            scannedScheme: "CMUX-IOS",
+            scannedScheme: CmxPairingURLScheme.release.uppercased(),
             actualUserID: "dev-user-id",
             actualEmail: "same@example.com",
             isDevelopmentAuthEnvironment: true

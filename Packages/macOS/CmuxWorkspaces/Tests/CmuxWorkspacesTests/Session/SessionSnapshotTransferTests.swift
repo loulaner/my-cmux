@@ -53,48 +53,48 @@ struct SessionSnapshotTransferTests {
     @Test(
         "channel names map to their bundle identifiers",
         arguments: [
-            ("stable", "com.cmuxterm.app"),
-            ("Release", "com.cmuxterm.app"),
-            ("nightly", "com.cmuxterm.app.nightly"),
-            ("RC", "com.cmuxterm.app.rc"),
-            ("staging", "com.cmuxterm.app.staging"),
-            ("debug", "com.cmuxterm.app.debug"),
-            ("debug:mytag", "com.cmuxterm.app.debug.mytag"),
+            ("stable", "com.loulaner.mycmux"),
+            ("Release", "com.loulaner.mycmux"),
+            ("nightly", "com.loulaner.mycmux.nightly"),
+            ("RC", "com.loulaner.mycmux.rc"),
+            ("staging", "com.loulaner.mycmux.staging"),
+            ("debug", "com.loulaner.mycmux.debug"),
+            ("debug:mytag", "com.loulaner.mycmux.debug.mytag"),
             // Same normalization as `scripts/reload.sh --tag`.
-            ("debug:my-tag", "com.cmuxterm.app.debug.my.tag"),
-            ("dev:My_Tag", "com.cmuxterm.app.debug.my.tag"),
-            ("com.cmuxterm.app.nightly.isolated", "com.cmuxterm.app.nightly.isolated"),
+            ("debug:my-tag", "com.loulaner.mycmux.debug.my.tag"),
+            ("dev:My_Tag", "com.loulaner.mycmux.debug.my.tag"),
+            ("com.loulaner.mycmux.nightly.isolated", "com.loulaner.mycmux.nightly.isolated"),
         ]
     )
     func channelBundleIdentifiers(name: String, expected: String) {
         #expect(SessionSnapshotFileLocation.bundleIdentifier(forChannel: name) == expected)
     }
 
-    @Test("unknown channel names do not resolve", arguments: ["", "beta", "debug:", "dev:--", "org.example.app", "./session.json"])
+    @Test("unknown channel names do not resolve", arguments: ["", "beta", "debug:", "dev:--", "org.example.app", "com.cmuxterm.app", "./session.json"])
     func unknownChannels(name: String) {
         #expect(SessionSnapshotFileLocation.bundleIdentifier(forChannel: name) == nil)
     }
 
-    @Test("each channel resolves to its own session file under Application Support/cmux")
+    @Test("each channel resolves to its own session file under Application Support/MyCMUX")
     func perChannelSnapshotPaths() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
+        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
         let expectations = [
-            "stable": "session-com.cmuxterm.app.json",
-            "nightly": "session-com.cmuxterm.app.nightly.json",
-            "rc": "session-com.cmuxterm.app.rc.json",
-            "staging": "session-com.cmuxterm.app.staging.json",
-            "debug:feature-x": "session-com.cmuxterm.app.debug.feature.x.json",
+            "stable": "session-com.loulaner.mycmux.json",
+            "nightly": "session-com.loulaner.mycmux.nightly.json",
+            "rc": "session-com.loulaner.mycmux.rc.json",
+            "staging": "session-com.loulaner.mycmux.staging.json",
+            "debug:feature-x": "session-com.loulaner.mycmux.debug.feature.x.json",
         ]
         for (channel, fileName) in expectations {
             let bundleId = try #require(SessionSnapshotFileLocation.bundleIdentifier(forChannel: channel))
             let url = try #require(repository.snapshotFileURL(bundleIdentifier: bundleId))
-            #expect(url.path == dir.appendingPathComponent("cmux/\(fileName)").path)
+            #expect(url.path == dir.appendingPathComponent("MyCMUX/\(fileName)").path)
         }
         // The running install's own file is the same one it saves to.
         #expect(
-            repository.snapshotFileURL(bundleIdentifier: "com.cmuxterm.app")
+            repository.snapshotFileURL(bundleIdentifier: "com.loulaner.mycmux")
                 == repository.defaultSnapshotFileURL()
         )
     }
@@ -105,8 +105,8 @@ struct SessionSnapshotTransferTests {
     func importFromOtherChannelIsReadOnly() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let stable = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
-        let nightly = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app.nightly")
+        let stable = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
+        let nightly = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux.nightly")
         let nightlySnapshot = snapshot("nightly-window")
         let stableSnapshot = snapshot("stable-window")
         #expect(nightly.save(nightlySnapshot, fileURL: nil))
@@ -115,7 +115,7 @@ struct SessionSnapshotTransferTests {
         let nightlyBytes = try Data(contentsOf: nightlyURL)
         let stableBytes = try Data(contentsOf: try #require(stable.defaultSnapshotFileURL()))
 
-        let imported = try stable.importableSnapshot(bundleIdentifier: "com.cmuxterm.app.nightly").get()
+        let imported = try stable.importableSnapshot(bundleIdentifier: "com.loulaner.mycmux.nightly").get()
 
         #expect(imported.snapshot == nightlySnapshot)
         #expect(imported.fileURL == nightlyURL)
@@ -128,14 +128,14 @@ struct SessionSnapshotTransferTests {
     func importFallsBackToBackup() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let stable = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
-        let nightly = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app.nightly")
+        let stable = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
+        let nightly = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux.nightly")
         let backupSnapshot = snapshot("backup")
         let backupURL = try #require(nightly.manualRestoreSnapshotFileURL())
         #expect(nightly.save(backupSnapshot, fileURL: backupURL))
         try write("corrupt", to: try #require(nightly.defaultSnapshotFileURL()))
 
-        let imported = try stable.importableSnapshot(bundleIdentifier: "com.cmuxterm.app.nightly").get()
+        let imported = try stable.importableSnapshot(bundleIdentifier: "com.loulaner.mycmux.nightly").get()
 
         #expect(imported.snapshot == backupSnapshot)
         #expect(imported.fileURL == backupURL)
@@ -145,28 +145,28 @@ struct SessionSnapshotTransferTests {
     func importMissingChannel() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let stable = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
+        let stable = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
 
-        let result = stable.importableSnapshot(bundleIdentifier: "com.cmuxterm.app.rc")
+        let result = stable.importableSnapshot(bundleIdentifier: "com.loulaner.mycmux.rc")
 
         guard case .fileNotFound(let url)? = result.failure else {
             Issue.record("expected fileNotFound, got \(result)")
             return
         }
-        #expect(url.path == dir.appendingPathComponent("cmux/session-com.cmuxterm.app.rc.json").path)
+        #expect(url.path == dir.appendingPathComponent("MyCMUX/session-com.loulaner.mycmux.rc.json").path)
     }
 
     @Test("an install refuses to import its own live snapshot, by channel or by path")
     func importRefusesOwnLiveSnapshot() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let stable = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
+        let stable = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
         #expect(stable.save(snapshot("live"), fileURL: nil))
         let primaryURL = try #require(stable.defaultSnapshotFileURL())
         let backupURL = try #require(stable.manualRestoreSnapshotFileURL())
         #expect(stable.save(snapshot("previous-launch"), fileURL: backupURL))
 
-        guard case .liveSnapshot? = stable.importableSnapshot(bundleIdentifier: "com.cmuxterm.app").failure else {
+        guard case .liveSnapshot? = stable.importableSnapshot(bundleIdentifier: "com.loulaner.mycmux").failure else {
             Issue.record("expected liveSnapshot for the install's own channel")
             return
         }
@@ -184,7 +184,7 @@ struct SessionSnapshotTransferTests {
     func invalidFileErrors() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
+        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
 
         let missing = dir.appendingPathComponent("missing.json")
         #expect(repository.importableSnapshot(fileURL: missing).failure == .fileNotFound(missing))
@@ -224,7 +224,7 @@ struct SessionSnapshotTransferTests {
     func importRejectsNonRegularFiles() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
+        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
 
         // Reading a FIFO with no writer would block forever.
         let fifo = dir.appendingPathComponent("pipe.json")
@@ -246,8 +246,8 @@ struct SessionSnapshotTransferTests {
     func exportImportRoundTrip() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let nightly = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app.nightly")
-        let stable = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
+        let nightly = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux.nightly")
+        let stable = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
         let saved = snapshot("one", "two")
         #expect(nightly.save(saved, fileURL: nil))
         let destination = dir.appendingPathComponent("exports/nested/session.json")
@@ -267,7 +267,7 @@ struct SessionSnapshotTransferTests {
     func exportUsesBackup() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
+        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
         let backupURL = try #require(repository.manualRestoreSnapshotFileURL())
         #expect(repository.save(snapshot("backup"), fileURL: backupURL))
         try write("corrupt", to: try #require(repository.defaultSnapshotFileURL()))
@@ -281,7 +281,7 @@ struct SessionSnapshotTransferTests {
     func exportRefusals() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
+        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
         let destination = dir.appendingPathComponent("out.json")
 
         #expect(repository.exportSnapshot(to: destination, overwrite: false).failure == .noSnapshot)
@@ -310,7 +310,7 @@ struct SessionSnapshotTransferTests {
     func exportDoesNotFollowPlantedSymlink() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
+        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
         #expect(repository.save(snapshot("w"), fileURL: nil))
         let target = dir.appendingPathComponent("victim.txt")
         let destination = dir.appendingPathComponent("out.json")
@@ -326,7 +326,7 @@ struct SessionSnapshotTransferTests {
     func newerSchemaBackupSurvivesLoadedPrimaryPreservationFailure() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
+        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
         let primaryURL = try #require(repository.defaultSnapshotFileURL())
         let backupURL = try #require(repository.manualRestoreSnapshotFileURL())
         #expect(repository.save(snapshot("current"), fileURL: primaryURL))
@@ -350,7 +350,7 @@ struct SessionSnapshotTransferTests {
     func newerSchemaBackupSurvivesPreservationFailure() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
+        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
         let primaryURL = try #require(repository.defaultSnapshotFileURL())
         let backupURL = try #require(repository.manualRestoreSnapshotFileURL())
         let newerText = #"{"version":2,"windows":[{"name":"future"}]}"#
@@ -378,18 +378,18 @@ struct SessionSnapshotTransferTests {
     func newerSchemaSideFile() throws {
         let dir = try makeTempDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.cmuxterm.app")
+        let repository = makeRepository(appSupport: dir, bundleIdentifier: "com.loulaner.mycmux")
         let primaryURL = try #require(repository.defaultSnapshotFileURL())
         let newerText = #"{"version":2,"windows":[{"name":"future"}]}"#
         try write(newerText, to: primaryURL)
 
         let sideURL = try #require(repository.preserveNewerSchemaSnapshot(fileURL: primaryURL))
 
-        #expect(sideURL.lastPathComponent == "session-com.cmuxterm.app.schema-v2.json")
+        #expect(sideURL.lastPathComponent == "session-com.loulaner.mycmux.schema-v2.json")
         #expect(try String(contentsOf: sideURL, encoding: .utf8) == newerText)
         let newerBuild = SessionSnapshotRepository<TransferSnapshotFixture>(
             schemaVersion: 2,
-            bundleIdentifier: "com.cmuxterm.app",
+            bundleIdentifier: "com.loulaner.mycmux",
             appSupportDirectory: dir
         )
         #expect(try newerBuild.importableSnapshot(fileURL: sideURL).get().snapshot.windows.map(\.name) == ["future"])

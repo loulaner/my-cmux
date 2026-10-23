@@ -3,10 +3,10 @@ import Foundation
 extension CMUXCLI {
     static let settingsDocsURL = "https://cmux.com/docs/configuration#cmux-json"
     static let settingsSchemaURL = "https://raw.githubusercontent.com/manaflow-ai/cmux/main/web/data/cmux.schema.json"
-    static let primarySettingsDisplayPath = "~/.config/cmux/cmux.json"
-    static let legacySettingsDisplayPath = "~/.config/cmux/settings.json"
-    static let fallbackSettingsDisplayPath = "~/Library/Application Support/com.cmuxterm.app/settings.json"
-    static let ghosttyConfigDisplayPath = "~/.config/ghostty/config"
+    static let primarySettingsDisplayPath = "~/.config/my-cmux/cmux.json"
+    static let legacySettingsDisplayPath = "~/.config/my-cmux/settings.json"
+    static let fallbackSettingsDisplayPath = "~/Library/Application Support/MyCMUX/com.loulaner.mycmux/settings.json"
+    static let ghosttyConfigDisplayPath = "~/Library/Application Support/MyCMUX/com.loulaner.mycmux/config.ghostty"
 
     private struct DocsResource {
         let label: String
@@ -59,7 +59,7 @@ extension CMUXCLI {
 
     private static let workflowAdaptAndSave = [
         workflowText("cli.workflow.guidance.choose", "Pick an example that fits the task and lists requirements you have."),
-        workflowText("cli.workflow.guidance.recipe", "Open the recipe and copy only the needed top-level keys into .cmux/cmux.json or ~/.config/cmux/cmux.json. Add .cmux/dock.json when the example uses Dock."),
+        workflowText("cli.workflow.guidance.recipe", "Open the recipe and copy only the needed top-level keys into .cmux/cmux.json or ~/.config/my-cmux/cmux.json. Add .cmux/dock.json when the example uses Dock."),
         workflowText("cli.workflow.guidance.adapt", "Replace sample paths, commands, URLs, tool names, and placements with values for this repository."),
         workflowText("cli.workflow.guidance.validate", "Validate the JSON or JSONC, run cmux reload-config, and check the resulting entry point."),
         workflowText("cli.workflow.guidance.save", "When the workspace looks right, save it with cmux layout save <name> --description \"<what this creates>\"."),
@@ -81,7 +81,7 @@ extension CMUXCLI {
                 workflowText("cli.workflow.worktree-agents.creates.2", "side-by-side Codex and Claude terminal panes"),
                 workflowText("cli.workflow.worktree-agents.creates.3", "plus-button context-menu alternatives")
             ],
-            configFiles: [".cmux/cmux.json", "~/.config/cmux/cmux.json"],
+            configFiles: [".cmux/cmux.json", "~/.config/my-cmux/cmux.json"],
             primitives: [
                 "actions.workspaceCommand",
                 "ui.newWorkspace.action",
@@ -154,7 +154,7 @@ extension CMUXCLI {
                 workflowText("cli.workflow.ssh-devbox.creates.0", "an SSH terminal pane"),
                 workflowText("cli.workflow.ssh-devbox.creates.1", "a browser preview pane")
             ],
-            configFiles: [".cmux/cmux.json", "~/.config/cmux/cmux.json"],
+            configFiles: [".cmux/cmux.json", "~/.config/my-cmux/cmux.json"],
             primitives: [
                 "commands[].workspace.layout",
                 workflowText("cli.workflow.ssh-devbox.primitives.1", "terminal surfaces"),
@@ -186,7 +186,7 @@ extension CMUXCLI {
                 workflowText("cli.workflow.review-pr.creates.0", "a terminal running gh pr status"),
                 workflowText("cli.workflow.review-pr.creates.1", "a browser pane on the repository pull-request page")
             ],
-            configFiles: [".cmux/cmux.json", "~/.config/cmux/cmux.json"],
+            configFiles: [".cmux/cmux.json", "~/.config/my-cmux/cmux.json"],
             primitives: [
                 "commands[].workspace.layout",
                 workflowText("cli.workflow.review-pr.primitives.1", "terminal surfaces"),
@@ -219,7 +219,7 @@ extension CMUXCLI {
                 workflowText("cli.workflow.docs-workspace.creates.1", "a cmux Markdown viewer terminal"),
                 workflowText("cli.workflow.docs-workspace.creates.2", "a browser docs preview")
             ],
-            configFiles: [".cmux/cmux.json", "~/.config/cmux/cmux.json"],
+            configFiles: [".cmux/cmux.json", "~/.config/my-cmux/cmux.json"],
             primitives: [
                 "commands[].workspace.layout",
                 workflowText("cli.workflow.docs-workspace.primitives.1", "terminal surfaces"),
@@ -254,7 +254,7 @@ extension CMUXCLI {
                 workflowText("cli.workflow.quick-agent-buttons.creates.1", "surface-tab-bar buttons"),
                 workflowText("cli.workflow.quick-agent-buttons.creates.2", "Command Palette entries")
             ],
-            configFiles: [".cmux/cmux.json", "~/.config/cmux/cmux.json"],
+            configFiles: [".cmux/cmux.json", "~/.config/my-cmux/cmux.json"],
             primitives: [
                 "actions.agent",
                 "ui.surfaceTabBar.buttons",
@@ -433,7 +433,7 @@ extension CMUXCLI {
         DocsReference(
             topic: "dock",
             aliases: ["doc", "controls", "right-sidebar", "dock-json"],
-            summary: "Custom right-sidebar terminal controls from .cmux/dock.json or ~/.config/cmux/dock.json.",
+            summary: "Custom right-sidebar terminal controls from .cmux/dock.json or ~/.config/my-cmux/dock.json.",
             webURL: "https://cmux.com/docs/dock",
             rawResources: [
                 DocsResource(label: "dock docs", url: "https://raw.githubusercontent.com/manaflow-ai/cmux/main/docs/dock.md"),
@@ -448,14 +448,14 @@ extension CMUXCLI {
         DocsReference(
             topic: "sidebars",
             aliases: ["sidebar", "custom-sidebar", "custom-sidebars", "vibe-sidebar"],
-            summary: "Vibe-code a custom sidebar: a runtime-interpreted SwiftUI-style file in ~/.config/cmux/sidebars/ (beta).",
+            summary: "Vibe-code a custom sidebar: a runtime-interpreted SwiftUI-style file in ~/.config/my-cmux/sidebars/ (beta).",
             webURL: "https://cmux.com/docs/custom-sidebars",
             rawResources: [
                 DocsResource(label: "custom sidebar authoring guide", url: "https://raw.githubusercontent.com/manaflow-ai/cmux/main/docs/custom-sidebars.md"),
             ],
             commands: [
-                "mkdir -p ~/.config/cmux/sidebars",
-                "cat > ~/.config/cmux/sidebars/mine.swift   # write a SwiftUI-style view, then right-click the sidebar button to pick it",
+                "mkdir -p ~/.config/my-cmux/sidebars",
+                "cat > ~/.config/my-cmux/sidebars/mine.swift   # write a SwiftUI-style view, then right-click the sidebar button to pick it",
                 "cmux docs api   # discover cmux() action methods/params",
             ]
         ),
@@ -512,7 +512,7 @@ extension CMUXCLI {
         This command does not require a running cmux app or socket.
 
         Agents:
-          Use `cmux docs settings` before editing ~/.config/cmux/cmux.json.
+          Use `cmux docs settings` before editing ~/.config/my-cmux/cmux.json.
           \(Self.workflowText("cli.workflow.guidance.discover", "Use `cmux docs workflows --json` to choose a shipped workflow example or discover the saved-layout lifecycle."))
           Use `cmux docs dock` before creating or editing .cmux/dock.json.
           Use `cmux docs capture` to screenshot or record a window for a pull request or a bug report.

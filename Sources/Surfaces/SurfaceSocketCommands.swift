@@ -782,7 +782,7 @@ extension TerminalController {
         return provider
     }
 
-    /// `vm.env_set {id, entries: [{key, value}]}` → the machine's `~/.config/cmux/env`
+    /// `vm.env_set {id, entries: [{key, value}]}` → the machine's `~/.config/my-cmux/env`
     /// gains (or overwrites) those variables. Values travel over the machine's link into
     /// the in-VM `cmux env receive` (see `CloudEnvDelivery`): never through `vm.exec`, a
     /// command line, or a terminal's visible screen. The result names keys only.

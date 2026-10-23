@@ -223,6 +223,7 @@ cmux_codex_global_skill_install_enabled() {
 }
 
 cmux_codex_reconcile_skill_links() {
+    cmux_codex_computer_use_enabled_for_invocation || return 0
     local self_dir resource_dir source_dir install_requested=0
     self_dir="$(cd "$(dirname "$0")" 2>/dev/null && pwd -P)" || return 1
     resource_dir="${self_dir%/bin}"
@@ -247,8 +248,8 @@ cmux_codex_computer_use_app_enabled() {
     local enabled="${CMUX_COMPUTER_USE_APP_ENABLED:-1}"
     local home="${HOME:-}"
     if [[ "$home" = /* ]]; then
-        local setting_file="$home/Library/Application Support/cmux/cmux-cua/enabled"
-        local legacy_setting_file="$home/Library/Application Support/cmux/computer-use/enabled"
+        local setting_file="$home/Library/Application Support/MyCMUX/cmux-cua/enabled"
+        local legacy_setting_file="$home/Library/Application Support/MyCMUX/computer-use/enabled"
         if [[ ! -r "$setting_file" && -r "$legacy_setting_file" ]]; then
             setting_file="$legacy_setting_file"
         fi
@@ -313,20 +314,12 @@ cmux_codex_cua_attachment_reason() {
 # to the two identity values baked into a reload.sh tagged app; stable builds
 # retain the signed-parent gate.
 cmux_codex_is_tagged_dev_build() {
-    [[ -n "${CMUX_TAG:-}" && "${CMUX_BUNDLE_ID:-}" == com.cmuxterm.app.debug.* ]]
+    [[ -n "${CMUX_TAG:-}" && "${CMUX_BUNDLE_ID:-}" == com.loulaner.mycmux.debug.* ]]
 }
 
 cmux_codex_computer_use_enabled_for_invocation() {
-    [[ "${CMUX_COMPUTER_USE_MCP_DISABLED:-0}" == "1" ]] && return 1
-    local arg
-    for arg in "$@"; do
-        case "$arg" in
-            --strict-mcp-config|--strict-mcp-config=*)
-                return 1
-                ;;
-        esac
-    done
-    return 0
+    # MyCMUX has no approved helper signing/TCC contract. No environment bypass.
+    return 1
 }
 
 cmux_codex_emit_computer_use_args() {
@@ -357,8 +350,8 @@ cmux_codex_emit_computer_use_args() {
     fi
     [[ -n "$runtime_scope" ]] || runtime_scope="default"
     runtime_uid="$cmux_codex_wrapper_uid"
-    cua_socket="${CMUX_CUA_CODEX_SOCKET_PATH:-/tmp/cmux-cua-${runtime_uid}/${runtime_scope}/cmux-cua-codex.sock}"
-    state_dir="${CMUX_CUA_STATE_DIR:-${HOME}/Library/Application Support/cmux/cmux-cua/runtime/${runtime_scope}/state}"
+    cua_socket="${CMUX_CUA_CODEX_SOCKET_PATH:-/tmp/mycmux-cua-${runtime_uid}/${runtime_scope}/cmux-cua-codex.sock}"
+    state_dir="${CMUX_CUA_STATE_DIR:-${HOME}/Library/Application Support/MyCMUX/cmux-cua/runtime/${runtime_scope}/state}"
     # The helper owns external onboarding. Mark that contract explicitly so
     # protected calls also wait for cmux's post-verification readiness signal.
     printf '%s\0' \

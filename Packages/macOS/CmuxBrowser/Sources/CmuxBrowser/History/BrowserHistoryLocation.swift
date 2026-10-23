@@ -44,7 +44,8 @@ public struct BrowserHistoryLocation: Sendable {
 
     /// The `browser_history.json` URL under the normalized namespace folder.
     public var historyFileURL: URL {
-        let dir = applicationSupportDirectory.appendingPathComponent(namespace, isDirectory: true)
+        let dir = applicationSupportDirectory.appendingPathComponent("MyCMUX", isDirectory: true)
+            .appendingPathComponent(namespace, isDirectory: true)
         return dir.appendingPathComponent("browser_history.json", isDirectory: false)
     }
 

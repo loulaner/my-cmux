@@ -7,11 +7,11 @@
 # across sources. Explicit profiles prevent a personal device build from
 # silently borrowing the shared agent identity. The automatic profile retains
 # the legacy dogfood-first chain for compatibility:
-#   1. file ~/.secrets/cmuxterm-dev.env  dogfood keys (CMUX_DOGFOOD_STACK_*)
-#   2. file ~/.secrets/cmux.env          dogfood keys (CMUX_DOGFOOD_STACK_*)
+#   1. file ~/.config/my-cmux/dev-auth.env  dogfood keys (CMUX_DOGFOOD_STACK_*)
+#   2. file ~/.config/my-cmux/agent-auth.env          dogfood keys (CMUX_DOGFOOD_STACK_*)
 #   3. env  CMUX_DOGFOOD_STACK_EMAIL / CMUX_DOGFOOD_STACK_PASSWORD
-#   4. file ~/.secrets/cmuxterm-dev.env  uitest  keys (CMUX_UITEST_STACK_*)
-#   5. file ~/.secrets/cmux.env          uitest  keys (CMUX_UITEST_STACK_*)
+#   4. file ~/.config/my-cmux/dev-auth.env  uitest  keys (CMUX_UITEST_STACK_*)
+#   5. file ~/.config/my-cmux/agent-auth.env          uitest  keys (CMUX_UITEST_STACK_*)
 #   6. env  CMUX_UITEST_STACK_EMAIL / CMUX_UITEST_STACK_PASSWORD
 #
 # The dogfood account (a personal dogfood login) is preferred so dev builds sign
@@ -98,7 +98,7 @@ cmux_dev_secrets__read_key() {
 #
 # Without --agent, the full 6-step chain above runs (dogfood account preferred).
 # With --agent, only the agent (uitest) sources are used (env CMUX_UITEST_STACK_*,
-# then ~/.secrets/cmux.env uitest keys), for agent-driven flows that must not
+# then ~/.config/my-cmux/agent-auth.env uitest keys), for agent-driven flows that must not
 # borrow a human's dogfood login.
 # Try to resolve a COMPLETE (email + password) credential pair from one source,
 # so a partial higher-precedence source never combines with a lower one. Sets
@@ -152,8 +152,8 @@ cmux_dev_secrets_load() {
   [[ -z "$explicit_file" ]] || cmux_dev_secrets_validate_file "$explicit_file" || return $?
 
   local home_dir="${HOME:-}"
-  local dogfood_file="${home_dir}/.secrets/cmuxterm-dev.env"
-  local agent_file="${home_dir}/.secrets/cmux.env"
+  local dogfood_file="${home_dir}/.config/my-cmux/dev-auth.env"
+  local agent_file="${home_dir}/.config/my-cmux/agent-auth.env"
   local email="" password="" resolved_profile=""
 
   # shellcheck disable=SC2329
@@ -224,7 +224,7 @@ cmux_dev_secrets_load() {
   if [[ -z "$email" || -z "$password" ]]; then
     if [[ "$profile" == "personal" ]]; then
       echo "error: personal auth profile requires complete CMUX_DOGFOOD_STACK_EMAIL and CMUX_DOGFOOD_STACK_PASSWORD values${explicit_file:+ in $explicit_file}" >&2
-      echo "error: run scripts/setup-team-dev.sh once to configure ~/.secrets/cmuxterm-dev.env" >&2
+      echo "error: run scripts/setup-team-dev.sh once to configure ~/.config/my-cmux/dev-auth.env" >&2
     elif [[ "$profile" == "agent" ]]; then
       echo "error: agent auth profile requires complete CMUX_UITEST_STACK_EMAIL and CMUX_UITEST_STACK_PASSWORD values${explicit_file:+ in $explicit_file}" >&2
       echo "error: run scripts/setup-team-dev.sh to configure the development simulator/test account" >&2

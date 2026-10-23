@@ -16,8 +16,8 @@ import time
 from pathlib import Path
 
 TAG = 'local-terminal-device'
-MAC_BUNDLE = 'com.cmuxterm.app.debug.local.terminal.device'
-MAC_SOCKET = '/tmp/cmux-debug-local-terminal-device.sock'  # nosec B108: fixed tagged socket; owner and kernel peer PID verified below.
+MAC_BUNDLE = 'com.loulaner.mycmux.debug.local.terminal.device'
+MAC_SOCKET = '/tmp/mycmux-debug-local-terminal-device.sock'  # nosec B108: fixed tagged socket; owner and kernel peer PID verified below.
 
 
 def require(value, message):
@@ -49,7 +49,7 @@ def private_path(path):
 def socket_password_directory(root):
     current = private_path(root)
     require(stat.S_ISDIR(current.lstat().st_mode), 'State root is not a directory')
-    for part in ['home', '.local', 'state', 'cmux']:
+    for part in ['home', '.local', 'state', 'my-cmux', 'dev-' + TAG]:
         current = private_path(current / part)
         require(stat.S_ISDIR(current.lstat().st_mode) and stat.S_IMODE(current.stat().st_mode) == 0o700,
                 'Socket state directory must be owned 0700')
@@ -158,7 +158,7 @@ def verify_mac(receipt):
     validate_mac_identity(identity, str(executable), str(app))
     open_files = subprocess.check_output(['lsof', '-a', '-p', str(pid), '-Fn'], timeout=10).decode()
     (root / 'open-files.log').write_text(open_files)
-    require(str(root / 'home/.config/cmux') in open_files, 'Cannot prove live isolated config watcher')
+    require(str(root / 'home/.config/my-cmux') in open_files, 'Cannot prove live isolated config watcher')
     return record
 
 
@@ -169,14 +169,16 @@ def launch(app_path):
     require(str(executable) not in [line.strip() for line in running], 'Tag is already running')
     root = Path(tempfile.mkdtemp(prefix='cmux-direct-mac.', dir='/tmp')).resolve()
     home = root / 'home'
-    for path in [home / '.config/cmux', home / '.config/ghostty', home / '.local/state/cmux', root / 'tmp', root / 'work']:
+    for path in [home / '.config/my-cmux', home / ('.local/state/my-cmux/dev-' + TAG), root / 'tmp', root / 'work']:
         path.mkdir(parents=True, mode=0o700)
-    (home / '.config/cmux/cmux.json').write_text('{}\n')
+    (home / '.config/my-cmux/cmux.json').write_text('{}\n')
     bootstrap = root / 'terminal-start.sh'
     bootstrap.write_text('#!/bin/bash\n/usr/bin/python3 -I ' + shlex.quote(str(Path(__file__).resolve()))
                          + ' --tag ' + TAG + ' --terminal-identity-root ' + shlex.quote(str(root))
                          + '\nexec /bin/bash --noprofile --norc\n')
-    (home / '.config/ghostty/config').write_text('command = /bin/bash --noprofile --norc '
+    terminal_config = home / 'Library/Application Support/MyCMUX' / MAC_BUNDLE / 'config.ghostty'
+    terminal_config.parent.mkdir(parents=True, mode=0o700)
+    terminal_config.write_text('command = /bin/bash --noprofile --norc '
         + str(bootstrap) + '\nworking-directory = ' + str(root / 'work') + '\n')
     create_isolated_socket_password(root)
     secret = base64.b64encode(os.urandom(32)).decode()

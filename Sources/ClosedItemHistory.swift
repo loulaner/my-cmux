@@ -5,7 +5,7 @@ import Combine
 import Bonsplit
 import OSLog
 private let closedItemHistoryLogger = Logger(
-    subsystem: "com.cmuxterm.app",
+    subsystem: "com.loulaner.mycmux",
     category: "ClosedItemHistory"
 )
 struct ClosedPanelSplitPlacement: Codable, Sendable {
@@ -751,14 +751,14 @@ final class ClosedItemHistoryStore: ObservableObject {
         }
         let bundleId = (bundleIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
             ? bundleIdentifier!
-            : "com.cmuxterm.app"
+            : "com.loulaner.mycmux"
         let safeBundleId = bundleId.replacingOccurrences(
             of: "[^A-Za-z0-9._-]",
             with: "_",
             options: .regularExpression
         )
         return resolvedAppSupport
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent("closed-item-history-\(safeBundleId).json", isDirectory: false)
     }
 

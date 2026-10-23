@@ -59,7 +59,7 @@ extension TerminalController {
         bundleIdentifier: String? = Bundle.main.bundleIdentifier
     ) -> SocketClientCapabilityAuthority {
         let audience = bundleIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines)
-            .nonEmpty ?? "com.cmuxterm.app"
+            .nonEmpty ?? "com.loulaner.mycmux"
         let store = SocketClientCapabilitySecretStore(
             service: "\(audience).socket-client-capability"
         )
@@ -846,7 +846,7 @@ extension TerminalController {
         guard lowered == "auth" || lowered.hasPrefix("auth ") else {
             return nil
         }
-        guard passwordStore.hasConfiguredPassword(allowLazyKeychainFallback: true) else {
+        guard passwordStore.hasConfiguredPassword(allowLazyKeychainFallback: false) else {
             return "ERROR: Password mode is enabled but no socket password is configured in Settings."
         }
 
@@ -859,7 +859,7 @@ extension TerminalController {
         guard !provided.isEmpty else {
             return "ERROR: Missing password. Usage: auth <password>"
         }
-        guard passwordStore.verify(password: provided, allowLazyKeychainFallback: true) else {
+        guard passwordStore.verify(password: provided, allowLazyKeychainFallback: false) else {
             return "ERROR: Invalid password"
         }
         passwordAuthorization.authenticate(password: provided)
@@ -886,7 +886,7 @@ extension TerminalController {
             return v2Error(id: id, code: "invalid_params", message: "auth.login requires params.password")
         }
 
-        guard passwordStore.hasConfiguredPassword(allowLazyKeychainFallback: true) else {
+        guard passwordStore.hasConfiguredPassword(allowLazyKeychainFallback: false) else {
             return v2Error(
                 id: id,
                 code: "auth_unconfigured",
@@ -894,7 +894,7 @@ extension TerminalController {
             )
         }
 
-        guard passwordStore.verify(password: provided, allowLazyKeychainFallback: true) else {
+        guard passwordStore.verify(password: provided, allowLazyKeychainFallback: false) else {
             return v2Error(id: id, code: "auth_failed", message: "Invalid password")
         }
         passwordAuthorization.authenticate(password: provided)

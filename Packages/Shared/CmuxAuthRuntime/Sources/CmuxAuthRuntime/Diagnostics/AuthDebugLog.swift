@@ -4,7 +4,7 @@ import os
 /// Redacted auth diagnostics, shared by the token stores and sign-in flows.
 ///
 /// Logs to the unified log (`com.cmuxterm.app` / `auth`) in all builds. macOS
-/// DEBUG builds additionally append to `/tmp/cmux-auth-debug.log` (0600) so a
+/// DEBUG builds additionally append to `/tmp/mycmux-auth-debug.log` (0600) so a
 /// sign-in repro can be tailed without Console.app; a symlink, hard link or
 /// file owned by someone else at that path is skipped. Token material, JWTs, and
 /// emails are redacted before any sink sees the message. A pure value;
@@ -29,7 +29,7 @@ public struct AuthDebugLog: Sendable {
     private static let logger = Logger(subsystem: "com.cmuxterm.app", category: "auth")
 
     #if DEBUG && os(macOS)
-    private static let debugLogPath = "/tmp/cmux-auth-debug.log"
+    private static let debugLogPath = "/tmp/mycmux-auth-debug.log"
 
     // A Sendable value-type format (unlike ISO8601DateFormatter), so the
     // multi-actor logging path needs no unsafe shared formatter.

@@ -15,8 +15,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TAG = 'local-terminal-device'
-BUNDLE = 'dev.cmux.ios.' + TAG
+BUNDLE = 'com.loulaner.mycmux.ios.debug.' + TAG
 TARGET = 'cmux-local-direct'
+PRODUCT = 'MyCMUX Direct DEV'
 SYSTEM_ENTITLEMENTS = {'application-identifier', 'com.apple.developer.team-identifier', 'get-task-allow'}
 
 
@@ -49,7 +50,7 @@ def select_device(document, identifier):
 
 def validate_settings(settings, team, signed):
     expected = {'PRODUCT_BUNDLE_IDENTIFIER': BUNDLE, 'CMUX_HOST_BUNDLE_IDENTIFIER': BUNDLE,
-                'CMUX_DEV_TAG': TAG, 'PRODUCT_NAME': TARGET, 'DEVELOPMENT_TEAM': team,
+                'CMUX_DEV_TAG': TAG, 'PRODUCT_NAME': PRODUCT, 'DEVELOPMENT_TEAM': team,
                 'CODE_SIGN_ENTITLEMENTS': 'Config/cmux-local-direct.entitlements',
                 'INFOPLIST_FILE': 'Config/LocalDirectInfo.plist', 'CONFIGURATION': 'Debug',
                 'SWIFT_ACTIVE_COMPILATION_CONDITIONS': 'DEBUG', 'CODE_SIGN_STYLE': 'Automatic',
@@ -133,8 +134,8 @@ class Build:
         validate_metadata(info)
         require(not list(app.rglob('*.appex')), 'Embedded extension found')
         require(not list(app.rglob('*.xctest')), 'Test bundle found')
-        require(info.get('CFBundleExecutable') == TARGET, 'Unexpected app executable')
-        binary = (app / TARGET).read_bytes()
+        require(info.get('CFBundleExecutable') == PRODUCT, 'Unexpected app executable')
+        binary = (app / PRODUCT).read_bytes()
         require(b'--local-terminal-ui-acceptance' not in binary and b'LocalTerminalUIAcceptance' not in binary,
                 'Test-only injection found')
         if signed:
@@ -162,7 +163,7 @@ class Build:
         certificate_hash = self.identity()
         self.run('ghosttykit', [str(ROOT / 'scripts/ensure-ghosttykit.sh')])
         signed = self.args.unsigned == '0'
-        derived = Path.home() / 'Library/Developer/Xcode/DerivedData/cmux-ios-local-terminal-device-direct'
+        derived = Path.home() / 'Library/Developer/Xcode/DerivedData/my-cmux-ios-local-terminal-device-direct'
         sha = self.run('source-sha', ['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
         if self.run('source-dirty', ['git', 'status', '--porcelain']).strip():
             sha += '+'
@@ -182,7 +183,7 @@ class Build:
         if signed:
             command.append('-allowProvisioningUpdates')
         self.run('build', command + ['build'])
-        app = derived / 'Build/Products/Debug-iphoneos/cmux-local-direct.app'
+        app = derived / 'Build/Products/Debug-iphoneos/MyCMUX Direct DEV.app'
         self.validate_artifact(app, device, certificate_hash, signed)
         receipt = {'state': 'BUILT_NOT_INSTALLED' if signed else 'BUILT_UNSIGNED_NOT_INSTALLED', 'tag': TAG,
                    'bundle_id': BUNDLE, 'app_path': str(app), 'signed': signed, 'sha': sha}

@@ -47,7 +47,7 @@ struct CodexForkSessionWatcher {
         let stateRoot = environment["CMUX_AGENT_HOOK_STATE_DIR"]
             .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
             ?? URL(fileURLWithPath: environment["HOME"] ?? NSHomeDirectory(), isDirectory: true)
-                .appendingPathComponent(".cmuxterm", isDirectory: true).path
+                .appendingPathComponent(".local/state/my-cmux", isDirectory: true).path
         claimsDirectory = URL(fileURLWithPath: stateRoot, isDirectory: true)
             .appendingPathComponent("codex-fork-claims", isDirectory: true)
     }

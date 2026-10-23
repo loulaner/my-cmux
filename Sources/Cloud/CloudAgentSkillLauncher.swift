@@ -8,10 +8,10 @@ import Foundation
 /// running the chosen agent with a kickoff prompt; "Copy Cloud Prompt" and
 /// `vm.cloud_prompt` expose the same prompt for any other terminal. Every
 /// entrypoint first installs the bundled skill file at a stable path under
-/// `~/.config/cmux/skills/` so the prompt's file reference resolves for any
+/// `~/.config/my-cmux/skills/` so the prompt's file reference resolves for any
 /// agent, with no network access.
 enum CloudAgentSkillLauncher {
-    static let installedSkillRelativePath = ".config/cmux/skills/cmux-cloud.md"
+    static let installedSkillRelativePath = ".config/my-cmux/skills/cmux-cloud.md"
 
     /// The bundled skill markdown (`Resources/en.lproj/cloud-agent-skill.md`).
     static func skillMarkdown(bundle: Bundle = .main) -> String? {

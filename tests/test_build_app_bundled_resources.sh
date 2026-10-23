@@ -48,30 +48,8 @@ chmod +x "$output"
 EOF
 cat > "$SRCROOT/scripts-build-cua" <<'EOF'
 #!/usr/bin/env bash
-set -euo pipefail
-output=""
-helper_app=""
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --output) output="$2"; shift 2 ;;
-    --helper-app) helper_app="$2"; shift 2 ;;
-    *) shift ;;
-  esac
-done
-mkdir -p "$(dirname "$output")"
-printf 'cua-helper\n' > "$output"
-printf 'license\n' > "$(dirname "$output")/cmux-cua-LICENSE.md"
-chmod +x "$output"
-if [[ -z "$helper_app" && "$output" == *.app/Contents/Resources/bin/cmux-cua ]]; then
-  helper_app="${output%/Resources/bin/cmux-cua}/Library/cmux Computer Use.app"
-fi
-if [[ -n "$helper_app" ]]; then
-  mkdir -p "$helper_app/Contents/MacOS" "$helper_app/Contents/Resources"
-  printf 'cua-helper-app\n' > "$helper_app/Contents/MacOS/cmux-cua"
-  chmod +x "$helper_app/Contents/MacOS/cmux-cua"
-  printf 'plist\n' > "$helper_app/Contents/Info.plist"
-  printf 'managed\n' > "$helper_app/Contents/Resources/.cmux-cua-managed-helper"
-fi
+echo 'FAIL: disabled helper builder invoked' >&2
+exit 99
 EOF
 chmod +x "$SRCROOT/scripts-build-helper" "$SRCROOT/scripts-build-cua"
 printf 'apply-v1\n' > "$SRCROOT/scripts/apply-cmux-cua-patch.sh"
@@ -151,7 +129,7 @@ if [[ -e "$APP_BIN/cmux-cua" || -e "$APP_BIN/cmux-cua-LICENSE.md" ]]; then
   echo 'FAIL: the app bundle still ships Resources/bin/cmux-cua' >&2
   exit 1
 fi
-[[ -x "$BUILD_DIR/cmux.app/Contents/Library/cmux Computer Use.app/Contents/MacOS/cmux-cua" ]]
+[[ ! -e "$BUILD_DIR/cmux.app/Contents/Library/cmux Computer Use.app" ]]
 # The CLI, one directory deeper, reaches each package bundle through a relative
 # link to the app's copy, so every bundle ships once.
 if [[ ! -L "$CLI_RESOURCE_BUNDLE" || "$(readlink "$CLI_RESOURCE_BUNDLE")" != "../CmuxFoundation_CmuxFoundation.bundle" ]]; then
@@ -183,21 +161,10 @@ if [[ -e "$BUILD_DIR/cmux.app/Contents/Resources/bin/Bonsplit_Bonsplit.bundle" |
 fi
 
 HELPER_APP="$BUILD_DIR/cmux.app/Contents/Library/cmux Computer Use.app"
-rm "$HELPER_APP/Contents/Info.plist"
-run_app_phase > "$TMP_DIR/app-missing-plist.log"
-if grep -q 'skipping helper rebuilds' "$TMP_DIR/app-missing-plist.log"; then
-  echo 'FAIL: missing cmux-cua helper Info.plist did not invalidate the manifest' >&2
-  exit 1
-fi
-[[ -f "$HELPER_APP/Contents/Info.plist" ]]
-
-rm "$HELPER_APP/Contents/Resources/.cmux-cua-managed-helper"
-run_app_phase > "$TMP_DIR/app-missing-owner.log"
-if grep -q 'skipping helper rebuilds' "$TMP_DIR/app-missing-owner.log"; then
-  echo 'FAIL: missing cmux-cua ownership marker did not invalidate the manifest' >&2
-  exit 1
-fi
-[[ -f "$HELPER_APP/Contents/Resources/.cmux-cua-managed-helper" ]]
+mkdir -p "$HELPER_APP/Contents/Resources"
+printf 'managed\n' > "$HELPER_APP/Contents/Resources/.cmux-cua-managed-helper"
+run_app_phase > "$TMP_DIR/app-stale-helper.log"
+[[ ! -e "$HELPER_APP" ]]
 
 echo 'PASS: bundled-resource invalidation covers copied trees, Git environment, and complete helper bundles'
 

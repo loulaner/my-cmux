@@ -58,18 +58,18 @@ public struct GhosttyThemeDirectories {
             }
         }
         append(URL(fileURLWithPath: "/Applications/Ghostty.app/Contents/Resources/ghostty/themes", isDirectory: true))
-        append(homeExpandedURL("~/.config/ghostty/themes"))
+        append(homeExpandedURL("~/.config/my-cmux/themes"))
         for appSupportDirectory in CmuxApplicationSupportDirectories(
             environment: environment,
             fileManager: fileManager
         ).userDirectories {
             append(
                 appSupportDirectory
+                    .appendingPathComponent("MyCMUX", isDirectory: true)
                     .appendingPathComponent(CmuxGhosttyConfigPathResolver.releaseBundleIdentifier, isDirectory: true)
                     .appendingPathComponent("themes", isDirectory: true)
             )
         }
-        append(homeExpandedURL("~/Library/Application Support/com.mitchellh.ghostty/themes"))
         return urls
     }
 

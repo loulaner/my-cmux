@@ -8,7 +8,7 @@ import Testing
 /// iOS Simulator without a host app. This is the untagged development scheme,
 /// the same value the host fallback produced.
 private let pairingScheme = CmxPairingURLScheme(
-    rawValue: "cmux-ios-dev.cmux.ios"
+    rawValue: CmxPairingURLScheme.development
 )
 
 
@@ -90,7 +90,7 @@ private let pairingScheme = CmxPairingURLScheme(
       "transport": "tailscale"
     }
     """
-    let url = try #require(URL(string: "cmux-ios://pair?v=1&payload=\(base64URLEncode(Data(json.utf8)))"))
+    let url = try #require(URL(string: "\(CmxPairingURLScheme.release)://pair?v=1&payload=\(base64URLEncode(Data(json.utf8)))"))
 
     do {
         _ = try MobileSyncPairingPayload.decodeURL(
@@ -151,7 +151,7 @@ private let pairingScheme = CmxPairingURLScheme(
       "transport": "tailscale"
     }
     """
-    let url = try #require(URL(string: "cmux-ios://pair?v=1&payload=\(base64URLEncode(Data(json.utf8)))"))
+    let url = try #require(URL(string: "\(CmxPairingURLScheme.release)://pair?v=1&payload=\(base64URLEncode(Data(json.utf8)))"))
 
     let decoded = try MobileSyncPairingPayload.decodeURL(
         url,

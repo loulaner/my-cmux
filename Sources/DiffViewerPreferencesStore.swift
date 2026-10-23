@@ -44,7 +44,7 @@ final class DiffViewerPreferencesStore: @unchecked Sendable {
         }
         guard let appSupportDirectory else { return nil }
         return appSupportDirectory
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent("diff-viewer", isDirectory: true)
             .appendingPathComponent("preferences.json", isDirectory: false)
     }

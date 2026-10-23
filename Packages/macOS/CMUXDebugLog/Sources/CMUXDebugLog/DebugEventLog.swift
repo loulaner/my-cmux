@@ -473,7 +473,7 @@ public final class DebugEventLog: @unchecked Sendable {
 
         if let tag = env["CMUX_TAG"]?.trimmingCharacters(in: .whitespacesAndNewlines),
            !tag.isEmpty {
-            return "/tmp/cmux-debug-\(sanitizePathToken(tag)).log"
+            return "/tmp/mycmux-debug-\(sanitizePathToken(tag)).log"
         }
 
         if let socketPath = env["CMUX_SOCKET_PATH"]?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -486,10 +486,10 @@ public final class DebugEventLog: @unchecked Sendable {
 
         if let bundleId = Bundle.main.bundleIdentifier,
            bundleId != "com.cmuxterm.app.debug" {
-            return "/tmp/cmux-debug-\(sanitizePathToken(bundleId)).log"
+            return "/tmp/mycmux-debug-\(sanitizePathToken(bundleId)).log"
         }
 
-        return "/tmp/cmux-debug.log"
+        return "/tmp/mycmux-debug.log"
     }
 }
 

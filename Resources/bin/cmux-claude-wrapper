@@ -978,9 +978,9 @@ ensure_node_options_restore_module() {
     # The restore preload must outlive the Claude session: every Node child
     # loads it via NODE_OPTIONS, and macOS purges $TMPDIR under long-lived
     # sessions (https://github.com/manaflow-ai/cmux/issues/12022). Keep it
-    # next to the other CLI shims in ~/.cmuxterm.
+    # next to the other CLI shims in ~/.local/state/my-cmux.
     [[ -n "${HOME:-}" && "$HOME" == /* ]] || return 1
-    local guard_dir="${HOME%/}/.cmuxterm/cmux-claude-node-options"
+    local guard_dir="${HOME%/}/.local/state/my-cmux/cmux-claude-node-options"
     local guard_path="$guard_dir/restore-node-options.cjs"
     [[ ! -L "$guard_dir" && ! -L "$guard_path" ]] || return 1
     mkdir -p "$guard_dir" || return 1
@@ -1233,7 +1233,7 @@ cmux_claude_wrapper_create_settings_values_file() {
 # immediately after launch construction.
 cmux_claude_wrapper_durable_settings_dir() {
     [[ -n "${HOME:-}" && "$HOME" == /* ]] || return 1
-    local cmux_dir="${HOME%/}/.cmuxterm"
+    local cmux_dir="${HOME%/}/.local/state/my-cmux"
     local settings_dir="$cmux_dir/claude-settings"
     # Do not follow a pre-existing link into a location cmux does not own.
     [[ ! -L "$cmux_dir" && ! -L "$settings_dir" ]] || return 1
@@ -1451,19 +1451,8 @@ cmux_computer_use_auth_token() {
 }
 
 cmux_claude_computer_use_enabled_for_invocation() {
-    [[ "${CMUX_COMPUTER_USE_MCP_DISABLED:-0}" == "1" ]] && return 1
-    cmux_claude_sideload_flags_disabled && return 1
-    local arg
-    for arg in "$@"; do
-        case "$arg" in
-            --strict-mcp-config|--strict-mcp-config=*)
-                # Respect explicit MCP isolation (e.g. cmux's headless
-                # auto-naming summarizers pass --strict-mcp-config).
-                return 1
-                ;;
-        esac
-    done
-    return 0
+    # MyCMUX has no approved helper signing/TCC contract. No environment bypass.
+    return 1
 }
 
 cmux_computer_use_config() {
@@ -1477,8 +1466,8 @@ cmux_computer_use_config() {
     runtime_scope="$(printf '%s' "$runtime_scope" | LC_ALL=C /usr/bin/tr -c 'A-Za-z0-9_.-' '-' | /usr/bin/sed -E 's/^[.-]+//; s/[.-]+$//' | /usr/bin/cut -c1-64)"
     [[ -n "$runtime_scope" ]] || runtime_scope="default"
     runtime_uid="$(/usr/bin/id -u)"
-    state_dir="${CMUX_CUA_STATE_DIR:-${HOME}/Library/Application Support/cmux/cmux-cua/runtime/${runtime_scope}/state}"
-    cua_socket="${CMUX_CUA_SOCKET_PATH:-/tmp/cmux-cua-${runtime_uid}/${runtime_scope}/cmux-cua.sock}"
+    state_dir="${CMUX_CUA_STATE_DIR:-${HOME}/Library/Application Support/MyCMUX/cmux-cua/runtime/${runtime_scope}/state}"
+    cua_socket="${CMUX_CUA_SOCKET_PATH:-/tmp/mycmux-cua-${runtime_uid}/${runtime_scope}/cmux-cua.sock}"
     # Stable per-terminal session id so the branded agent cursor survives helper
     # restarts in the same surface.
     default_session="cmux-${CMUX_SURFACE_ID:-$$}"
@@ -1506,6 +1495,7 @@ cmux_claude_global_skill_install_enabled() {
 }
 
 cmux_claude_reconcile_skill_links() {
+    cmux_claude_computer_use_enabled_for_invocation || return 0
     local self_dir resource_dir source_dir install_requested=0
     self_dir="$(cd "$(dirname "$0")" 2>/dev/null && pwd -P)" || return 1
     resource_dir="${self_dir%/bin}"

@@ -90,8 +90,9 @@ class Install(Build):
 
     def deliver(self):
         # Both receipts are locators, never auth or signature evidence.
-        mac = verify_mac(self.args.mac_receipt)
         located = decode_json(private_path(self.args.build_receipt).read_text())
+        require(located.get('mode') != 'compile-only', 'Compile-only artifacts cannot be installed')
+        mac = verify_mac(self.args.mac_receipt)
         app = Path(located['app_path']).resolve(strict=True)
         devices = self.device_json('devices', ['list', 'devices'])
         entries = devices.get('result', {}).get('devices', [])

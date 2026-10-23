@@ -44,7 +44,7 @@ public struct BetaFeaturesCatalogSection: SettingCatalogSection {
     )
 
     /// Custom sidebars: user/agent-authored sidebars (interpreted Swift or
-    /// JSON) discovered from `~/.config/cmux/sidebars/` and selectable in the
+    /// JSON) discovered from `~/.config/my-cmux/sidebars/` and selectable in the
     /// sidebar button's provider picker. Defaults on; while off, no custom
     /// sidebar appears in the picker and a persisted custom selection falls
     /// back to the default workspaces sidebar.

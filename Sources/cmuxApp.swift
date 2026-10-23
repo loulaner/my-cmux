@@ -53,16 +53,7 @@ struct cmuxApp: App {
         // it owns localized search-index text for the process lifetime.
         let settingsCatalog = SettingCatalog()
         let configFileURL = CmuxConfigLocation().userConfigFile
-        // Relocate a pre-existing socket password out of the legacy
-        // Application Support directory before any store reads it. The CLI reads
-        // this file on every agent hook, and a cross-identity reach into
-        // Application Support triggers the macOS Sequoia "access data from other
-        // apps" prompt; the password now lives in the non-protected cmux state
-        // directory (https://github.com/manaflow-ai/cmux/issues/5146). The app
-        // owns its Application Support data, so it can perform this move silently.
-        // This App initializer is the composition root, so it is where the
-        // concrete `FileManager.default` is named for the package's injected seams.
-        SocketControlPasswordStore.migrateLegacyApplicationSupportPasswordFileIfNeeded(fileManager: .default)
+        // New product identity: never import the old socket password or Keychain.
         // Secrets live in their own 0600 files under the cmux state directory,
         // the same directory (and `socket-control-password` file) the socket
         // auth path reads via SocketControlPasswordStore, so the Settings UI
@@ -286,17 +277,6 @@ struct cmuxApp: App {
         } else if let legacy = defaults.object(forKey: SocketControlSettings.legacyEnabledKey) as? Bool {
             defaults.set(legacy ? SocketControlMode.cmuxOnly.rawValue : SocketControlMode.off.rawValue,
                          forKey: SocketControlSettings.appStorageKey)
-        }
-        // Skip keychain migration for DEV/staging builds. Each tagged build gets a
-        // unique bundle ID with its own UserDefaults domain, so migration would run
-        // on every launch and trigger a macOS keychain access prompt (the legacy
-        // keychain item was created by a differently-signed app).
-        let bundleID = Bundle.main.bundleIdentifier
-        if !SocketControlSettings.isDebugLikeBundleIdentifier(bundleID)
-            && !SocketControlSettings.isStagingBundleIdentifier(bundleID) {
-            StartupBreadcrumbLog.append("app.init.keychainMigration.begin")
-            SocketControlPasswordStore().migrateLegacyKeychainPasswordIfNeeded(defaults: defaults)
-            StartupBreadcrumbLog.append("app.init.keychainMigration.complete")
         }
         migrateSidebarAppearanceDefaultsIfNeeded(defaults: defaults)
         MinimalModeTitlebarDebugSettings.migrateLegacyKeysIfNeeded(defaults: defaults)

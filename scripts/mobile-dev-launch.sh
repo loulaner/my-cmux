@@ -314,7 +314,7 @@ fi
 
 # --- bundle id (matches ios/scripts/reload.sh sanitize_tag) ------------------
 slug="$(cmux_attach__slug "$TAG")"
-BUNDLE_ID="dev.cmux.ios.$slug"
+BUNDLE_ID="com.loulaner.mycmux.ios.debug.$slug"
 
 # --- first (and only) device reachability probe -------------------------------
 # A phone that is offline on the FIRST probe defers delivery: notify, print the

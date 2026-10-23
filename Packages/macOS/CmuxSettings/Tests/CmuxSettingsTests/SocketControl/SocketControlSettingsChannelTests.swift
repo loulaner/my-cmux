@@ -49,9 +49,9 @@ import Testing
         let path = SocketControlSettings.socketPath(
             environment: [
                 "CMUX_TAG": "stray-tag",
-                "CMUX_SOCKET_PATH": "/tmp/cmux-debug-issue-153-tmux-compat.sock",
+                "CMUX_SOCKET_PATH": "/tmp/mycmux-debug-issue-153-tmux-compat.sock",
             ],
-            bundleIdentifier: "com.cmuxterm.app",
+            bundleIdentifier: "com.loulaner.mycmux",
             isDebugBuild: false,
             probeStableDefaultPathEntry: { _ in .missing }
         )
@@ -62,109 +62,109 @@ import Testing
     @Test func taggedDebugLaunchUsesTagDefaultWhenNoOverrideIsProvided() {
         let path = SocketControlSettings.socketPath(
             environment: ["CMUX_TAG": "my-tag"],
-            bundleIdentifier: "com.cmuxterm.app.debug",
+            bundleIdentifier: "com.loulaner.mycmux.debug",
             isDebugBuild: true
         )
 
-        #expect(path == "/tmp/cmux-debug-my-tag.sock")
+        #expect(path == "/tmp/mycmux-debug-my-tag.sock")
     }
 
     @Test func taggedDebugLaunchStillHonorsSocketOverride() {
         let path = SocketControlSettings.socketPath(
             environment: [
                 "CMUX_TAG": "my-tag",
-                "CMUX_SOCKET_PATH": "/tmp/cmux-debug-forced.sock",
+                "CMUX_SOCKET_PATH": "/tmp/mycmux-debug-forced.sock",
             ],
-            bundleIdentifier: "com.cmuxterm.app.debug",
+            bundleIdentifier: "com.loulaner.mycmux.debug",
             isDebugBuild: true
         )
 
-        #expect(path == "/tmp/cmux-debug-forced.sock")
+        #expect(path == "/tmp/mycmux-debug-forced.sock")
     }
 
     @Test func nightlyReleaseUsesDedicatedDefaultAndIgnoresAmbientSocketOverride() {
         let path = SocketControlSettings.socketPath(
-            environment: ["CMUX_SOCKET_PATH": "/tmp/cmux-debug-issue-153-tmux-compat.sock"],
-            bundleIdentifier: "com.cmuxterm.app.nightly",
+            environment: ["CMUX_SOCKET_PATH": "/tmp/mycmux-debug-issue-153-tmux-compat.sock"],
+            bundleIdentifier: "com.loulaner.mycmux.nightly",
             isDebugBuild: false,
             probeStableDefaultPathEntry: { _ in .missing }
         )
 
-        #expect(path == "/tmp/cmux-nightly.sock")
+        #expect(path == "/tmp/mycmux-nightly.sock")
     }
 
     @Test func taggedDebugBundleKeepsMatchingSocketOverrideWithoutOptInFlag() {
         let path = SocketControlSettings.socketPath(
-            environment: ["CMUX_SOCKET_PATH": "/tmp/cmux-debug-my-tag.sock"],
-            bundleIdentifier: "com.cmuxterm.app.debug.my-tag",
+            environment: ["CMUX_SOCKET_PATH": "/tmp/mycmux-debug-my-tag.sock"],
+            bundleIdentifier: "com.loulaner.mycmux.debug.my-tag",
             isDebugBuild: false
         )
 
-        #expect(path == "/tmp/cmux-debug-my-tag.sock")
+        #expect(path == "/tmp/mycmux-debug-my-tag.sock")
     }
 
     @Test func taggedDebugBundleIgnoresSocketOverrideInheritedFromDifferentCmuxBundle() {
         let path = SocketControlSettings.socketPath(
             environment: [
-                "CMUX_BUNDLE_ID": "com.cmuxterm.app.nightly",
-                "CMUX_SOCKET_PATH": "/tmp/cmux-nightly.sock",
+                "CMUX_BUNDLE_ID": "com.loulaner.mycmux.nightly",
+                "CMUX_SOCKET_PATH": "/tmp/mycmux-nightly.sock",
             ],
-            bundleIdentifier: "com.cmuxterm.app.debug.issue.4355.cmux.themes.set.state.dependent",
+            bundleIdentifier: "com.loulaner.mycmux.debug.issue.4355.cmux.themes.set.state.dependent",
             isDebugBuild: true
         )
 
-        #expect(path == "/tmp/cmux-debug-issue-4355-cmux-themes-set-state-dependent.sock")
+        #expect(path == "/tmp/mycmux-debug-issue-4355-cmux-themes-set-state-dependent.sock")
     }
 
     @Test func taggedDebugBundleIgnoresMismatchedInheritedSocketOverride() {
         let path = SocketControlSettings.socketPath(
             environment: [
-                "CMUX_SOCKET_PATH": "/tmp/cmux-nightly.sock",
-                "CMUX_BUNDLE_ID": "com.cmuxterm.app.nightly",
+                "CMUX_SOCKET_PATH": "/tmp/mycmux-nightly.sock",
+                "CMUX_BUNDLE_ID": "com.loulaner.mycmux.nightly",
             ],
-            bundleIdentifier: "com.cmuxterm.app.debug.fix-grok-notifications",
+            bundleIdentifier: "com.loulaner.mycmux.debug.fix-grok-notifications",
             isDebugBuild: false
         )
 
-        #expect(path == "/tmp/cmux-debug-fix-grok-notifications.sock")
+        #expect(path == "/tmp/mycmux-debug-fix-grok-notifications.sock")
     }
 
     @Test func taggedDebugBundleCanOptInToMismatchedSocketOverride() {
         let path = SocketControlSettings.socketPath(
             environment: [
-                "CMUX_SOCKET_PATH": "/tmp/cmux-nightly.sock",
-                "CMUX_BUNDLE_ID": "com.cmuxterm.app.nightly",
+                "CMUX_SOCKET_PATH": "/tmp/mycmux-nightly.sock",
+                "CMUX_BUNDLE_ID": "com.loulaner.mycmux.nightly",
                 "CMUX_ALLOW_SOCKET_OVERRIDE": "1",
             ],
-            bundleIdentifier: "com.cmuxterm.app.debug.fix-grok-notifications",
+            bundleIdentifier: "com.loulaner.mycmux.debug.fix-grok-notifications",
             isDebugBuild: false
         )
 
-        #expect(path == "/tmp/cmux-nightly.sock")
+        #expect(path == "/tmp/mycmux-nightly.sock")
     }
 
     @Test func stagingBundleHonorsSocketOverrideWithoutOptInFlag() {
         let path = SocketControlSettings.socketPath(
-            environment: ["CMUX_SOCKET_PATH": "/tmp/cmux-staging-my-tag.sock"],
-            bundleIdentifier: "com.cmuxterm.app.staging.my-tag",
+            environment: ["CMUX_SOCKET_PATH": "/tmp/mycmux-staging-my-tag.sock"],
+            bundleIdentifier: "com.loulaner.mycmux.staging.my-tag",
             isDebugBuild: false
         )
 
-        #expect(path == "/tmp/cmux-staging-my-tag.sock")
+        #expect(path == "/tmp/mycmux-staging-my-tag.sock")
     }
 
     @Test func stableReleaseCanOptInToSocketOverride() {
         let path = SocketControlSettings.socketPath(
             environment: [
-                "CMUX_SOCKET_PATH": "/tmp/cmux-debug-forced.sock",
+                "CMUX_SOCKET_PATH": "/tmp/mycmux-debug-forced.sock",
                 "CMUX_ALLOW_SOCKET_OVERRIDE": "1",
             ],
-            bundleIdentifier: "com.cmuxterm.app",
+            bundleIdentifier: "com.loulaner.mycmux",
             isDebugBuild: false,
             probeStableDefaultPathEntry: { _ in .missing }
         )
 
-        #expect(path == "/tmp/cmux-debug-forced.sock")
+        #expect(path == "/tmp/mycmux-debug-forced.sock")
     }
 
     // MARK: - Stable-socket hijack refusal
@@ -175,18 +175,18 @@ import Testing
                 "CMUX_SOCKET_PATH": SocketControlSettings.stableDefaultSocketPath,
                 "CMUX_ALLOW_SOCKET_OVERRIDE": "1",
             ],
-            bundleIdentifier: "com.cmuxterm.app.debug.sockguard",
+            bundleIdentifier: "com.loulaner.mycmux.debug.sockguard",
             isDebugBuild: false
         )
 
-        #expect(path == "/tmp/cmux-debug-sockguard.sock")
+        #expect(path == "/tmp/mycmux-debug-sockguard.sock")
     }
 
     @Test func taggedDebugBundleRefusesUserScopedStableSocketOverrideEvenWithOptInFlag() {
         let aliases = [
             SocketControlSettings.userScopedStableSocketPath(currentUserID: 501),
             SocketControlSettings.legacyUserScopedStableSocketPath(currentUserID: 501),
-            "/private/tmp/cmux-501.sock",
+            "/private/tmp/mycmux-501.sock",
         ]
 
         for alias in aliases {
@@ -195,41 +195,41 @@ import Testing
                     "CMUX_SOCKET_PATH": alias,
                     "CMUX_ALLOW_SOCKET_OVERRIDE": "1",
                 ],
-                bundleIdentifier: "com.cmuxterm.app.debug.sockguard",
+                bundleIdentifier: "com.loulaner.mycmux.debug.sockguard",
                 isDebugBuild: false,
                 currentUserID: 501
             )
 
-            #expect(path == "/tmp/cmux-debug-sockguard.sock", "alias: \(alias)")
+            #expect(path == "/tmp/mycmux-debug-sockguard.sock", "alias: \(alias)")
         }
     }
 
     @Test func taggedDebugBundleRefusesCanonicalLegacyStableSocketAliasEvenWithOptInFlag() {
         let path = SocketControlSettings.socketPath(
             environment: [
-                "CMUX_SOCKET_PATH": "/private/tmp/cmux.sock",
+                "CMUX_SOCKET_PATH": "/private/tmp/mycmux.sock",
                 "CMUX_ALLOW_SOCKET_OVERRIDE": "1",
             ],
-            bundleIdentifier: "com.cmuxterm.app.debug.sockguard",
+            bundleIdentifier: "com.loulaner.mycmux.debug.sockguard",
             isDebugBuild: false
         )
 
-        #expect(path == "/tmp/cmux-debug-sockguard.sock")
+        #expect(path == "/tmp/mycmux-debug-sockguard.sock")
     }
 
     @Test func socketPathMatchingTreatsPrivateTmpLegacyStableAliasAsSamePath() {
         #expect(
             SocketControlSettings.pathsMatch(
                 SocketControlSettings.legacyStableDefaultSocketPath,
-                "/private/tmp/cmux.sock"
+                "/private/tmp/mycmux.sock"
             )
         )
     }
 
     @Test func taggedDebugBundleRefusesCaseVariantStableSocketAliasesEvenWithOptInFlag() {
         let aliases = [
-            "/tmp/CMUX.sock",
-            "/private/tmp/CMUX.sock",
+            "/tmp/MYCMUX.sock",
+            "/private/tmp/MYCMUX.sock",
             SocketControlSettings.userScopedStableSocketPath(currentUserID: 501)
                 .replacingOccurrences(of: "cmux-501.sock", with: "CMUX-501.sock"),
             SocketControlSettings.legacyUserScopedStableSocketPath(currentUserID: 501)
@@ -242,17 +242,17 @@ import Testing
                     "CMUX_SOCKET_PATH": alias,
                     "CMUX_ALLOW_SOCKET_OVERRIDE": "1",
                 ],
-                bundleIdentifier: "com.cmuxterm.app.debug.sockguard",
+                bundleIdentifier: "com.loulaner.mycmux.debug.sockguard",
                 isDebugBuild: false,
                 currentUserID: 501
             )
 
-            #expect(path == "/tmp/cmux-debug-sockguard.sock", "alias: \(alias)")
+            #expect(path == "/tmp/mycmux-debug-sockguard.sock", "alias: \(alias)")
         }
     }
 
     @Test func taggedDebugBundleRefusesLeafSymlinkToStableSocketEvenWithOptInFlag() throws {
-        let alias = "/tmp/cmux-stable-alias-\(UUID().uuidString).sock"
+        let alias = "/tmp/mycmux-stable-alias-\(UUID().uuidString).sock"
         try? FileManager.default.removeItem(atPath: alias)
         try FileManager.default.createSymbolicLink(
             atPath: alias,
@@ -265,15 +265,15 @@ import Testing
                 "CMUX_SOCKET_PATH": alias,
                 "CMUX_ALLOW_SOCKET_OVERRIDE": "1",
             ],
-            bundleIdentifier: "com.cmuxterm.app.debug.sockguard",
+            bundleIdentifier: "com.loulaner.mycmux.debug.sockguard",
             isDebugBuild: false
         )
 
-        #expect(path == "/tmp/cmux-debug-sockguard.sock")
+        #expect(path == "/tmp/mycmux-debug-sockguard.sock")
     }
 
     @Test func taggedDebugBundleRefusesExcessiveSymlinkChainEvenWithOptInFlag() throws {
-        let root = "/tmp/cmux-stable-chain-\(UUID().uuidString)"
+        let root = "/tmp/mycmux-stable-chain-\(UUID().uuidString)"
         let aliases = (0...64).map { "\(root)-\($0).sock" }
         for alias in aliases {
             try? FileManager.default.removeItem(atPath: alias)
@@ -300,11 +300,11 @@ import Testing
                 "CMUX_SOCKET_PATH": aliases[0],
                 "CMUX_ALLOW_SOCKET_OVERRIDE": "1",
             ],
-            bundleIdentifier: "com.cmuxterm.app.debug.sockguard",
+            bundleIdentifier: "com.loulaner.mycmux.debug.sockguard",
             isDebugBuild: false
         )
 
-        #expect(path == "/tmp/cmux-debug-sockguard.sock")
+        #expect(path == "/tmp/mycmux-debug-sockguard.sock")
     }
 
     // MARK: - Default path per channel
@@ -312,44 +312,44 @@ import Testing
     @Test func defaultSocketPathByChannel() {
         #expect(
             SocketControlSettings.defaultSocketPath(
-                bundleIdentifier: "com.cmuxterm.app",
+                bundleIdentifier: "com.loulaner.mycmux",
                 isDebugBuild: false,
                 probeStableDefaultPathEntry: { _ in .missing }
             ) == SocketControlSettings.stableDefaultSocketPath
         )
         #expect(
             SocketControlSettings.defaultSocketPath(
-                bundleIdentifier: "com.cmuxterm.app.nightly",
+                bundleIdentifier: "com.loulaner.mycmux.nightly",
                 isDebugBuild: false,
                 probeStableDefaultPathEntry: { _ in .missing }
-            ) == "/tmp/cmux-nightly.sock"
+            ) == "/tmp/mycmux-nightly.sock"
         )
         #expect(
             SocketControlSettings.defaultSocketPath(
-                bundleIdentifier: "com.cmuxterm.app.nightly.tag",
+                bundleIdentifier: "com.loulaner.mycmux.nightly.tag",
                 isDebugBuild: false,
                 probeStableDefaultPathEntry: { _ in .missing }
-            ) == "/tmp/cmux-nightly-tag.sock"
+            ) == "/tmp/mycmux-nightly-tag.sock"
         )
         #expect(
             SocketControlSettings.defaultSocketPath(
-                bundleIdentifier: "com.cmuxterm.app.debug.tag",
+                bundleIdentifier: "com.loulaner.mycmux.debug.tag",
                 isDebugBuild: false,
                 probeStableDefaultPathEntry: { _ in .missing }
-            ) == "/tmp/cmux-debug-tag.sock"
+            ) == "/tmp/mycmux-debug-tag.sock"
         )
         #expect(
             SocketControlSettings.defaultSocketPath(
-                bundleIdentifier: "com.cmuxterm.app.staging.tag",
+                bundleIdentifier: "com.loulaner.mycmux.staging.tag",
                 isDebugBuild: false,
                 probeStableDefaultPathEntry: { _ in .missing }
-            ) == "/tmp/cmux-staging-tag.sock"
+            ) == "/tmp/mycmux-staging-tag.sock"
         )
     }
 
     @Test func stableReleaseFallsBackToUserScopedSocketWhenStablePathOwnedByDifferentUser() {
         let path = SocketControlSettings.defaultSocketPath(
-            bundleIdentifier: "com.cmuxterm.app",
+            bundleIdentifier: "com.loulaner.mycmux",
             isDebugBuild: false,
             currentUserID: 501,
             probeStableDefaultPathEntry: { _ in .socket(ownerUserID: 0) }
@@ -360,7 +360,7 @@ import Testing
 
     @Test func stableReleaseFallsBackToUserScopedSocketWhenStablePathIsBlockedByNonSocketEntry() {
         let path = SocketControlSettings.defaultSocketPath(
-            bundleIdentifier: "com.cmuxterm.app",
+            bundleIdentifier: "com.loulaner.mycmux",
             isDebugBuild: false,
             currentUserID: 501,
             probeStableDefaultPathEntry: { _ in .other(ownerUserID: 501) }
@@ -374,7 +374,7 @@ import Testing
     @Test func initialStableLaunchFallsBackToUserScopedSocketWhenSameUserStablePathIsLive() {
         let path = SocketControlSettings.initialSocketPathBeforeListenerStart(
             preferredPath: SocketControlSettings.stableDefaultSocketPath,
-            bundleIdentifier: "com.cmuxterm.app",
+            bundleIdentifier: "com.loulaner.mycmux",
             isDebugBuild: false,
             currentUserID: 501,
             probeStableDefaultPathEntry: { _ in .socket(ownerUserID: 501) },
@@ -387,8 +387,8 @@ import Testing
     @Test func initialStableLaunchTreatsPrivateTmpLegacyStableAliasAsStablePath() {
         var probedPath: String?
         let path = SocketControlSettings.initialSocketPathBeforeListenerStart(
-            preferredPath: "/private/tmp/cmux.sock",
-            bundleIdentifier: "com.cmuxterm.app",
+            preferredPath: "/private/tmp/mycmux.sock",
+            bundleIdentifier: "com.loulaner.mycmux",
             isDebugBuild: false,
             currentUserID: 501,
             probeStableDefaultPathEntry: { socketPath in
@@ -398,7 +398,7 @@ import Testing
             stableDefaultSocketCanBeReclaimed: { _ in false }
         )
 
-        #expect(probedPath == "/private/tmp/cmux.sock")
+        #expect(probedPath == "/private/tmp/mycmux.sock")
         #expect(path == SocketControlSettings.userScopedStableSocketPath(currentUserID: 501))
     }
 
@@ -406,7 +406,7 @@ import Testing
         var didProbe = false
         let path = SocketControlSettings.initialSocketPathBeforeListenerStart(
             preferredPath: SocketControlSettings.stableDefaultSocketPath,
-            bundleIdentifier: "com.cmuxterm.app",
+            bundleIdentifier: "com.loulaner.mycmux",
             isDebugBuild: false,
             currentUserID: 501,
             probeStableDefaultPathEntry: { _ in .socket(ownerUserID: 501) },
@@ -424,7 +424,7 @@ import Testing
         var reclaimedPath: String?
         let path = SocketControlSettings.initialSocketPathBeforeListenerStart(
             preferredPath: SocketControlSettings.stableDefaultSocketPath,
-            bundleIdentifier: "com.cmuxterm.app",
+            bundleIdentifier: "com.loulaner.mycmux",
             isDebugBuild: false,
             currentUserID: 501,
             probeStableDefaultPathEntry: { _ in .socket(ownerUserID: 501) },
@@ -444,7 +444,7 @@ import Testing
         var didReclaim = false
         let path = SocketControlSettings.initialSocketPathBeforeListenerStart(
             preferredPath: userScopedPath,
-            bundleIdentifier: "com.cmuxterm.app",
+            bundleIdentifier: "com.loulaner.mycmux",
             isDebugBuild: false,
             currentUserID: 501,
             probeStableDefaultPathEntry: { _ in
@@ -466,7 +466,7 @@ import Testing
         var reclaimedPath: String?
         let path = SocketControlSettings.initialSocketPathBeforeListenerStart(
             preferredPath: SocketControlSettings.stableDefaultSocketPath,
-            bundleIdentifier: "com.cmuxterm.app",
+            bundleIdentifier: "com.loulaner.mycmux",
             isDebugBuild: false,
             currentUserID: 501,
             probeStableDefaultPathEntry: { _ in .missing },
@@ -481,11 +481,11 @@ import Testing
     }
 
     @Test func initialSocketPathDoesNotProbeForTaggedDebugBuild() {
-        let debugPath = "/tmp/cmux-debug-tag.sock"
+        let debugPath = "/tmp/mycmux-debug-tag.sock"
         var didInspect = false
         let path = SocketControlSettings.initialSocketPathBeforeListenerStart(
             preferredPath: debugPath,
-            bundleIdentifier: "com.cmuxterm.app.debug.tag",
+            bundleIdentifier: "com.loulaner.mycmux.debug.tag",
             isDebugBuild: false,
             currentUserID: 501,
             probeStableDefaultPathEntry: { _ in
@@ -504,7 +504,7 @@ import Testing
         #expect(
             !SocketControlSettings.shouldBlockUntaggedDebugLaunch(
                 environment: ["CMUX_TAG": "tests-v1"],
-                bundleIdentifier: "com.cmuxterm.app.debug",
+                bundleIdentifier: "com.loulaner.mycmux.debug",
                 isDebugBuild: true
             )
         )
@@ -514,7 +514,7 @@ import Testing
         #expect(
             !SocketControlSettings.shouldBlockUntaggedDebugLaunch(
                 environment: [:],
-                bundleIdentifier: "com.cmuxterm.app.debug",
+                bundleIdentifier: "com.loulaner.mycmux.debug",
                 isDebugBuild: false
             )
         )
@@ -532,7 +532,7 @@ import Testing
         #expect(
             !SocketControlSettings.shouldBlockUntaggedDebugLaunch(
                 environment: environment,
-                bundleIdentifier: "com.cmuxterm.app.debug",
+                bundleIdentifier: "com.loulaner.mycmux.debug",
                 isDebugBuild: true
             )
         )

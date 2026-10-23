@@ -309,20 +309,20 @@ private struct NoFontProbe: GhosttyFontProbing {
 }
 
 @Suite struct GhosttyConfigDiscoveryScanPathsTests {
-    @Test func scanPathsIncludeNativeAndUserConfigLocations() throws {
+    @Test func scanPathsExcludeOldNativeAndUserConfigLocations() throws {
         let appSupport = URL(fileURLWithPath: "/AppSupport", isDirectory: true)
         let reader = FakeFileReader()
         let discovery = GhosttyConfigDiscovery(fileReader: reader, fontProbe: NoFontProbe())
         let paths = discovery.loadedGhosttyConfigScanPaths(
-            currentBundleIdentifier: "com.cmuxterm.app",
+            currentBundleIdentifier: "com.loulaner.mycmux",
             appSupportDirectory: appSupport
         )
-        #expect(paths.contains("~/.config/ghostty/config"))
-        #expect(paths.contains("~/.config/ghostty/config.ghostty"))
-        #expect(paths.contains("/AppSupport/com.mitchellh.ghostty/config.ghostty"))
+        #expect(!paths.contains("~/.config/ghostty/config"))
+        #expect(!paths.contains("~/.config/ghostty/config.ghostty"))
+        #expect(!paths.contains("/AppSupport/com.mitchellh.ghostty/config.ghostty"))
     }
 
-    @Test func nativeLegacyIncludedWhenNewEmpty() {
+    @Test func nativeLegacyIsNotImportedWhenNewProductIsEmpty() {
         let appSupport = URL(fileURLWithPath: "/AppSupport", isDirectory: true)
         let reader = FakeFileReader(contentsByPath: [
             "/AppSupport/com.mitchellh.ghostty/config": "theme = foo",
@@ -330,10 +330,10 @@ private struct NoFontProbe: GhosttyFontProbing {
         ])
         let discovery = GhosttyConfigDiscovery(fileReader: reader, fontProbe: NoFontProbe())
         let paths = discovery.loadedGhosttyConfigScanPaths(
-            currentBundleIdentifier: "com.cmuxterm.app",
+            currentBundleIdentifier: "com.loulaner.mycmux",
             appSupportDirectory: appSupport
         )
-        #expect(paths.contains("/AppSupport/com.mitchellh.ghostty/config"))
+        #expect(!paths.contains("/AppSupport/com.mitchellh.ghostty/config"))
     }
 }
 

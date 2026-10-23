@@ -329,27 +329,7 @@ public struct GhosttyConfig {
     /// The top-level config files Ghostty loads on macOS, in load order: the
     /// user's Ghostty config, then cmux's own config files.
     public static func resolvedConfigPaths() -> [String] {
-        // Match Ghostty's default load order on macOS.
-        let appSupportGhosttyDirectory = NSString(
-            string: "~/Library/Application Support/com.mitchellh.ghostty"
-        ).expandingTildeInPath
-        let appSupportConfigGhostty = (appSupportGhosttyDirectory as NSString)
-            .appendingPathComponent("config.ghostty")
-        let appSupportLegacyConfig = (appSupportGhosttyDirectory as NSString)
-            .appendingPathComponent("config")
-        var configPaths = [
-            "~/.config/ghostty/config",
-            "~/.config/ghostty/config.ghostty",
-        ].map { NSString(string: $0).expandingTildeInPath }
-        configPaths.append(appSupportConfigGhostty)
-        if shouldIncludeLegacyGhosttyConfigInResolvedLoad(
-            newConfigFileSize: configFileSize(at: appSupportConfigGhostty),
-            legacyConfigFileSize: configFileSize(at: appSupportLegacyConfig)
-        ) {
-            configPaths.append(appSupportLegacyConfig)
-        }
-        configPaths.append(contentsOf: cmuxConfigPaths())
-        return configPaths
+        cmuxConfigPaths()
     }
 
     // Internal + @usableFromInline so it can back the public `load` default
@@ -1403,17 +1383,16 @@ public struct GhosttyConfig {
 
         // 4) Common system/user fallback locations.
         appendUniquePath("/Applications/Ghostty.app/Contents/Resources/ghostty/themes/\(themeName)")
-        appendUniquePath("~/.config/ghostty/themes/\(themeName)")
         for appSupportDirectory in CmuxApplicationSupportDirectories(environment: environment).userDirectories {
             appendUniquePath(
                 appSupportDirectory
+                    .appendingPathComponent("MyCMUX", isDirectory: true)
                     .appendingPathComponent(CmuxGhosttyConfigPathResolver.releaseBundleIdentifier, isDirectory: true)
                     .appendingPathComponent("themes", isDirectory: true)
                     .appendingPathComponent(themeName, isDirectory: false)
                     .path
             )
         }
-        appendUniquePath("~/Library/Application Support/com.mitchellh.ghostty/themes/\(themeName)")
 
         return paths
     }

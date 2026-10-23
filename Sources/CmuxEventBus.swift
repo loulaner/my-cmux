@@ -704,7 +704,7 @@ final class CmuxEventBus: @unchecked Sendable {
 
     static func defaultEventLogURL() -> URL {
         FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("events.jsonl")
     }
 

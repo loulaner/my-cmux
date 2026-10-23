@@ -36,7 +36,7 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
 
     /// Which Dock this store backs: `.workspace` (per-workspace, seeded from the
     /// project `.cmux/dock.json`) or `.global` (a per-window Dock seeded from
-    /// the global `~/.config/cmux/dock.json`, owner id == window id). Drives
+    /// the global `~/.config/my-cmux/dock.json`, owner id == window id). Drives
     /// config resolution and how cross-container moves resolve a reference window.
     let scope: DockScope
 

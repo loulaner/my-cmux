@@ -23,7 +23,7 @@ enum DevWindowDisplayDefault {
     /// ignored.
     static var legacyFileURL: URL {
         FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".config/cmux/dev-window-display")
+            .appendingPathComponent(".config/my-cmux/dev-window-display")
     }
 
     /// The trimmed display name in the legacy file, or `nil` when absent/empty.

@@ -50,7 +50,7 @@ public actor CloudTelemetryUploader: CloudTelemetrySending {
     private let client: CloudTelemetryClient
     private let queueURL: URL
     private let batchDelay: Duration
-    private let logger = Logger(subsystem: "com.cmuxterm.app", category: "CloudDiagnostics")
+    private let logger = Logger(subsystem: "com.loulaner.mycmux", category: "CloudDiagnostics")
     private var entries: [Entry] = []
     private var loaded = false
     private var uploadTask: Task<Void, Never>?
@@ -71,7 +71,7 @@ public actor CloudTelemetryUploader: CloudTelemetrySending {
         self.session = session
         self.batchDelay = batchDelay
         self.queueURL = queueURL ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.cmuxterm.app")
+            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.loulaner.mycmux")
             .appendingPathComponent("cloud-diagnostics.json")
     }
 

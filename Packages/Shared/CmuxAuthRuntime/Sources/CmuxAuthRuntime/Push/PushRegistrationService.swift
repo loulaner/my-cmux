@@ -101,7 +101,7 @@ public actor PushRegistrationService: PushRegistering {
             in: .userDomainMask
         ).first ?? FileManager.default.temporaryDirectory
         return root
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent(
                 "push-cleanup-\(String(namespace)).sqlite3"
             )

@@ -5,18 +5,18 @@ import Testing
 @testable import CMUXMobileCore
 
 @Suite struct CmxPairingQRBitmapTests {
-    private let oneRoutePayload = "cmux-ios://attach?v=2&r=100.64.0.5:52341"
+    private let oneRoutePayload = "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=100.64.0.5:52341"
     private let twoRoutePayload =
-        "cmux-ios://attach?v=2&r=my-mac.tail1234.ts.net:52341&r=100.64.0.5:52341"
+        "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=my-mac.tail1234.ts.net:52341&r=100.64.0.5:52341"
     private let irohPayload =
-        "cmux-ios-dev://attach?v=3&i=\(String(repeating: "c", count: 64))"
+        "cmux-ios-com.loulaner.mycmux.ios.debug://attach?v=3&i=\(String(repeating: "c", count: 64))"
 
     /// The full 4-module quiet zone is part of the bitmap itself, so it
     /// scales with the code and cannot be cropped away by view layout. Also
     /// pins the assumption that the Core Image generator's own margin is
     /// exactly 1 module: were it wider or narrower, the module arithmetic
     /// in `moduleCount(of:)` would stop matching a legal QR version and
-    /// `moduleCountMatchesAVersionAtOrBelowSix` would fail.
+    /// `moduleCountMatchesNewExactIdentityBudget` would fail.
     @Test func bakesFullQuietZoneIntoBitmap() throws {
         let image = try #require(CmxPairingQRBitmap().makeImage(payload: oneRoutePayload))
         #expect(image.width == image.height)
@@ -51,18 +51,18 @@ import Testing
         #expect(grayCount == 0, "expected no mid-gray pixels, found \(grayCount)")
     }
 
-    /// At ECC M the representative pairing payloads stay at QR version 6 or
-    /// lower (41 modules), so each module still renders large in the pairing
+    /// At ECC M the representative pairing payloads stay at QR version 7 or
+    /// lower (45 modules), so each module still renders large in the pairing
     /// window. Version v has 17 + 4v modules per side; a side count that
     /// breaks that arithmetic means the margin assumption in the renderer is
     /// wrong.
-    @Test func moduleCountMatchesAVersionAtOrBelowSix() throws {
+    @Test func moduleCountMatchesNewExactIdentityBudget() throws {
         for payload in [oneRoutePayload, twoRoutePayload, irohPayload] {
             let image = try #require(CmxPairingQRBitmap().makeImage(payload: payload))
             let modules = image.width - CmxPairingQRBitmap.quietZoneModules * 2
             #expect((modules - 17) % 4 == 0, "\(modules) modules is not a QR version")
             #expect(modules >= 21)
-            #expect(modules <= 41, "payload should stay at version <= 6, got \(modules) modules")
+            #expect(modules <= 45, "payload should stay at version <= 7 with the exact MyCMUX identity, got \(modules) modules")
         }
     }
 
@@ -71,10 +71,10 @@ import Testing
     /// the `pc` compatibility level. Built through the real encoder with the
     /// longest realistic inputs (tagged dev scheme, IPv4 + IPv6 routes) so
     /// this tracks whatever the encoder actually emits: it may exceed
-    /// version 6, but stays at or below version 8 (49 modules), where
+    /// version 7, but stays at or below version 9 (53 modules), where
     /// modules still render large on screen. The full-key JSON payload this
     /// replaced rendered version 23 (109 modules).
-    @Test func realCompatibilityPayloadStaysAtOrBelowVersionEight() throws {
+    @Test func realCompatibilityPayloadFitsNewExactIdentityBudget() throws {
         let ticket = try CmxAttachTicket(
             workspaceID: "",
             terminalID: nil,
@@ -103,7 +103,7 @@ import Testing
             authToken: "minted-but-never-in-the-qr"
         )
         let pairingURLScheme = try #require(
-            CmxPairingURLScheme(rawValue: "cmux-ios-dev.cmux.ios.longtag")
+            CmxPairingURLScheme(rawValue: "cmux-ios-com.loulaner.mycmux.ios.debug.longtag")
         )
         let payload = try #require(CmxPairingQRCode().encode(
             ticket,
@@ -114,8 +114,8 @@ import Testing
         let modules = image.width - CmxPairingQRBitmap.quietZoneModules * 2
         #expect((modules - 17) % 4 == 0, "\(modules) modules is not a QR version")
         #expect(
-            modules <= 49,
-            "account-bound compat payload should stay at version <= 8, got \(modules) modules"
+            modules <= 53,
+            "account-bound compat payload should stay at version <= 9 with the exact MyCMUX identity, got \(modules) modules"
         )
     }
 

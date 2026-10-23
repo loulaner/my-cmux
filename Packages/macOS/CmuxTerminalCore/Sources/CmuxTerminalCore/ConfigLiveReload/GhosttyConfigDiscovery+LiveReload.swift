@@ -28,15 +28,9 @@ extension GhosttyConfigDiscovery {
             currentBundleIdentifier: currentBundleIdentifier,
             appSupportDirectory: appSupportDirectory
         )
-        let xdgGhosttyDirectory = (Self.standardizedPath(configHomeDirectory) as NSString)
-            .appendingPathComponent("ghostty")
-        paths.append((xdgGhosttyDirectory as NSString).appendingPathComponent("config"))
-        paths.append((xdgGhosttyDirectory as NSString).appendingPathComponent("config.ghostty"))
         if let appSupportDirectory {
-            let nativeDirectory = appSupportDirectory
-                .appendingPathComponent("com.mitchellh.ghostty", isDirectory: true)
             var cmuxDirectories = [
-                appSupportDirectory.appendingPathComponent(
+                appSupportDirectory.appendingPathComponent("MyCMUX", isDirectory: true).appendingPathComponent(
                     Self.releaseBundleIdentifier,
                     isDirectory: true
                 ),
@@ -49,7 +43,7 @@ extension GhosttyConfigDiscovery {
                     )
                 )
             }
-            for directory in [nativeDirectory] + cmuxDirectories {
+            for directory in cmuxDirectories {
                 paths.append(directory.appendingPathComponent("config.ghostty", isDirectory: false).path)
                 paths.append(directory.appendingPathComponent("config", isDirectory: false).path)
             }
@@ -143,7 +137,7 @@ extension GhosttyConfigDiscovery {
         }
 
         let userThemesDirectory = (Self.standardizedPath(configHomeDirectory) as NSString)
-            .appendingPathComponent("ghostty/themes")
+            .appendingPathComponent("my-cmux/themes")
         for themeValue in themeValues {
             for themePath in Self.userThemePaths(
                 forThemeValue: themeValue,

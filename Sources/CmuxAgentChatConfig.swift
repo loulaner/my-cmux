@@ -236,7 +236,7 @@ struct AgentChatSidecarStateFileStore: Sendable {
         ).first else {
             return nil
         }
-        let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.cmuxterm.app"
+        let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.loulaner.mycmux"
         return AgentChatSidecarStateFileStore(
             directoryURL: appSupport
             .appendingPathComponent(bundleIdentifier, isDirectory: true)

@@ -37,7 +37,7 @@ final class MobileHostIrxRuntime: MobileHostPairingRuntime {
         return UserDefaults.standard.string(forKey: pathModeDefaultsKey) == "direct-only" ? .directOnly : .automatic
     }
     nonisolated static let journal = IrxJournal(subsystem: "dev.cmux", category: "irx-host",
-        journalFileURL: URL(fileURLWithPath: "/tmp/cmux-irx-journal-mac-\(MobileHostIdentity.instanceTag()).jsonl"))
+        journalFileURL: URL(fileURLWithPath: "/tmp/mycmux-irx-journal-mac-\(MobileHostIdentity.instanceTag()).jsonl"))
 
     nonisolated static func activationRetryDelay(after error: any Error, failureCount: Int, jitterUnitInterval: Double) -> TimeInterval {
         let ladder = min(5 * pow(2, Double(min(max(failureCount, 0), 16))), maximumActivationRetryDelay)

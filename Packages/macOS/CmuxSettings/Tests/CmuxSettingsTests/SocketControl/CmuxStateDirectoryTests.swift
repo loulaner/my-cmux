@@ -1,4 +1,5 @@
 import Foundation
+import CmuxFoundation
 import Testing
 
 @testable import CmuxSettings
@@ -8,11 +9,61 @@ import Testing
 /// re-triggers the "access data from other apps" prompt on every agent hook
 /// (https://github.com/manaflow-ai/cmux/issues/5146).
 @Suite struct CmuxStateDirectoryTests {
+    @Test func coldStartDoesNotImportOrAlterOldConfigOrPassword() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let old = root.appendingPathComponent("com.cmuxterm.app/config.ghostty")
+        try FileManager.default.createDirectory(at: old.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let sentinel = Data("font-size = 99\n".utf8)
+        try sentinel.write(to: old)
+        let oldPassword = root.appendingPathComponent("socket-control-password")
+        try Data("synthetic-old-password".utf8).write(to: oldPassword)
+        let resolver = CmuxGhosttyConfigPathResolver()
+        #expect(resolver.loadConfigURLs(currentBundleIdentifier: "com.loulaner.mycmux", appSupportDirectory: root).isEmpty)
+        let password = SocketControlPasswordStore(environment: [:], fileURL: root.appendingPathComponent("new/socket-control-password"))
+        #expect(password.configuredPassword() == nil)
+        #expect(try Data(contentsOf: old) == sentinel)
+        #expect(try String(contentsOf: oldPassword, encoding: .utf8) == "synthetic-old-password")
+        let own = resolver.editableConfigURL(currentBundleIdentifier: "com.loulaner.mycmux", appSupportDirectory: root)
+        try FileManager.default.createDirectory(at: own.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("font-size = 14\n".utf8).write(to: own)
+        #expect(resolver.loadConfigURLs(currentBundleIdentifier: "com.loulaner.mycmux", appSupportDirectory: root) == [own])
+        #expect(try Data(contentsOf: old) == sentinel)
+    }
+
+    @Test func myCMUXColdStartUsesIndependentNamespaces() {
+        let home = URL(fileURLWithPath: "/synthetic/home")
+        #expect(CmuxStateDirectory.url(homeDirectory: home).path == "/synthetic/home/.local/state/my-cmux")
+        #expect(CmuxStateDirectory.legacyApplicationSupportURL(fileManager: .default) == nil)
+        #expect(SocketPathMarkerFiles.variant(bundleIdentifier: "com.loulaner.mycmux.debug.fixture", environment: [:]) == .dev(slug: "fixture"))
+        #expect(SocketPathMarkerFiles.defaultDebugSocketPath == "/tmp/mycmux-debug.sock")
+    }
+
+    @Test func myCMUXNeverMirrorsIntoLegacyMarkers() {
+        let store = SocketPathMarkerStore(
+            bundleIdentifier: "com.loulaner.mycmux", environment: [:],
+            stateDirectory: URL(fileURLWithPath: "/synthetic/new"),
+            legacyDirectory: URL(fileURLWithPath: "/synthetic/old"),
+            tmpMarkerPath: "/synthetic/tmp-marker")
+        #expect(!store.markerPaths().contains(where: { $0.hasPrefix("/synthetic/old/") }))
+    }
+
+    @Test func myCMUXPasswordsDoNotCrossTaggedNamespaces() throws {
+        let stable = try #require(SocketControlPasswordStore.defaultPasswordFileURL(
+            fileManager: .default, bundleIdentifier: "com.loulaner.mycmux", environment: [:]))
+        let one = try #require(SocketControlPasswordStore.defaultPasswordFileURL(
+            fileManager: .default, bundleIdentifier: "com.loulaner.mycmux.debug.one", environment: [:]))
+        let two = try #require(SocketControlPasswordStore.defaultPasswordFileURL(
+            fileManager: .default, bundleIdentifier: "com.loulaner.mycmux.debug.two", environment: [:]))
+        #expect(stable != one && one != two)
+        #expect(one.path.hasSuffix("/my-cmux/dev-one/socket-control-password"))
+    }
+
     @Test func resolvesUnderLocalStateNotLibrary() {
         let home = URL(fileURLWithPath: "/Users/test-user", isDirectory: true)
         let url = CmuxStateDirectory.url(homeDirectory: home)
 
-        #expect(url.path == "/Users/test-user/.local/state/cmux")
+        #expect(url.path == "/Users/test-user/.local/state/my-cmux")
         // The whole point of the fix: never under a TCC-protected app-data root.
         #expect(!url.path.contains("/Library/Application Support"))
         #expect(!url.path.contains("/Library/Containers"))
@@ -31,11 +82,8 @@ import Testing
         #expect(socket.path.utf8.count < 104)
     }
 
-    @Test func legacyApplicationSupportURLPointsAtOldLocation() {
-        let legacy = CmuxStateDirectory.legacyApplicationSupportURL(fileManager: .default)
-        // Only used for one-time migration; it must still address the old folder.
-        #expect(legacy?.lastPathComponent == "cmux")
-        #expect(legacy?.path.contains("/Application Support/cmux") == true)
+    @Test func legacyApplicationSupportDiscoveryIsDisabled() {
+        #expect(CmuxStateDirectory.legacyApplicationSupportURL(fileManager: .default) == nil)
     }
 }
 

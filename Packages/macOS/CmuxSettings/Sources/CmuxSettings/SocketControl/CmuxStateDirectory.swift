@@ -7,7 +7,7 @@ public import Foundation
 /// ## Why not Application Support
 ///
 /// These files are read and written by **two separately code-signed binaries** —
-/// the cmux app (bundle id `com.cmuxterm.app`) and the standalone `cmux` CLI
+/// the cmux app (bundle id `com.loulaner.mycmux`) and the standalone `cmux` CLI
 /// installed at `/usr/local/bin/cmux`. On macOS Sequoia, a non-sandboxed process
 /// that reaches into another app's data under `~/Library/Application Support`,
 /// `~/Library/Containers`, or `~/Library/Group Containers` triggers the
@@ -25,12 +25,12 @@ public import Foundation
 /// // The stable control socket; app and CLI agree on the same path by passing
 /// // the real account home (`FileManager.default.homeDirectoryForCurrentUser`):
 /// let home = FileManager.default.homeDirectoryForCurrentUser
-/// let socket = CmuxStateDirectory.url(homeDirectory: home).appendingPathComponent("cmux.sock")
+/// let socket = CmuxStateDirectory.url(homeDirectory: home).appendingPathComponent("mycmux.sock")
 /// ```
 public enum CmuxStateDirectory {
     /// The directory name segment under `~/.local/state` (and the legacy name
     /// under `~/Library/Application Support`).
-    public static let directoryName = "cmux"
+    public static let directoryName = "my-cmux"
 
     /// The cmux state directory: `<home>/.local/state/cmux`.
     ///
@@ -65,7 +65,6 @@ public enum CmuxStateDirectory {
     /// - Returns: The legacy directory, or `nil` when Application Support cannot
     ///   be resolved.
     public static func legacyApplicationSupportURL(fileManager: FileManager) -> URL? {
-        fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
-            .appendingPathComponent(directoryName, isDirectory: true)
+        nil // MyCMUX never discovers or migrates the old application data.
     }
 }

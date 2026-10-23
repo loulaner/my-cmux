@@ -21,7 +21,7 @@ extension TerminalSurface {
         homeDirectory
             .appendingPathComponent("Library", isDirectory: true)
             .appendingPathComponent("Application Support", isDirectory: true)
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent("terminal-history", isDirectory: true)
             .appendingPathComponent("surface-\(surfaceID.uuidString).history", isDirectory: false)
     }
@@ -43,7 +43,7 @@ extension TerminalSurface {
         homeDirectory
             .appendingPathComponent("Library", isDirectory: true)
             .appendingPathComponent("Application Support", isDirectory: true)
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent("cmux-cua", isDirectory: true)
             .appendingPathComponent("enabled", isDirectory: false)
     }

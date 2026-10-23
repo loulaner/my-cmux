@@ -201,9 +201,7 @@ fingerprint="$({
   printf 'bundle-id=%s\n' "${PRODUCT_BUNDLE_IDENTIFIER:-}"
   hash_git_worktree "${SRCROOT}/ghostty"
   hash_swiftpm_resource_bundles "$DEST"
-  if [ -n "${CMUX_CUA_SRC:-}" ]; then
-    hash_git_worktree "${CMUX_CUA_SRC}"
-  fi
+
   hash_tree "${SRCROOT}/scripts/build-app-bundled-resources.sh"
   hash_tree "$BUILD_GHOSTTY_HELPER"
   hash_tree "$BUILD_CMUX_CUA"
@@ -223,14 +221,15 @@ fingerprint="$({
 } | shasum | awk '{print $1}')"
 output_fingerprint_value="$(output_fingerprint)"
 
-helper_output_ok=true
-if [ ! -d "$CMUX_CUA_HELPER_APP" ] ||
-  [ ! -f "$CMUX_CUA_HELPER_APP/Contents/Info.plist" ] ||
-  [ ! -f "$CMUX_CUA_HELPER_OWNER_MARKER" ] ||
-  [ ! -x "$CMUX_CUA_HELPER_EXEC" ] ||
-  [ -e "$LEGACY_CMUX_CUA_CLIENT" ]; then
-  helper_output_ok=false
+# Only discard managed stale build outputs, never installed runtime helpers.
+if [ -e "$CMUX_CUA_HELPER_APP" ]; then
+  if [ ! -f "$CMUX_CUA_HELPER_OWNER_MARKER" ] || [ -L "$CMUX_CUA_HELPER_APP" ]; then
+    echo "error: unsupported unmanaged Computer Use build output" >&2
+    exit 1
+  fi
+  rm -rf "$CMUX_CUA_HELPER_APP"
 fi
+helper_output_ok=true
 if [ -f "$STAMP" ] && [ -x "$GHOSTTY_HELPER_DEST" ] \
   && [ "$helper_output_ok" = true ] \
   && [ -d "$GHOSTTY_DEST" ] && [ -d "$TERMINFO_DEST" ] \
@@ -316,17 +315,7 @@ if [ ! -x "$GHOSTTY_HELPER_DEST" ]; then
   echo "error: Ghostty CLI helper was not created at $GHOSTTY_HELPER_DEST" >&2
   exit 1
 fi
-if [ ! -x "$BUILD_CMUX_CUA" ]; then
-  echo "error: missing cmux-cua build script at $BUILD_CMUX_CUA" >&2
-  exit 1
-fi
-# The standalone build output is scratch; only the helper bundle ships.
-"$BUILD_CMUX_CUA" --output "${DERIVED_FILE_DIR}/cmux-cua/cmux-cua" \
-  --helper-app "$CMUX_CUA_HELPER_APP" --archs "${ARCHS:-}"
-if [ ! -x "$CMUX_CUA_HELPER_EXEC" ]; then
-  echo "error: cmux-cua was not created at $CMUX_CUA_HELPER_EXEC" >&2
-  exit 1
-fi
+echo "Computer Use unavailable in MyCMUX; helper packaging skipped"
 update_commit
 
 

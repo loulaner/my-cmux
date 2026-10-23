@@ -19,7 +19,7 @@ extension TerminalController {
 
     /// Clears the ambient reload pointer only when it still names this app's CLI.
     private func clearReloadCLIPathIfMatching(environment: [String: String]) {
-        let pointerPath = "/tmp/cmux-last-cli-path"
+        let pointerPath = "/tmp/mycmux-last-cli-path"
         // Reload publication uses this same persistent sibling lock. If another
         // tag is publishing, leave its pointer alone; that reload also performs
         // the stale cleanup required by the exiting instance.

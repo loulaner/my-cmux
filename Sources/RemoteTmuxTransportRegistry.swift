@@ -378,7 +378,7 @@ struct RemoteTmuxBrokerRegistry: Sendable, Equatable {
     }
 }
 
-/// A broker as a user declares it in `~/.config/cmux/cmux.json`, under `remoteTmux.brokers`.
+/// A broker as a user declares it in `~/.config/my-cmux/cmux.json`, under `remoteTmux.brokers`.
 ///
 /// Declared by name so the control socket can only ever pick something already written down. The
 /// socket is reachable by anything running as the user, and letting it name an executable inline

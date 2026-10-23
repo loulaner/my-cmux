@@ -184,9 +184,9 @@ struct AuthEnvironmentTests {
         #expect(
             AuthEnvironment.callbackScheme(
                 environment: ["CMUX_TAG": "Safari Auth!"],
-                bundleIdentifier: "com.cmuxterm.app.debug.safari-auth",
+                bundleIdentifier: "com.loulaner.mycmux.debug.safari-auth",
                 isDebugBuild: true
-            ) == "cmux-dev-safari-auth"
+            ) == "mycmux-dev-safari-auth"
         )
     }
 
@@ -195,16 +195,16 @@ struct AuthEnvironmentTests {
         #expect(
             AuthEnvironment.callbackScheme(
                 environment: ["CMUX_TAG": "safari-auth"],
-                bundleIdentifier: "com.cmuxterm.app",
+                bundleIdentifier: "com.loulaner.mycmux",
                 isDebugBuild: false
-            ) == "cmux"
+            ) == "mycmux"
         )
         #expect(
             AuthEnvironment.callbackScheme(
                 environment: ["CMUX_TAG": "safari-auth"],
-                bundleIdentifier: "com.cmuxterm.app.nightly",
+                bundleIdentifier: "com.loulaner.mycmux.nightly",
                 isDebugBuild: false
-            ) == "cmux-nightly"
+            ) == "mycmux-nightly"
         )
     }
 
@@ -219,9 +219,9 @@ struct AuthEnvironmentTests {
                 "LANG": "ru_RU.UTF-8",
                 "LC_ALL": "ru_RU.UTF-8",
                 "CMUX_AUTH_WWW_ORIGIN": "https://cmux.com",
-                "CMUX_AUTH_CALLBACK_SCHEME": "cmux",
+                "CMUX_AUTH_CALLBACK_SCHEME": "mycmux",
             ],
-            bundleIdentifier: "com.cmuxterm.app"
+            bundleIdentifier: "com.loulaner.mycmux"
         )
 
         assertNativeSignInURL(url)
@@ -235,7 +235,7 @@ struct AuthEnvironmentTests {
                 "CMUX_TAG": "pair-auth",
                 "CMUX_PORT": "4123",
             ],
-            bundleIdentifier: "com.cmuxterm.app.debug.pair-auth"
+            bundleIdentifier: "com.loulaner.mycmux.debug.pair-auth"
         )
 
         #expect(url.scheme == "http")
@@ -257,7 +257,7 @@ struct AuthEnvironmentTests {
             .first(where: { $0.name == "native_app_return_to" })?
             .value)
         let nativeCallbackURL = try #require(URL(string: nativeReturnTo))
-        #expect(nativeCallbackURL.scheme == "cmux-dev-pair-auth")
+        #expect(nativeCallbackURL.scheme == "mycmux-dev-pair-auth")
         #expect(nativeCallbackURL.host == "auth-callback")
     }
 
@@ -270,9 +270,9 @@ struct AuthEnvironmentTests {
                 "LANG": "en_US.UTF-8",
                 "LC_ALL": "en_US.UTF-8",
                 "CMUX_AUTH_WWW_ORIGIN": "https://cmux.com",
-                "CMUX_AUTH_CALLBACK_SCHEME": "cmux",
+                "CMUX_AUTH_CALLBACK_SCHEME": "mycmux",
             ],
-            bundleIdentifier: "com.cmuxterm.app"
+            bundleIdentifier: "com.loulaner.mycmux"
         )
         let russianURL = AuthEnvironment.signInURL(
             callbackState: "state-1",
@@ -281,9 +281,9 @@ struct AuthEnvironmentTests {
                 "LANG": "ru_RU.UTF-8",
                 "LC_ALL": "ru_RU.UTF-8",
                 "CMUX_AUTH_WWW_ORIGIN": "https://cmux.com",
-                "CMUX_AUTH_CALLBACK_SCHEME": "cmux",
+                "CMUX_AUTH_CALLBACK_SCHEME": "mycmux",
             ],
-            bundleIdentifier: "com.cmuxterm.app"
+            bundleIdentifier: "com.loulaner.mycmux"
         )
 
         #expect(russianURL == englishURL)
@@ -293,7 +293,7 @@ struct AuthEnvironmentTests {
     func billingCheckoutFollowsAppWebOriginUnlessBillingOriginIsExplicit() {
         let appOriginURL = AuthEnvironment.resolvedBillingCheckoutURL(
             environment: [
-                "CMUX_AUTH_CALLBACK_SCHEME": "cmux-dev",
+                "CMUX_AUTH_CALLBACK_SCHEME": "mycmux-dev",
                 "CMUX_WWW_ORIGIN": "http://127.0.0.1:4278",
             ]
         )
@@ -306,13 +306,13 @@ struct AuthEnvironmentTests {
             .contains(where: { $0.name == "cmux_external_browser" && $0.value == "1" }) == true)
         #expect(URLComponents(url: appOriginURL, resolvingAgainstBaseURL: false)?
             .queryItems?
-            .contains(where: { $0.name == "cmux_scheme" && $0.value == "cmux-dev" }) == true)
+            .contains(where: { $0.name == "cmux_scheme" && $0.value == "mycmux-dev" }) == true)
 
         let overrideURL = AuthEnvironment.resolvedBillingCheckoutURL(
             environment: [
                 "CMUX_WWW_ORIGIN": "http://localhost:4278",
                 "CMUX_BILLING_WWW_ORIGIN": "https://billing-preview.example",
-                "CMUX_AUTH_CALLBACK_SCHEME": "cmux-dev-preview",
+                "CMUX_AUTH_CALLBACK_SCHEME": "mycmux-dev-preview",
             ]
         )
         #expect(overrideURL.scheme == "https")
@@ -320,7 +320,7 @@ struct AuthEnvironmentTests {
         #expect(overrideURL.path == "/api/billing/checkout")
         #expect(URLComponents(url: overrideURL, resolvingAgainstBaseURL: false)?
             .queryItems?
-            .contains(where: { $0.name == "cmux_scheme" && $0.value == "cmux-dev-preview" }) == true)
+            .contains(where: { $0.name == "cmux_scheme" && $0.value == "mycmux-dev-preview" }) == true)
     }
 
     @Test("billing portal follows app web origin unless billing origin is explicit")
@@ -371,9 +371,9 @@ struct AuthEnvironmentTests {
 
         #expect(url.path == "/api/billing/checkout")
         #if DEBUG
-        let expectedScheme = "cmux-dev"
+        let expectedScheme = "mycmux-dev"
         #else
-        let expectedScheme = "cmux"
+        let expectedScheme = "mycmux"
         #endif
         #expect(URLComponents(url: url, resolvingAgainstBaseURL: false)?
             .queryItems?
@@ -685,7 +685,7 @@ private func assertNativeSignInURL(_ url: URL) {
         return
     }
 
-    #expect(nativeCallbackURL.scheme == "cmux")
+    #expect(nativeCallbackURL.scheme == "mycmux")
     #expect(nativeCallbackURL.host == "auth-callback")
 
     let nativeCallbackComponents = URLComponents(url: nativeCallbackURL, resolvingAgainstBaseURL: false)

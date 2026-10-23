@@ -349,7 +349,7 @@ struct SessionMoveOptions {
     }
 }
 
-/// Where the last move put a session, kept at `~/.cmuxterm/agent-moves/<id>.json`
+/// Where the last move put a session, kept at `~/.local/state/my-cmux/agent-moves/<id>.json`
 /// so `--to local` knows which host to bring it back from.
 struct SessionMoveRecord: Codable {
     var sessionID: String
@@ -364,7 +364,7 @@ struct SessionMoveRecordStore {
 
     init(home: String) {
         directory = URL(fileURLWithPath: home, isDirectory: true)
-            .appendingPathComponent(".cmuxterm/agent-moves", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux/agent-moves", isDirectory: true)
     }
 
     func load(sessionID: String) -> SessionMoveRecord? {

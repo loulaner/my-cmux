@@ -605,48 +605,11 @@ public struct GhosttyConfigDiscovery {
             in: .userDomainMask
         ).first
     ) -> [String] {
-        var paths = [
-            "~/.config/ghostty/config",
-            "~/.config/ghostty/config.ghostty",
-        ]
-
-        guard let appSupportDirectory else { return paths }
-
-        let ghosttyDir = appSupportDirectory.appendingPathComponent("com.mitchellh.ghostty", isDirectory: true)
-        let nativeLegacyConfig = ghosttyDir.appendingPathComponent("config", isDirectory: false)
-        let nativeConfig = ghosttyDir.appendingPathComponent("config.ghostty", isDirectory: false)
-        paths.append(nativeConfig.path)
-        if shouldIncludeLegacyGhosttyConfigInScanPaths(
-            newConfigFileSize: fileReader.fileSize(atPath: nativeConfig.path),
-            legacyConfigFileSize: fileReader.fileSize(atPath: nativeLegacyConfig.path)
-        ) {
-            paths.append(nativeLegacyConfig.path)
-        }
-
-        guard let bundleId = currentBundleIdentifier,
-              !bundleId.isEmpty else { return paths }
-
-        let appSupportConfigURLs = cmuxAppSupportConfigURLs(
-            currentBundleIdentifier: bundleId,
+        guard let appSupportDirectory else { return [] }
+        return cmuxAppSupportConfigURLs(
+            currentBundleIdentifier: currentBundleIdentifier,
             appSupportDirectory: appSupportDirectory
-        )
-        paths.append(contentsOf: appSupportConfigURLs.map(\.path))
-
-        let releaseDir = appSupportDirectory.appendingPathComponent(Self.releaseBundleIdentifier, isDirectory: true)
-        let releaseLegacyConfig = releaseDir.appendingPathComponent("config", isDirectory: false)
-        let releaseConfig = releaseDir.appendingPathComponent("config.ghostty", isDirectory: false)
-
-        let releaseConfigSize = fileReader.fileSize(atPath: releaseConfig.path)
-        let releaseLegacyConfigSize = fileReader.fileSize(atPath: releaseLegacyConfig.path)
-
-        if shouldIncludeLegacyGhosttyConfigInScanPaths(
-            newConfigFileSize: releaseConfigSize,
-            legacyConfigFileSize: releaseLegacyConfigSize
-        ), !paths.contains(releaseLegacyConfig.path) {
-            paths.append(releaseLegacyConfig.path)
-        }
-
-        return paths
+        ).map(\.path)
     }
 
     /// The config paths scanned for CJK font directives (identical to
@@ -703,17 +666,7 @@ public struct GhosttyConfigDiscovery {
             in: .userDomainMask
         ).first
     ) -> Bool {
-        guard let appSupportDirectory else { return false }
-        let ghosttyDir = appSupportDirectory.appendingPathComponent("com.mitchellh.ghostty", isDirectory: true)
-        let nativeLegacyConfig = ghosttyDir.appendingPathComponent("config", isDirectory: false)
-        let nativeConfig = ghosttyDir.appendingPathComponent("config.ghostty", isDirectory: false)
-        guard let legacyConfigSize = fileReader.fileSize(atPath: nativeLegacyConfig.path), legacyConfigSize > 0 else {
-            return false
-        }
-        guard let nativeConfigSize = fileReader.fileSize(atPath: nativeConfig.path), nativeConfigSize > 0 else {
-            return false
-        }
-        return true
+        true // The old Ghostty configuration is never part of MyCMUX's baseline.
     }
 
     /// Resolves the cmux Application Support Ghostty config file URLs for the

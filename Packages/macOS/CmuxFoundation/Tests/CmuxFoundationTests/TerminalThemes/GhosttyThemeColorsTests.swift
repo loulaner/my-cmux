@@ -73,10 +73,13 @@ struct GhosttyThemeDirectoriesTests {
         let bundled = root.appendingPathComponent("bundle/ghostty/themes", isDirectory: true)
         let xdg = root.appendingPathComponent("xdg", isDirectory: true)
         let home = root.appendingPathComponent("home", isDirectory: true)
-        let userThemes = home.appendingPathComponent(".config/ghostty/themes", isDirectory: true)
+        let userThemes = home.appendingPathComponent(".config/my-cmux/themes", isDirectory: true)
         for directory in [resources.appendingPathComponent("themes"), bundled, xdg.appendingPathComponent("ghostty/themes"), userThemes] {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         }
+
+        let oldThemes = home.appendingPathComponent(".config/ghostty/themes", isDirectory: true)
+        try FileManager.default.createDirectory(at: oldThemes, withIntermediateDirectories: true)
 
         let urls = GhosttyThemeDirectories(
             environment: [

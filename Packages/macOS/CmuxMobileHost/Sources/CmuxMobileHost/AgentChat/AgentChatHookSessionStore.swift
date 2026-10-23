@@ -62,7 +62,7 @@ public struct AgentChatHookSessionStore: Sendable {
     /// - Returns: All entries, or empty when the store is absent/malformed.
     public func entries(agentSource: String) -> [Entry] {
         let file = homeDirectory
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("\(agentSource)-hook-sessions.json", isDirectory: false)
         guard let data = try? Data(contentsOf: file),
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {

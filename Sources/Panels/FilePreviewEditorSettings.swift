@@ -4,7 +4,7 @@ import Foundation
 /// Persistent File Preview code-view chrome settings.
 ///
 /// Keys live under `fileEditor.*` and are shared by the Settings catalog,
-/// `~/.config/cmux/cmux.json`, and the text editor. Defaults match VS Code /
+/// `~/.config/my-cmux/cmux.json`, and the text editor. Defaults match VS Code /
 /// Cursor / Zed: highlighting, line numbers, indent guides, and current-line
 /// highlight are on.
 struct FilePreviewEditorSettings {

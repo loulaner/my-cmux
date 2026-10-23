@@ -2,36 +2,36 @@ import CmuxCloud
 import CMUXMobileCore
 import Foundation
 
-/// Persists the iOS app used when rendering a legacy pairing URL.
+/// Persists the iOS app used when rendering an exact MyCMUX pairing URL.
 @MainActor
 struct MobileIOSPairingTargetStore {
     static let defaultsKey = "mobile.pairing.targetIOSBundleIdentifier"
 
     private let defaults: UserDefaults
     private let macInstanceTag: String
+    private let macBundleIdentifier: String?
 
     init(
         defaults: UserDefaults = .standard,
-        macInstanceTag: String = MobileHostIdentity.instanceTag()
+        macInstanceTag: String = MobileHostIdentity.instanceTag(),
+        macBundleIdentifier: String? = Bundle.main.bundleIdentifier
     ) {
         self.defaults = defaults
         self.macInstanceTag = macInstanceTag
+        self.macBundleIdentifier = macBundleIdentifier
     }
 
     var availableNamespaces: [MobileIOSAppNamespace] {
-        if !isOfficialMacLane {
-            return [
-                MobileIOSAppNamespace(
-                    pairedMacInstanceTag: macInstanceTag
-                ),
-            ].compactMap { $0 }
-        }
-        return [
-            "com.cmux.app",
-            "dev.cmux.app.beta",
-            "dev.cmux.app.internal",
-            "dev.cmux.app.demo",
-        ].compactMap(MobileIOSAppNamespace.init(bundleIdentifier:))
+        guard let scheme = CmxPairingURLSchemeResolver(
+            currentIOSBundleIdentifier: macBundleIdentifier,
+            targetIOSBundleIdentifier: nil,
+            macInstanceTag: macInstanceTag,
+            isDevelopmentBuild: false
+        ).resolved,
+        let namespace = MobileIOSAppNamespace(
+            bundleIdentifier: String(scheme.rawValue.dropFirst("cmux-ios-".count))
+        ) else { return [] }
+        return [namespace]
     }
 
     var selectedNamespace: MobileIOSAppNamespace? {
@@ -51,17 +51,6 @@ struct MobileIOSPairingTargetStore {
         guard availableNamespaces.contains(namespace) else { return false }
         defaults.set(namespace.bundleIdentifier, forKey: Self.defaultsKey)
         return true
-    }
-
-    private var isOfficialMacLane: Bool {
-        switch macInstanceTag
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased() {
-        case "default", "nightly", "rc":
-            true
-        default:
-            false
-        }
     }
 
     private func storedNamespace(

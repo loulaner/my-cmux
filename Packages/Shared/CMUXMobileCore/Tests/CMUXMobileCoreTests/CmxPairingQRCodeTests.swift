@@ -45,7 +45,7 @@ import Testing
     /// untagged development scheme -- the same value the macOS host fallback
     /// produced, which is why the expected URLs below are unchanged.
     private static let pairingScheme = CmxPairingURLScheme(
-        rawValue: "cmux-ios-dev.cmux.ios"
+        rawValue: "cmux-ios-com.loulaner.mycmux.ios.debug"
     )
 
     private func encodeLegacy(_ ticket: CmxAttachTicket) -> String? {
@@ -145,7 +145,7 @@ import Testing
         // Macs that predate the av/ab removal still stamp both fields; the
         // decoder keeps reading them so the cross-version warning can name
         // the older Mac's version.
-        let url = "cmux-ios://attach?v=2&ub=user_mac_123&pc=1&av=0.64.15&ab=42&r=100.64.0.5:58465"
+        let url = "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&ub=user_mac_123&pc=1&av=0.64.15&ab=42&r=100.64.0.5:58465"
         let decoded = try CmxPairingQRCode().decode(try components(url))
         #expect(decoded.macUserID == "user_mac_123")
         #expect(decoded.macPairingCompatibilityVersion == 1)
@@ -279,7 +279,7 @@ import Testing
     ])
     func decodeRejectsLoopbackHosts(host: String) throws {
         let encodedHost = host.contains(":") ? "[\(host)]" : host
-        let url = "cmux-ios://attach?v=2&r=\(encodedHost):58465"
+        let url = "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=\(encodedHost):58465"
         #expect(throws: MobileSyncPairingPayloadError.loopbackRouteRejected) {
             try CmxPairingQRCode().decode(try components(url))
         }
@@ -287,7 +287,7 @@ import Testing
 
     @Test func decodeRejectsLoopbackEvenWhenARealRouteIsPresent() throws {
         // Hostile half-and-half codes fail closed, not "dial the good half".
-        let url = "cmux-ios://attach?v=2&r=100.64.0.5:58465&r=127.0.0.1:58465"
+        let url = "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=100.64.0.5:58465&r=127.0.0.1:58465"
         #expect(throws: MobileSyncPairingPayloadError.loopbackRouteRejected) {
             try CmxPairingQRCode().decode(try components(url))
         }
@@ -295,13 +295,13 @@ import Testing
 
     @Test func decodeRejectsMalformedRoutes() throws {
         let malformed = [
-            "cmux-ios://attach?v=2",
-            "cmux-ios://attach?v=2&r=",
-            "cmux-ios://attach?v=2&r=hostonly",
-            "cmux-ios://attach?v=2&r=host:0",
-            "cmux-ios://attach?v=2&r=host:99999",
-            "cmux-ios://attach?v=2&r=host:not-a-port",
-            "cmux-ios://attach?v=2&r=[::1:58465",
+            "cmux-ios-com.loulaner.mycmux.ios://attach?v=2",
+            "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=",
+            "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=hostonly",
+            "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=host:0",
+            "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=host:99999",
+            "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=host:not-a-port",
+            "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=[::1:58465",
         ]
         for url in malformed {
             #expect(throws: (any Error).self, "\(url) should not decode") {
@@ -311,12 +311,12 @@ import Testing
     }
 
     @Test(arguments: [
-        "cmux-ios://attach?v=3",
-        "cmux-ios://attach?v=3&i=",
-        "cmux-ios://attach?v=3&i=abc",
-        "cmux-ios://attach?v=3&i=\(String(repeating: "C", count: 64))",
-        "cmux-ios://attach?v=3&i=\(String(repeating: "c", count: 64))&i=\(String(repeating: "d", count: 64))",
-        "cmux-ios://attach?v=3&i=\(String(repeating: "c", count: 64))&ub=user",
+        "cmux-ios-com.loulaner.mycmux.ios://attach?v=3",
+        "cmux-ios-com.loulaner.mycmux.ios://attach?v=3&i=",
+        "cmux-ios-com.loulaner.mycmux.ios://attach?v=3&i=abc",
+        "cmux-ios-com.loulaner.mycmux.ios://attach?v=3&i=\(String(repeating: "C", count: 64))",
+        "cmux-ios-com.loulaner.mycmux.ios://attach?v=3&i=\(String(repeating: "c", count: 64))&i=\(String(repeating: "d", count: 64))",
+        "cmux-ios-com.loulaner.mycmux.ios://attach?v=3&i=\(String(repeating: "c", count: 64))&ub=user",
     ])
     func decodeRejectsMalformedOrBloatedIrohCodes(url: String) throws {
         #expect(throws: MobileSyncPairingPayloadError.invalidURL) {
@@ -329,17 +329,17 @@ import Testing
             .map { "r=100.64.0.\($0 + 1):58465" }
             .joined(separator: "&")
         #expect(throws: MobileSyncPairingPayloadError.invalidURL) {
-            try CmxPairingQRCode().decode(try components("cmux-ios://attach?v=2&\(routes)"))
+            try CmxPairingQRCode().decode(try components("cmux-ios-com.loulaner.mycmux.ios://attach?v=2&\(routes)"))
         }
     }
 
     @Test func versionedURLDetectionDistinguishesGrammars() throws {
-        #expect(CmxPairingQRCode().isPairingCodeURLString("cmux-ios://attach?v=2&r=100.64.0.5:58465"))
+        #expect(CmxPairingQRCode().isPairingCodeURLString("cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=100.64.0.5:58465"))
         #expect(CmxPairingQRCode().isPairingCodeURLString(
-            "cmux-ios://attach?v=3&i=\(String(repeating: "c", count: 64))"
+            "cmux-ios-com.loulaner.mycmux.ios://attach?v=3&i=\(String(repeating: "c", count: 64))"
         ))
-        #expect(!CmxPairingQRCode().isPairingCodeURLString("cmux-ios://attach?v=1&payload=abc"))
-        #expect(!CmxPairingQRCode().isPairingCodeURLString("cmux-ios://pair?v=1&payload=abc"))
+        #expect(!CmxPairingQRCode().isPairingCodeURLString("cmux-ios-com.loulaner.mycmux.ios://attach?v=1&payload=abc"))
+        #expect(!CmxPairingQRCode().isPairingCodeURLString("cmux-ios-com.loulaner.mycmux.ios://pair?v=1&payload=abc"))
         #expect(!CmxPairingQRCode().isPairingCodeURLString("https://example.com?v=2"))
         #expect(!CmxPairingQRCode().isPairingCodeURLString("not a url"))
     }
@@ -347,7 +347,7 @@ import Testing
     @Test func decodedTicketStillPairsLongAfterMint() throws {
         // The grammar has no expiry field at all, so a code that sat on the
         // Mac's screen for 10+ minutes still validates and is never expired.
-        let url = "cmux-ios://attach?v=2&r=100.64.0.5:58465"
+        let url = "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=100.64.0.5:58465"
         let decoded = try CmxPairingQRCode().decode(try components(url))
         #expect(decoded.expiresAt == nil)
         #expect(!decoded.isExpired(at: Date.distantFuture))
@@ -391,7 +391,7 @@ import Testing
                 .replacingOccurrences(of: "+", with: "-")
                 .replacingOccurrences(of: "/", with: "_")
                 .replacingOccurrences(of: "=", with: "")
-            let before = "cmux-ios://attach?v=1&payload=\(base64)"
+            let before = "cmux-ios-com.loulaner.mycmux.ios://attach?v=1&payload=\(base64)"
             let after = try #require(encodeLegacy(ticket))
 
             let beforeBytes = before.utf8.count
@@ -401,8 +401,9 @@ import Testing
                 "\(afterBytes)B/QR v\(qrVersion(forByteCount: afterBytes)) (ECC M)"
             )
             #expect(afterBytes < beforeBytes)
-            // The representative 2-route QR stays under 100 bytes / version 6.
-            #expect(afterBytes < 100)
+            // Preserve the old payload budget plus the exact new identity overhead.
+            let identityOverhead = CmxPairingURLScheme.development.utf8.count - "cmux-ios-dev.cmux.ios".utf8.count
+            #expect(afterBytes < 100 + identityOverhead)
             #expect(qrVersion(forByteCount: afterBytes) <= 6)
         }
     }

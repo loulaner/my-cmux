@@ -5247,3 +5247,53 @@ final class RelaySocketResponder {
         )
     }
 }
+
+@Suite struct MyCMUXSocketIsolationTests {
+    @Test func implicitDiscoveryNeverProbesOldProductEvenThroughNewMarker() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let marker = directory.appendingPathComponent(SocketPathMarkerFiles.stableMarkerFileName)
+        let oldContents = "/tmp/cmux.sock\n"
+        try oldContents.write(to: marker, atomically: true, encoding: .utf8)
+        var probes: [String] = []
+        let resolver = CLISocketPathResolver(
+            environment: [CLISocketPathResolver.isolatedDiscoveryEnvironmentKey: "1"],
+            bundleIdentifier: "com.loulaner.mycmux", currentUserID: getuid(),
+            inspectSocketPathEntry: { path in
+                probes.append(path)
+                return .socket(ownerUserID: getuid())
+            },
+            socketAcceptsConnections: { $0 == "/tmp/cmux.sock" },
+            stateDirectory: directory)
+        let resolution = resolver.resolve(requestedPath: "/tmp/cmux.sock", source: .implicitDefault)
+        #expect(resolution.selectedPath == nil)
+        #expect(!probes.contains("/tmp/cmux.sock"))
+        #expect(!resolution.candidatePaths.contains("/tmp/cmux.sock"))
+        #expect(resolution.candidatePaths.contains(directory.appendingPathComponent("mycmux.sock").path))
+        #expect(try String(contentsOf: marker, encoding: .utf8) == oldContents)
+    }
+
+    @Test func explicitOldSocketRemainsVerbatimWithoutAnyProbe() {
+        let resolver = CLISocketPathResolver(
+            environment: [:], bundleIdentifier: "com.loulaner.mycmux.debug.fixture",
+            inspectSocketPathEntry: { _ in Issue.record("Explicit socket must not be probed"); return .missing },
+            socketAcceptsConnections: { _ in Issue.record("Explicit socket must not connect"); return false },
+            stateDirectory: URL(fileURLWithPath: "/synthetic/new"))
+        for source in [CLISocketPathSource.explicitFlag, .environment] {
+            let result = resolver.resolve(requestedPath: "/tmp/cmux.sock", source: source)
+            #expect(result.selectedPath == "/tmp/cmux.sock")
+            #expect(result.candidatePaths == ["/tmp/cmux.sock"])
+        }
+    }
+
+    @Test func defaultPathsUseIndependentStableAndTaggedNamespaces() {
+        for id in ["com.loulaner.mycmux", "com.loulaner.mycmux.debug.one", "com.loulaner.mycmux.debug.two"] {
+            let path = CLISocketPathResolver.defaultSocketPath(bundleIdentifier: id, environment: [:])
+            #expect(path.contains("mycmux"))
+            #expect(!path.contains("/tmp/cmux"))
+        }
+        #expect(CLISocketPathResolver.defaultSocketPath(bundleIdentifier: "com.loulaner.mycmux.debug.one", environment: [:]) == "/tmp/mycmux-debug-one.sock")
+        #expect(CLISocketPathResolver.defaultSocketPath(bundleIdentifier: "com.loulaner.mycmux.debug.two", environment: [:]) == "/tmp/mycmux-debug-two.sock")
+    }
+}

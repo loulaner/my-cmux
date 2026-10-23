@@ -62,10 +62,7 @@ extension CMUXCLI {
 
     func themeConfigSearchURLs(targetBundleIdentifier: String) -> [URL] {
         let fileManager = FileManager.default
-        var urls = [
-            configURL("~/.config/ghostty/config"),
-            configURL("~/.config/ghostty/config.ghostty"),
-        ]
+        var urls: [URL] = []
         var seen = Set(urls.map { $0.standardizedFileURL.path })
 
         func append(_ url: URL) {
@@ -78,22 +75,6 @@ extension CMUXCLI {
         for appSupportDirectory in CmuxApplicationSupportDirectories(
             environment: ProcessInfo.processInfo.environment
         ).userDirectories {
-            let ghosttyDirectory = appSupportDirectory.appendingPathComponent(
-                "com.mitchellh.ghostty",
-                isDirectory: true
-            )
-            let legacyGhosttyConfigURL = ghosttyDirectory.appendingPathComponent("config", isDirectory: false)
-            let currentGhosttyConfigURL = ghosttyDirectory.appendingPathComponent("config.ghostty", isDirectory: false)
-
-            append(currentGhosttyConfigURL)
-            if shouldLoadLegacyGhosttyConfig(
-                newConfigURL: currentGhosttyConfigURL,
-                legacyConfigURL: legacyGhosttyConfigURL,
-                fileManager: fileManager
-            ) {
-                append(legacyGhosttyConfigURL)
-            }
-
             for url in CmuxGhosttyConfigPathResolver().loadConfigURLs(
                 currentBundleIdentifier: targetBundleIdentifier,
                 appSupportDirectory: appSupportDirectory,
@@ -214,35 +195,35 @@ extension CMUXCLI {
     private func bundleIdentifierForThemeReloadSocketPath(_ socketPath: String) -> String? {
         let name = URL(fileURLWithPath: socketPath).lastPathComponent
         switch name {
-        case "cmux.sock":
+        case "mycmux.sock":
             return Self.cmuxThemeOverrideBundleIdentifier
-        case "cmux-debug.sock":
-            return "com.cmuxterm.app.debug"
-        case "cmux-nightly.sock":
-            return "com.cmuxterm.app.nightly"
-        case "cmux-rc.sock":
-            return "com.cmuxterm.app.rc"
-        case "cmux-staging.sock":
-            return "com.cmuxterm.app.staging"
+        case "mycmux-debug.sock":
+            return "com.loulaner.mycmux.debug"
+        case "mycmux-nightly.sock":
+            return "com.loulaner.mycmux.nightly"
+        case "mycmux-rc.sock":
+            return "com.loulaner.mycmux.rc"
+        case "mycmux-staging.sock":
+            return "com.loulaner.mycmux.staging"
         default:
             break
         }
 
-        if name.range(of: #"^cmux-\d+\.sock$"#, options: .regularExpression) != nil {
+        if name.range(of: #"^mycmux-\d+\.sock$"#, options: .regularExpression) != nil {
             return Self.cmuxThemeOverrideBundleIdentifier
         }
 
-        if let slug = themeReloadSocketSlug(name, prefix: "cmux-debug-", suffix: ".sock") {
-            return "com.cmuxterm.app.debug.\(slug)"
+        if let slug = themeReloadSocketSlug(name, prefix: "mycmux-debug-", suffix: ".sock") {
+            return "com.loulaner.mycmux.debug.\(slug)"
         }
-        if let slug = themeReloadSocketSlug(name, prefix: "cmux-nightly-", suffix: ".sock") {
-            return "com.cmuxterm.app.nightly.\(slug)"
+        if let slug = themeReloadSocketSlug(name, prefix: "mycmux-nightly-", suffix: ".sock") {
+            return "com.loulaner.mycmux.nightly.\(slug)"
         }
-        if let slug = themeReloadSocketSlug(name, prefix: "cmux-rc-", suffix: ".sock") {
-            return "com.cmuxterm.app.rc.\(slug)"
+        if let slug = themeReloadSocketSlug(name, prefix: "mycmux-rc-", suffix: ".sock") {
+            return "com.loulaner.mycmux.rc.\(slug)"
         }
-        if let slug = themeReloadSocketSlug(name, prefix: "cmux-staging-", suffix: ".sock") {
-            return "com.cmuxterm.app.staging.\(slug)"
+        if let slug = themeReloadSocketSlug(name, prefix: "mycmux-staging-", suffix: ".sock") {
+            return "com.loulaner.mycmux.staging.\(slug)"
         }
         return nil
     }

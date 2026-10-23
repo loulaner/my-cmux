@@ -592,7 +592,7 @@ extension CMUXCLI {
             .replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
             .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
         guard !slug.isEmpty else { return nil }
-        return "/tmp/cmux-debug-\(slug).sock"
+        return "/tmp/mycmux-debug-\(slug).sock"
     }
 
     static func validateHookInstallDispatch(for def: AgentHookDef) throws {
@@ -631,15 +631,15 @@ extension CMUXCLI {
 
     private static func pinnedHookShellTraceLogPath(socketPath: String?) -> String {
         guard let socketPath else {
-            return "/tmp/cmux-debug.log"
+            return "/tmp/mycmux-debug.log"
         }
         let socketName = URL(fileURLWithPath: socketPath).lastPathComponent
-        if socketName.hasPrefix("cmux-debug-"), socketName.hasSuffix(".sock") {
+        if socketName.hasPrefix("mycmux-debug-"), socketName.hasSuffix(".sock") {
             return URL(fileURLWithPath: "/tmp", isDirectory: true)
                 .appendingPathComponent(String(socketName.dropLast(".sock".count)) + ".log")
                 .path
         }
-        return "/tmp/cmux-debug.log"
+        return "/tmp/mycmux-debug.log"
     }
 
     private static func normalizedHookInstallValue(_ value: String?) -> String? {

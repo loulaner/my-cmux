@@ -148,14 +148,14 @@ final class NotificationFeedHistoryStore {
             return nil
         }
         let bundleID = bundleIdentifier?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let resolvedBundleID = bundleID?.isEmpty == false ? bundleID! : "com.cmuxterm.app"
+        let resolvedBundleID = bundleID?.isEmpty == false ? bundleID! : "com.loulaner.mycmux"
         let safeBundleID = resolvedBundleID.replacingOccurrences(
             of: "[^A-Za-z0-9._-]",
             with: "_",
             options: .regularExpression
         )
         return resolvedAppSupport
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent(
                 "notification-feed-history-\(safeBundleID).json",
                 isDirectory: false

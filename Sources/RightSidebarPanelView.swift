@@ -496,7 +496,7 @@ struct RightSidebarPanelView: View {
         }
     }
 
-    /// Custom mode: mounts the selected `~/.config/cmux/sidebars/<name>.{js,swift,json}`
+    /// Custom mode: mounts the selected `~/.config/my-cmux/sidebars/<name>.{js,swift,json}`
     /// through the same surface as the left sidebar and panes (file-watched,
     /// hot-reloading, same data keys and `cmux(...)` actions).
     @ViewBuilder

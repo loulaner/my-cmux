@@ -97,14 +97,14 @@ function makeBundle(root, appName, output) {
   fs.mkdirSync(path.dirname(cli), { recursive: true });
   fs.writeFileSync(
     path.join(app, "Contents", "Info.plist"),
-    "<?xml version=\"1.0\" encoding=\"UTF-8\"?><plist version=\"1.0\"><dict><key>CFBundleIdentifier</key><string>com.cmuxterm.app.debug.test</string></dict></plist>",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?><plist version=\"1.0\"><dict><key>CFBundleIdentifier</key><string>com.loulaner.mycmux.debug.test</string></dict></plist>",
   );
   writeExecutable(cli, `#!/bin/sh\nprintf '%s\\n' '${output}'\n`);
   return cli;
 }
 
 function makeTaggedBundle(root, tag, output) {
-  return makeBundle(root, `cmux DEV ${tag}`, output);
+  return makeBundle(root, `MyCMUX DEV ${tag}`, output);
 }
 
 function runShim(shim, environment, args = ["ping"]) {
@@ -130,7 +130,7 @@ printf '%s\\n%s\\n' "$CMUX_RELOAD_MARKER_NAME" "$CMUX_RELOAD_TMP_MARKER"
     { cwd: repoRoot, encoding: "utf8" },
   );
   assert.equal(result.status, 0, result.stderr || result.stdout);
-  assert.equal(result.stdout, "last-socket-path\n/tmp/cmux-last-socket-path\n");
+  assert.equal(result.stdout, "last-socket-path\n/tmp/mycmux-last-socket-path\n");
 });
 
 test("reload pointer publication waits for the shared ownership lock", async () => {
@@ -193,7 +193,7 @@ test("tag-state publication stays behind the same-tag ownership lock", async () 
   const legacyMarker = path.join(root, "legacy", "dev-tag-last-socket-path");
   const tmpMarker = path.join(root, "tmp-last-socket-path");
   const pointer = path.join(root, "last-cli-path");
-  const cliPath = path.join(root, "cmux DEV tag.app", "Contents", "Resources", "bin", "cmux");
+  const cliPath = path.join(root, "MyCMUX DEV tag.app", "Contents", "Resources", "bin", "cmux");
   fs.mkdirSync(path.dirname(marker), { recursive: true });
   fs.mkdirSync(path.dirname(legacyMarker), { recursive: true });
   fs.mkdirSync(path.dirname(cliPath), { recursive: true });
@@ -387,7 +387,7 @@ test("reload shim skips a stale pointer target and falls through to stable CLI",
 test("reload shim delegates to a pointer target only while its socket is live", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cmux-reload-shim-live-"));
   const tag = `shim-live-${crypto.randomUUID()}`;
-  const socketPath = `/tmp/cmux-debug-${tag}.sock`;
+  const socketPath = `/tmp/mycmux-debug-${tag}.sock`;
   let server;
   try {
     try { fs.unlinkSync(socketPath); } catch {}
@@ -483,7 +483,7 @@ test("reload shim falls through when a reload-managed bundled CLI is dead", () =
 test("reload shim keeps an explicit --socket pinned even when the pointer target is live", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cmux-reload-shim-explicit-flag-"));
   const tag = `shim-explicit-live-${crypto.randomUUID()}`;
-  const socketPath = `/tmp/cmux-debug-${tag}.sock`;
+  const socketPath = `/tmp/mycmux-debug-${tag}.sock`;
   let server;
   try {
     try { fs.unlinkSync(socketPath); } catch {}

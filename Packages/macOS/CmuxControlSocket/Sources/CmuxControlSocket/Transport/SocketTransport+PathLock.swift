@@ -120,11 +120,11 @@ extension SocketTransport {
         let filename = URL(fileURLWithPath: (path as NSString).standardizingPath)
             .lastPathComponent
             .lowercased()
-        let recoverablePrefixes = ["cmux-debug-", "cmux-nightly-", "cmux-rc-", "cmux-staging-"]
-        return filename == "cmux-debug.sock" ||
-            filename == "cmux-nightly.sock" ||
-            filename == "cmux-rc.sock" ||
-            filename == "cmux-staging.sock" ||
+        let recoverablePrefixes = ["mycmux-debug-", "mycmux-nightly-", "mycmux-rc-", "mycmux-staging-"]
+        return filename == "mycmux-debug.sock" ||
+            filename == "mycmux-nightly.sock" ||
+            filename == "mycmux-rc.sock" ||
+            filename == "mycmux-staging.sock" ||
             recoverablePrefixes.contains { prefix in
                 filename.hasPrefix(prefix) && filename.hasSuffix(".sock")
             }

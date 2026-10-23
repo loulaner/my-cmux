@@ -129,7 +129,7 @@ class BuildValidationTests(unittest.TestCase):
     def test_artifact_metadata_rejects_old_cloud_or_wrong_identity(self):
         valid = {'CFBundleIdentifier': self.builder.BUNDLE, 'CMUXDevTag': self.builder.TAG, 'CMUXGitSHA': 'test'}
         self.builder.validate_metadata(valid)
-        for addition in [{'CFBundleIdentifier': 'com.loulaner.cmuxpersonal'}, {'CMUXApiBaseURL': 'https://example.invalid'},
+        for addition in [{'CFBundleIdentifier': 'com.loulaner.mycmux.ios'}, {'CMUXApiBaseURL': 'https://example.invalid'},
                          {'NSCameraUsageDescription': ''}, {'CFBundleURLTypes': []}]:
             with self.assertRaises(ValueError): self.builder.validate_metadata(dict(valid, **addition))
 

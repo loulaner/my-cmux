@@ -76,7 +76,7 @@ extension CMUXCLI {
             stateDirRaw
                 ?? processEnv["CMUX_AGENT_HOOK_STATE_DIR"]
                 ?? URL(fileURLWithPath: processEnv["HOME"] ?? NSHomeDirectory(), isDirectory: true)
-                    .appendingPathComponent(".cmuxterm", isDirectory: true)
+                    .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
                     .path
         )
         let defaultCodexHome = sessionsListExpandedPath(
@@ -477,7 +477,7 @@ extension CMUXCLI {
         let root = URL(fileURLWithPath: homeDirectory, isDirectory: true)
             .appendingPathComponent(".local", isDirectory: true)
             .appendingPathComponent("state", isDirectory: true)
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("my-cmux", isDirectory: true)
             .appendingPathComponent("agent-artifacts", isDirectory: true)
             .appendingPathComponent(provider, isDirectory: true)
             .appendingPathComponent(sessionID, isDirectory: true)

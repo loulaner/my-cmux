@@ -7,55 +7,55 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux Direct DEV"
+            "value": "MyCMUX Direct DEV"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux 直接接続 開発版"
+            "value": "MyCMUX 直接接続 開発版"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux Direkt DEV"
+            "value": "MyCMUX Direkt DEV"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux Direct Dév"
+            "value": "MyCMUX Direct Dév"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux Directo DEV"
+            "value": "MyCMUX Directo DEV"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux اتصال مباشر للتطوير"
+            "value": "MyCMUX اتصال مباشر للتطوير"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux 直连开发版"
+            "value": "MyCMUX 直连开发版"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux 直連開發版"
+            "value": "MyCMUX 直連開發版"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "cmux 직접 연결 개발"
+            "value": "MyCMUX 직접 연결 개발"
           }
         }
       }

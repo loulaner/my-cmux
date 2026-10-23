@@ -50,7 +50,7 @@ extension CMUXCLI {
             explicitSocketPath: nil,
             explicitPassword: nil,
             environment: ProcessInfo.processInfo.environment,
-            bundleIdentifier: CLISocketPathResolver.currentAppBundleIdentifier() ?? "com.cmuxterm.app"
+            bundleIdentifier: CLISocketPathResolver.currentAppBundleIdentifier() ?? "com.loulaner.mycmux"
         )
     }
 

@@ -23,7 +23,7 @@ actor VaultSessionCheckpointStore {
             let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
                 ?? URL(fileURLWithPath: NSTemporaryDirectory())
             self.rootDirectory = base
-                .appendingPathComponent("cmux", isDirectory: true)
+                .appendingPathComponent("MyCMUX", isDirectory: true)
                 .appendingPathComponent("VaultCheckpoints", isDirectory: true)
         }
     }

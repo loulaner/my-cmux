@@ -5,3 +5,7 @@
 #include "Shared.xcconfig"
 
 SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) CMUX_DEV_AUTH
+
+CMUX_APP_BUNDLE_IDENTIFIER = com.loulaner.mycmux.ios.debug
+PRODUCT_NAME = MyCMUX DEV
+PRODUCT_DISPLAY_NAME = MyCMUX DEV

@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "8B41F6442DEDD0D5001A66F9"
-               BuildableName = "cmux.app"
+               BuildableName = "MyCMUX.app"
                BlueprintName = "cmux"
                ReferencedContainer = "container:cmux-ios.xcodeproj">
             </BuildableReference>
@@ -70,7 +70,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "8B41F6442DEDD0D5001A66F9"
-            BuildableName = "cmux.app"
+            BuildableName = "MyCMUX.app"
             BlueprintName = "cmux"
             ReferencedContainer = "container:cmux-ios.xcodeproj">
          </BuildableReference>
@@ -90,7 +90,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "8B41F6442DEDD0D5001A66F9"
-            BuildableName = "cmux.app"
+            BuildableName = "MyCMUX.app"
             BlueprintName = "cmux"
             ReferencedContainer = "container:cmux-ios.xcodeproj">
          </BuildableReference>

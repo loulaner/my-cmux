@@ -9,7 +9,7 @@ extension DockSplitStore {
     /// - `.workspace`: only the project `.cmux/dock.json` (searched upward from
     ///   `rootDirectory`); no global fallback, so the Workspace Dock stays
     ///   distinct from the window Dock. Empty when there is no project config.
-    /// - `.global`: only `~/.config/cmux/dock.json` with a home base directory.
+    /// - `.global`: only `~/.config/my-cmux/dock.json` with a home base directory.
     ///
     /// `scope` defaults to `.workspace` to preserve existing call sites/tests.
     nonisolated static func resolve(scope: DockScope = .workspace, rootDirectory: String?) throws -> DockConfigResolution {
@@ -239,7 +239,7 @@ extension DockSplitStore {
             return URL(fileURLWithPath: testPath)
         }
         return FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".config/cmux/dock.json", isDirectory: false)
+            .appendingPathComponent(".config/my-cmux/dock.json", isDirectory: false)
     }
 
     nonisolated private static func existingDirectory(_ rawPath: String) -> String? {

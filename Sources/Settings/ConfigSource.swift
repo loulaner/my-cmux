@@ -83,9 +83,7 @@ struct ConfigSourceEnvironment {
         )
         collector.append(cmuxURL)
 
-        for url in standaloneGhosttyDisplayCandidates where isRegularFile(at: url) {
-            collector.append(url)
-        }
+        // MyCMUX only opens its own configuration unless the user explicitly selects another file.
 
         for url in CmuxGhosttyConfigPathResolver().loadConfigURLs(
             currentBundleIdentifier: currentBundleIdentifier,
@@ -231,11 +229,11 @@ enum ConfigSource: String, CaseIterable, Identifiable {
                 contents: Self.readContents(at: url),
                 isEditable: true,
                 hasBackingFile: environment.isRegularFile(at: url),
-                hasStandaloneGhosttyConfig: environment.isRegularFile(at: environment.standaloneGhosttyDisplayURL)
+                hasStandaloneGhosttyConfig: false
             )
         case .synced:
-            let ghosttyURL = environment.standaloneGhosttyDisplayURL
-            let hasStandaloneGhosttyConfig = environment.isRegularFile(at: ghosttyURL)
+            let ghosttyURL = environment.cmuxConfigURL
+            let hasStandaloneGhosttyConfig = false
             let renderedContents = Self.renderSyncedPreview(
                 ghosttyURL: hasStandaloneGhosttyConfig ? ghosttyURL : nil,
                 cmuxURLs: CmuxGhosttyConfigPathResolver().loadConfigURLs(

@@ -78,7 +78,7 @@ public enum ManagedDevicePolicyKey: String, CaseIterable, Sendable {
     /// helper stops, and the Settings toggle locks.
     case disableComputerUse = "DisableComputerUse"
 
-    /// Disables interpreted custom sidebars from `~/.config/cmux/sidebars`
+    /// Disables interpreted custom sidebars from `~/.config/my-cmux/sidebars`
     /// (user- or agent-authored code that can dispatch `cmux(...)` commands).
     case disableCustomSidebars = "DisableCustomSidebars"
 

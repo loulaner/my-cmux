@@ -137,7 +137,7 @@ struct KeychainDeviceIdentityStore: DeviceIdentityStoring {
     private let legacyService: String?
 
     init(
-        service: String = "com.cmuxterm.deviceRegistry.iosDeviceID.v1",
+        service: String = "com.loulaner.mycmux.ios.deviceRegistry.iosDeviceID.v1",
         account: String = "default",
         accessGroup: String? = nil,
         legacyService: String? = nil
@@ -145,7 +145,7 @@ struct KeychainDeviceIdentityStore: DeviceIdentityStoring {
         self.service = service
         self.account = account
         self.accessGroup = accessGroup
-        self.legacyService = legacyService == service ? nil : legacyService
+        self.legacyService = nil // Never adopt or delete another product's identity.
     }
 
     func read() -> DeviceIdentityReadResult {

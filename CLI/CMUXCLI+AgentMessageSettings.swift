@@ -22,7 +22,7 @@ extension CMUXCLI {
         becomes the workspace's agent later.
 
         To turn agent messages off everywhere, set agentMessages.enabled to
-        false in ~/.config/cmux/cmux.json or turn off Settings > Automation >
+        false in ~/.config/my-cmux/cmux.json or turn off Settings > Automation >
         Agent Messages.
 
         Examples:

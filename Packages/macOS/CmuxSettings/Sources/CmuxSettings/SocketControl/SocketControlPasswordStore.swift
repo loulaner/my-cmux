@@ -22,7 +22,7 @@ public struct SocketControlPasswordStore: Sendable {
 
     private static let keychainMigrationDefaultsKey = "socketControlPasswordMigrationVersion"
     private static let keychainMigrationVersion = 1
-    private static let legacyKeychainService = "com.cmuxterm.app.socket-control"
+    private static let legacyKeychainService = "com.loulaner.mycmux.socket-control"
     private static let legacyKeychainAccount = "local-socket-password"
 
     private let environment: [String: String]
@@ -34,7 +34,7 @@ public struct SocketControlPasswordStore: Sendable {
     // to read from the synchronous, `nonisolated` socket-auth path without isolation.
     private nonisolated(unsafe) let fileManager: FileManager
 
-    /// Creates a password store backed by the real legacy keychain.
+    /// Creates a MyCMUX file-backed password store without legacy Keychain access.
     /// - Parameters:
     ///   - environment: The process environment used to read `CMUX_SOCKET_PASSWORD`.
     ///   - fileURL: An explicit password file URL; defaults to the Application Support location.
@@ -44,14 +44,13 @@ public struct SocketControlPasswordStore: Sendable {
         fileURL: URL? = nil,
         fileManager: FileManager = .default
     ) {
-        // An init body (unlike a default-argument value) may reference private statics,
-        // so the real keychain accessors stay private to the type.
+        // Never read or delete credentials belonging to the old product.
         self.init(
             environment: environment,
             fileURL: fileURL,
             fileManager: fileManager,
-            loadKeychainPassword: { Self.loadLegacyPasswordFromKeychain() },
-            deleteKeychainPassword: { Self.deleteLegacyPasswordFromKeychain() }
+            loadKeychainPassword: { nil },
+            deleteKeychainPassword: { false }
         )
     }
 
@@ -239,10 +238,22 @@ public struct SocketControlPasswordStore: Sendable {
     /// - Returns: The password file URL.
     public static func defaultPasswordFileURL(
         directory: URL? = nil,
-        fileManager: FileManager
+        fileManager: FileManager,
+        bundleIdentifier: String? = Bundle.main.bundleIdentifier,
+        environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> URL? {
-        let controlDirectory = directory
+        var controlDirectory = directory
             ?? CmuxStateDirectory.url(homeDirectory: fileManager.homeDirectoryForCurrentUser)
+        if directory == nil {
+            let variant = SocketPathMarkerFiles.variant(
+                bundleIdentifier: environment["CMUX_BUNDLE_ID"] ?? bundleIdentifier,
+                environment: environment
+            )
+            if variant != .stable {
+                let namespace = variant.markerFileName.replacingOccurrences(of: "-last-socket-path", with: "")
+                controlDirectory.appendPathComponent(namespace, isDirectory: true)
+            }
+        }
         return controlDirectory.appendingPathComponent(fileName, isDirectory: false)
     }
 
@@ -328,40 +339,7 @@ public struct SocketControlPasswordStore: Sendable {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    private static func loadLegacyPasswordFromKeychain() -> String? {
-#if canImport(Security)
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: "com.cmuxterm.app.socket-control",
-            kSecAttrAccount: "local-socket-password",
-            kSecReturnData: true,
-            kSecMatchLimit: kSecMatchLimitOne,
-        ]
 
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data else {
-            return nil
-        }
-        return String(data: data, encoding: .utf8)
-#else
-        return nil
-#endif
-    }
-
-    private static func deleteLegacyPasswordFromKeychain() -> Bool {
-#if canImport(Security)
-        let query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: "com.cmuxterm.app.socket-control",
-            kSecAttrAccount: "local-socket-password",
-        ]
-        let status = SecItemDelete(query as CFDictionary)
-        return status == errSecSuccess || status == errSecItemNotFound
-#else
-        return false
-#endif
-    }
 }
 
 /// An error thrown while persisting the control-socket password.

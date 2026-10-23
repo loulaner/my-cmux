@@ -39,9 +39,9 @@ public struct MobileIOSAppNamespace: Equatable, Hashable, Sendable {
             return nil
         }
         let bundleIdentifier = if tag.isEmpty || tag == "default" {
-            "com.cmux.app"
+            "com.loulaner.mycmux.ios"
         } else {
-            "dev.cmux.ios.\(tag)"
+            "com.loulaner.mycmux.ios.debug.\(tag)"
         }
         self.init(bundleIdentifier: bundleIdentifier)
     }

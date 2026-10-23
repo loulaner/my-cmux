@@ -215,7 +215,7 @@ final class HiveComputersService {
             let directory = try FileManager.default.url(
                 for: .applicationSupportDirectory, in: .userDomainMask,
                 appropriateFor: nil, create: true
-            ).appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.cmuxterm.app", isDirectory: true)
+            ).appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.loulaner.mycmux", isDirectory: true)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let runtime = HiveSyncRuntime(
                 allowsLoopback: allowsLoopback,

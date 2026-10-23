@@ -35,12 +35,12 @@ public struct CloudTuiClientPaths: Sendable {
 
     /// Per-Mac cmux-tui client state (device key, known daemons).
     public var stateDir: URL {
-        home.appendingPathComponent(".cmuxterm", isDirectory: true)
+        home.appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("cmux-tui-client", isDirectory: true)
     }
 
     public var devicesStoreURL: URL {
-        home.appendingPathComponent(".cmuxterm", isDirectory: true)
+        home.appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("vm-tui-devices.json", isDirectory: false)
     }
 

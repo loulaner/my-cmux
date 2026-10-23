@@ -86,13 +86,13 @@ extension CMUXCLI {
     /// interactive `cmux-tui` the person uses so machines never share identity.
     static func vmTuiClientStateDir() -> URL {
         URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("cmux-tui-client", isDirectory: true)
     }
 
     static func vmTuiDevicesStoreURL() -> URL {
         URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("vm-tui-devices.json", isDirectory: false)
     }
 

@@ -141,7 +141,7 @@ struct ComputerUseStateRepository: Sendable {
         homeDirectory
             .appendingPathComponent("Library", isDirectory: true)
             .appendingPathComponent("Application Support", isDirectory: true)
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent("cmux-cua", isDirectory: true)
             .appendingPathComponent("state", isDirectory: true)
     }

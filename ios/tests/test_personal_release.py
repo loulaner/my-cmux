@@ -44,7 +44,18 @@ class PersonalReleaseTests(unittest.TestCase):
             phases = [self.objects[key] for key in target["buildPhases"] if self.objects[key]["isa"] == kind]
             return {self.objects[key].get("fileRef", self.objects[key].get("productRef"))
                     for phase in phases for key in phase["files"]}
-        for kind in ["PBXSourcesBuildPhase", "PBXResourcesBuildPhase", "PBXFrameworksBuildPhase"]:
+        original = file_refs("cmux", "PBXSourcesBuildPhase")
+        personal = file_refs("cmux-personal", "PBXSourcesBuildPhase")
+        fixtures = {"LocalTerminalUIAcceptance.swift", "LocalTerminalRendererRPCFixture.swift"}
+        fixture_refs = {ref for ref in original if self.objects[ref]["path"].split("/")[-1] in fixtures}
+        self.assertEqual({self.objects[ref]["path"].split("/")[-1] for ref in fixture_refs}, fixtures)
+        self.assertEqual(original - personal, fixture_refs)
+        self.assertEqual(original - fixture_refs, personal)
+        for name in fixtures:
+            source = (ROOT / "ios/cmuxLocalTerminalTests" / name).read_text()
+            self.assertRegex(source.splitlines()[0], r"^#if DEBUG(?: &&|$)")
+            self.assertEqual(source.strip().splitlines()[-1], "#endif")
+        for kind in ["PBXResourcesBuildPhase", "PBXFrameworksBuildPhase"]:
             self.assertEqual(file_refs("cmux", kind), file_refs("cmux-personal", kind))
         self.assertTrue(set(self.targets["cmux"]["buildPhases"]).isdisjoint(self.targets["cmux-personal"]["buildPhases"]))
         self.assertEqual(len(self.targets["cmux"]["dependencies"]), 2)
@@ -83,7 +94,7 @@ class PersonalReleaseTests(unittest.TestCase):
             key, value = line.split("=", 1)
             values[key.strip()] = value.strip()
         self.assertEqual(values["DEVELOPMENT_TEAM"], "")
-        self.assertEqual(values["CMUX_APP_BUNDLE_IDENTIFIER"], "com.loulaner.cmuxpersonal")
+        self.assertEqual(values["CMUX_APP_BUNDLE_IDENTIFIER"], "com.loulaner.mycmux.ios")
         self.assertEqual(values["SWIFT_ACTIVE_COMPILATION_CONDITIONS"], "")
         self.assertEqual(values["CMUX_DEV_TAG"], "")
         self.assertEqual(values["CMUX_IOS_AUTH_ENV"], "production")
@@ -266,12 +277,12 @@ class PersonalInstallRenewalTests(unittest.TestCase):
             script = root / "ios/scripts/install-personal.sh"
             script.parent.mkdir(parents=True)
             shutil.copyfile(ROOT / "ios/scripts/install-personal.sh", script)
-            app = root / ".build/ios-personal/Build/Products/Release-iphoneos/cmux-personal.app"
+            app = root / ".build/ios-personal/Build/Products/Release-iphoneos/MyCMUX.app"
             app.mkdir(parents=True)
             (app / "Info.plist").write_bytes(plistlib.dumps({
-                "CFBundleIdentifier": "com.loulaner.cmuxpersonal", "CMUXPersonalBuild": True,
+                "CFBundleIdentifier": "com.loulaner.mycmux.ios", "CMUXPersonalBuild": True,
                 "CMUXAuthEnvironment": "production", "CMUX_IROH_V2_ENVIRONMENT": "production"}))
-            identity = "ABCDE12345.com.loulaner.cmuxpersonal"
+            identity = "ABCDE12345.com.loulaner.mycmux.ios"
             entitlements = {"application-identifier": identity, "keychain-access-groups": [identity]}
             (root / "entitlements.plist").write_bytes(plistlib.dumps(entitlements))
             (root / "profile.plist").write_bytes(plistlib.dumps({

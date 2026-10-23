@@ -253,8 +253,8 @@ struct MacAuthComposition {
             in: .userDomainMask
         ).first ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
         return support
-            .appendingPathComponent("cmux", isDirectory: true)
-            .appendingPathComponent(bundleIdentifier ?? "cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
+            .appendingPathComponent(bundleIdentifier ?? "com.loulaner.mycmux", isDirectory: true)
     }
 
     private static var isDebugBuild: Bool {

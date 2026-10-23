@@ -249,7 +249,7 @@ extension TerminalSurfaceRuntimeFilesystem {
         // Keep them beside cmux's durable state so macOS's periodic `$TMPDIR`
         // cleanup cannot remove a live pane's Claude entry from `PATH`.
         let agentCommandShimRootDirectory = homeDirectory
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
         return TerminalSurfaceRuntimeFilesystem(
             agentCommandShimRootDirectory: agentCommandShimRootDirectory,
             installAgentCommandShims: {

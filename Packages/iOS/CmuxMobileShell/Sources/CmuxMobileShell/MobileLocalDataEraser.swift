@@ -168,7 +168,7 @@ public struct MobileLocalDataEraser: Sendable {
     }
 
     private static let log = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "com.cmuxterm.app",
+        subsystem: Bundle.main.bundleIdentifier ?? "com.loulaner.mycmux.ios",
         category: "local-data-erase"
     )
 }
@@ -180,7 +180,7 @@ public extension MobileLocalDataEraser {
         MobileLocalDataEraser(
             homeDirectory: URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true),
             defaultsSuiteName: nil,
-            defaultsDomain: Bundle.main.bundleIdentifier ?? "com.cmuxterm.app",
+            defaultsDomain: Bundle.main.bundleIdentifier ?? "com.loulaner.mycmux.ios",
             eraseKeychain: eraseAllKeychainItems,
             eraseSystemState: eraseSystemServiceState
         )

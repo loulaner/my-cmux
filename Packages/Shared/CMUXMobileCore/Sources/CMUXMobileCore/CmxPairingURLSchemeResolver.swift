@@ -27,7 +27,8 @@ public struct CmxPairingURLSchemeResolver: Sendable {
         #endif
     }
 
-    init(
+    /// Creates a resolver with explicit identity inputs for composition roots and tests.
+    public init(
         currentIOSBundleIdentifier: String?,
         targetIOSBundleIdentifier: String?,
         macInstanceTag: String?,
@@ -51,21 +52,35 @@ public struct CmxPairingURLSchemeResolver: Sendable {
                 iOSBundleIdentifier: targetIOSBundleIdentifier
             )
         }
-        if macInstanceTag == nil || macInstanceTag?.isEmpty == true {
-            return CmxPairingURLScheme(
-                iOSBundleIdentifier: isDevelopmentBuild
-                    ? "dev.cmux.ios"
-                    : "com.cmux.app"
-            )
+        let releaseID = "com.loulaner.mycmux.ios"
+        let debugID = releaseID + ".debug"
+        let macBase = "com.loulaner.mycmux"
+        guard let macID = currentIOSBundleIdentifier else {
+            if let tag = macInstanceTag, !tag.isEmpty {
+                guard let namespace = MobileIOSAppNamespace(pairedMacInstanceTag: tag) else { return nil }
+                return CmxPairingURLScheme(iOSBundleIdentifier: namespace.bundleIdentifier)
+            }
+            return CmxPairingURLScheme(iOSBundleIdentifier: isDevelopmentBuild ? debugID : releaseID)
         }
-        guard let namespace = MobileIOSAppNamespace(
-            pairedMacInstanceTag: macInstanceTag
-        ) else {
-            return nil
+        if macID == macBase + ".debug" {
+            return CmxPairingURLScheme(iOSBundleIdentifier: debugID)
         }
-        return CmxPairingURLScheme(
-            iOSBundleIdentifier: namespace.bundleIdentifier
-        )
+        for channel in ["", ".nightly", ".rc", ".staging"] {
+            if macID == macBase + channel || (!channel.isEmpty && macID.hasPrefix(macBase + channel + ".")) {
+                return CmxPairingURLScheme(iOSBundleIdentifier: releaseID)
+            }
+        }
+        let prefix = macBase + ".debug."
+        guard macID.hasPrefix(prefix) else { return nil }
+        let suffix = String(macID.dropFirst(prefix.count))
+        guard suffix.range(of: #"^[a-z0-9]+(?:\.[a-z0-9]+)*$"#, options: .regularExpression) != nil else { return nil }
+        let launchTag = macInstanceTag ?? suffix
+        let canonical = launchTag.lowercased()
+            .replacingOccurrences(of: "[^a-z0-9]+", with: ".", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        guard canonical == suffix else { return nil }
+        let slug = canonical.replacingOccurrences(of: ".", with: "-")
+        return CmxPairingURLScheme(iOSBundleIdentifier: debugID + "." + slug)
         #endif
     }
 }

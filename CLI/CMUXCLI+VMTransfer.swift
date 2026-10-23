@@ -984,7 +984,7 @@ extension CMUXCLI {
     /// recognizable in `vm ls` and the Machines panel. It is *not* the membership
     /// test — display names are user-editable, so a hand-made machine renamed
     /// "agent-pool" must never be drafted. Membership is the persisted id list in
-    /// `~/.cmuxterm/vm-run-pool.json`, written only by `createPoolVM`.
+    /// `~/.local/state/my-cmux/vm-run-pool.json`, written only by `createPoolVM`.
     static let vmRunPoolLabel = "agent-pool"
     static let vmRunDefaultTimeoutSeconds = 600
     static let vmRunCreateWaitSeconds = 300
@@ -1200,7 +1200,7 @@ extension CMUXCLI {
     /// The home the router keeps its state under. `$HOME` first: NSHomeDirectory()
     /// resolves through Core Foundation (CFFIXED_USER_HOME, then the passwd entry)
     /// and ignores a HOME override, so tests and other redirected runs would write
-    /// the user's real `~/.cmuxterm` instead of their own.
+    /// the user's real `~/.local/state/my-cmux` instead of their own.
     static func vmRunStateHomeDirectory() -> String {
         if let home = ProcessInfo.processInfo.environment["HOME"]?.trimmingCharacters(in: .whitespacesAndNewlines),
            !home.isEmpty {
@@ -1211,7 +1211,7 @@ extension CMUXCLI {
 
     static func vmRunBindingsStoreURL() -> URL {
         URL(fileURLWithPath: vmRunStateHomeDirectory(), isDirectory: true)
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("vm-run-bindings.json", isDirectory: false)
     }
 
@@ -1251,7 +1251,7 @@ extension CMUXCLI {
 
     static func vmRunPoolStoreURL() -> URL {
         URL(fileURLWithPath: vmRunStateHomeDirectory(), isDirectory: true)
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("vm-run-pool.json", isDirectory: false)
     }
 
@@ -1592,7 +1592,7 @@ extension CMUXCLI {
 
     private static func vmRunCreateIdempotencyStoreURL() -> URL {
         URL(fileURLWithPath: vmRunStateHomeDirectory(), isDirectory: true)
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("vm-run-create-idempotency.json", isDirectory: false)
     }
 

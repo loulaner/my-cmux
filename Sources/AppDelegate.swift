@@ -1514,7 +1514,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             in: .userDomainMask
         ).first?
             .appendingPathComponent("Logs", isDirectory: true)
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent("hangs", isDirectory: true)
         let captureStore = hangDirectory.map {
             MainThreadHangCaptureStore(
@@ -2724,7 +2724,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             }
         }
         // Best-effort one-time migration: a value previously stored in the
-        // legacy ~/.config/cmux/dev-window-display file moves into the shared
+        // legacy ~/.config/my-cmux/dev-window-display file moves into the shared
         // cmux.json (app.devWindowDisplay) so an existing dev-display default
         // keeps working. No-op when already set or the legacy file is absent.
         Task { await DevWindowDisplayDefault.migrateLegacyFileIfNeeded(runtime: settingsRuntime) }
@@ -7777,7 +7777,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             }
             if let name {
                 guard CmuxExtensionSidebarSelection.customSidebarFileURL(forName: name) != nil else {
-                    return .failure(String(localized: "rightSidebar.remote.error.customSidebarNotFound", defaultValue: "ERROR: No custom sidebar named '\(name)' in ~/.config/cmux/sidebars"))
+                    return .failure(String(localized: "rightSidebar.remote.error.customSidebarNotFound", defaultValue: "ERROR: No custom sidebar named '\(name)' in ~/.config/my-cmux/sidebars"))
                 }
                 state.selectCustomSidebar(name: name)
             }

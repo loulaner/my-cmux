@@ -96,7 +96,7 @@
 		8B8A10192DF5000000A66F90 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7E23A50C35E04CE64005B8AF /* cmux-personal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "cmux-personal.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B3C84F853AA64BE63C68AA3 /* cmux-personal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = cmux-personal.entitlements; sourceTree = "<group>"; };
-		8B41F6452DEDD0D5001A66F9 /* cmux.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = cmux.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		8B41F6452DEDD0D5001A66F9 /* MyCMUX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyCMUX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B8A10162DF5000000A66F90 /* cmux.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = cmux.entitlements; sourceTree = "<group>"; };
 		8B41F65C2DEDD0D6001A66F9 /* cmux.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = cmux.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B8A10182DF5000000A66F90 /* cmux.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = file; path = cmux.xctestplan; sourceTree = "<group>"; };
@@ -231,7 +231,7 @@
 
 				C1AC00000000000000000002 /* cmuxLocalTerminalTests.xctest */,
 				7E23A50C35E04CE64005B8AF /* cmux-personal.app */,
-				8B41F6452DEDD0D5001A66F9 /* cmux.app */,
+				8B41F6452DEDD0D5001A66F9 /* MyCMUX.app */,
 				8B41F65C2DEDD0D6001A66F9 /* cmux.xctest */,
 				D4E2A0030000000000000001 /* NotificationService.appex */,
 				C10DA0020000000000000002 /* CloudVPN.appex */,
@@ -307,7 +307,7 @@
 				D4E2A00A0000000000000001 /* CmuxPhonePush */,
 			);
 			productName = cmux;
-			productReference = 8B41F6452DEDD0D5001A66F9 /* cmux.app */;
+			productReference = 8B41F6452DEDD0D5001A66F9 /* MyCMUX.app */;
 			productType = "com.apple.product-type.application";
 		};
 		8B41F65B2DEDD0D6001A66F9 /* cmuxUITests */ = {
@@ -788,6 +788,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				PRODUCT_MODULE_NAME = cmux;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -815,6 +816,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				PRODUCT_MODULE_NAME = cmux;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -886,13 +888,13 @@
                 IPHONEOS_DEPLOYMENT_TARGET = 17.0;
                 LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
                 OTHER_LDFLAGS = "$(inherited) -lc++";
-                PRODUCT_BUNDLE_IDENTIFIER = "dev.cmux.ios.local-terminal-acceptance.tests";
+                PRODUCT_BUNDLE_IDENTIFIER = "com.loulaner.mycmux.ios.debug.local-terminal-acceptance.tests";
                 PRODUCT_NAME = "$(TARGET_NAME)";
                 SDKROOT = iphoneos;
                 SUPPORTED_PLATFORMS = iphonesimulator;
                 SWIFT_VERSION = 6.0;
                 TARGETED_DEVICE_FAMILY = "1,2";
-                TEST_HOST = "$(BUILT_PRODUCTS_DIR)/cmux.app/cmux";
+                TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MyCMUX DEV.app/MyCMUX DEV";
             };
             name = Debug;
         };
@@ -905,13 +907,13 @@
                 IPHONEOS_DEPLOYMENT_TARGET = 17.0;
                 LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
                 OTHER_LDFLAGS = "$(inherited) -lc++";
-                PRODUCT_BUNDLE_IDENTIFIER = "dev.cmux.ios.local-terminal-acceptance.tests";
+                PRODUCT_BUNDLE_IDENTIFIER = "com.loulaner.mycmux.ios.debug.local-terminal-acceptance.tests";
                 PRODUCT_NAME = "$(TARGET_NAME)";
                 SDKROOT = iphoneos;
                 SUPPORTED_PLATFORMS = iphonesimulator;
                 SWIFT_VERSION = 6.0;
                 TARGETED_DEVICE_FAMILY = "1,2";
-                TEST_HOST = "$(BUILT_PRODUCTS_DIR)/cmux.app/cmux";
+                TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MyCMUX DEV.app/MyCMUX DEV";
             };
             name = Release;
         };

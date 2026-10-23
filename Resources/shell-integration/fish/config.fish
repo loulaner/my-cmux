@@ -466,7 +466,7 @@ if test "$_cmux_integration_enabled" != 0
             set tmp_root (string trim -r -c / -- "$TMPDIR")
         end
         set -l legacy_shim_root "$tmp_root/cmux-cli-shims/$surface_component"
-        set -l shim_state "$HOME/.cmuxterm"
+        set -l shim_state "$HOME/.local/state/my-cmux"
         set -l rejected_root ""
         # An inherited root is reused only while it is still private.
         # Otherwise the shell makes its own, and skips the shim if it can't.

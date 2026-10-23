@@ -565,7 +565,7 @@ private enum TextBoxDraftAttachmentStorage {
             return nil
         }
         let directory = appSupportDirectory
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent(directoryName, isDirectory: true)
         if createIfMissing {
             do {

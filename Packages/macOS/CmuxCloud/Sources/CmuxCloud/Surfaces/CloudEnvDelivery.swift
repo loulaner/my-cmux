@@ -18,7 +18,7 @@ import Foundation
 ///    terminal input at all; it only keeps output).
 /// 2. Type the payload: 76-column base64 lines of `KEY=VALUE\n` records, then a
 ///    `CMUX-ENV-END` line. Values are byte-literal; the receiver does no dotenv parsing.
-/// 3. The receiver writes `~/.config/cmux/env` (mode 0600) and prints
+/// 3. The receiver writes `~/.config/my-cmux/env` (mode 0600) and prints
 ///    `CMUX-ENV-OK keys=<n> path=<file>` or `CMUX-ENV-ERR <reason>`; the sender waits
 ///    for that line, then closes the terminal so no exit receipt lingers.
 ///

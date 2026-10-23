@@ -7,7 +7,7 @@ import Foundation
 public enum MobileHostIdentity: Sendable {
     private static let deviceIDKey = "mobileHost.deviceID"
     private static let sharedDeviceIDFileName = "mobile-host-device-id"
-    private static let stableBundleIdentifier = "com.cmuxterm.app"
+    private static let stableBundleIdentifier = "com.loulaner.mycmux"
     private static let maximumDisplayNameUTF16Length = 128
     private static let maximumDisplayedBuildTagUTF16Length = 64
     /// Publishes the initialized snapshot and elects its defaults-mirror writer.
@@ -110,7 +110,7 @@ public enum MobileHostIdentity: Sendable {
         ) else {
             return nil
         }
-        let directory = appSupport.appendingPathComponent("cmux", isDirectory: true)
+        let directory = appSupport.appendingPathComponent("MyCMUX", isDirectory: true)
         if !fileManager.fileExists(atPath: directory.path) {
             try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         }

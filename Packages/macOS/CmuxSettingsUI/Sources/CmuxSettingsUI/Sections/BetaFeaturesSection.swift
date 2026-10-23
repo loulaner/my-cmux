@@ -199,7 +199,7 @@ public struct BetaFeaturesSection: View {
             String(localized: "settings.betaFeatures.customSidebars", defaultValue: "Custom Sidebars"),
             subtitle: customSidebarsManagedByPolicy
                 ? String(localized: "settings.managedByOrganization", defaultValue: "Managed by your organization")
-                : String(localized: "settings.betaFeatures.customSidebars.subtitle", defaultValue: "Adds sidebars from ~/.config/cmux/sidebars to the sidebar picker.")
+                : String(localized: "settings.betaFeatures.customSidebars.subtitle", defaultValue: "Adds sidebars from ~/.config/my-cmux/sidebars to the sidebar picker.")
         ) {
             Toggle("", isOn: Binding(get: { customSidebars.current && !customSidebarsManagedByPolicy }, set: { customSidebars.set($0) }))
                 .labelsHidden()

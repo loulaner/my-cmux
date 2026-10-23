@@ -25,7 +25,7 @@ import Foundation
 public struct ManagedDevicePolicy: Sendable {
     /// The preference domain administrators target with a configuration
     /// profile: the release app's bundle identifier.
-    public static let releasePayloadDomain = "com.cmuxterm.app"
+    public static let releasePayloadDomain = "com.loulaner.mycmux"
 
     /// Posted (on the default `NotificationCenter`) by the app's policy
     /// enforcement whenever the enforced state of any

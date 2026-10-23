@@ -45,17 +45,17 @@ function runLoad({
 
 function makeHome(structure) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "cmux-dev-secrets-test-"));
-  fs.mkdirSync(path.join(home, ".secrets"), { recursive: true });
-  if (structure[".secrets/cmuxterm-dev.env"] != null) {
+  fs.mkdirSync(path.join(home, ".config/my-cmux"), { recursive: true });
+  if (structure[".config/my-cmux/dev-auth.env"] != null) {
     fs.writeFileSync(
-      path.join(home, ".secrets/cmuxterm-dev.env"),
-      structure[".secrets/cmuxterm-dev.env"],
+      path.join(home, ".config/my-cmux/dev-auth.env"),
+      structure[".config/my-cmux/dev-auth.env"],
     );
   }
-  if (structure[".secrets/cmux.env"] != null) {
+  if (structure[".config/my-cmux/agent-auth.env"] != null) {
     fs.writeFileSync(
-      path.join(home, ".secrets/cmux.env"),
-      structure[".secrets/cmux.env"],
+      path.join(home, ".config/my-cmux/agent-auth.env"),
+      structure[".config/my-cmux/agent-auth.env"],
     );
   }
   return home;
@@ -75,7 +75,7 @@ function resolveCredential(result) {
 
 test("file-backed dogfood creds win over ambient dogfood env", () => {
   const home = makeHome({
-    ".secrets/cmuxterm-dev.env": [
+    ".config/my-cmux/dev-auth.env": [
       "CMUX_DOGFOOD_STACK_EMAIL=file@manaflow.ai",
       "CMUX_DOGFOOD_STACK_PASSWORD=file-pw",
     ].join("\n"),
@@ -96,7 +96,7 @@ test("file-backed dogfood creds win over ambient dogfood env", () => {
 
 test("file-backed uitest creds win over ambient uitest env", () => {
   const home = makeHome({
-    ".secrets/cmuxterm-dev.env": [
+    ".config/my-cmux/dev-auth.env": [
       "CMUX_UITEST_STACK_EMAIL=file@manaflow.ai",
       "CMUX_UITEST_STACK_PASSWORD=file-pw",
     ].join("\n"),
@@ -134,11 +134,11 @@ test("ambient env still works when no secret files exist", () => {
 
 test("personal profile never falls back to shared agent credentials", () => {
   const home = makeHome({
-    ".secrets/cmuxterm-dev.env": [
+    ".config/my-cmux/dev-auth.env": [
       "CMUX_UITEST_STACK_EMAIL=agent@manaflow.ai",
       "CMUX_UITEST_STACK_PASSWORD=agent-pw",
     ].join("\n"),
-    ".secrets/cmux.env": [
+    ".config/my-cmux/agent-auth.env": [
       "CMUX_UITEST_STACK_EMAIL=other-agent@manaflow.ai",
       "CMUX_UITEST_STACK_PASSWORD=other-agent-pw",
     ].join("\n"),
@@ -152,7 +152,7 @@ test("personal profile never falls back to shared agent credentials", () => {
 
 test("agent profile selects only the shared agent pair", () => {
   const home = makeHome({
-    ".secrets/cmuxterm-dev.env": [
+    ".config/my-cmux/dev-auth.env": [
       "CMUX_DOGFOOD_STACK_EMAIL=person@manaflow.ai",
       "CMUX_DOGFOOD_STACK_PASSWORD=person-pw",
       "CMUX_UITEST_STACK_EMAIL=agent@manaflow.ai",
@@ -172,7 +172,7 @@ test("agent profile selects only the shared agent pair", () => {
 
 test("agent profile still discovers the legacy cmux.env pair", () => {
   const home = makeHome({
-    ".secrets/cmux.env": [
+    ".config/my-cmux/agent-auth.env": [
       "CMUX_UITEST_STACK_EMAIL=legacy-agent@manaflow.ai",
       "CMUX_UITEST_STACK_PASSWORD=legacy-agent-pw",
     ].join("\n"),
@@ -190,7 +190,7 @@ test("agent profile still discovers the legacy cmux.env pair", () => {
 
 test("expected account mismatch fails before credentials are exported", () => {
   const home = makeHome({
-    ".secrets/cmuxterm-dev.env": [
+    ".config/my-cmux/dev-auth.env": [
       "CMUX_DOGFOOD_STACK_EMAIL=person@manaflow.ai",
       "CMUX_DOGFOOD_STACK_PASSWORD=person-pw",
     ].join("\n"),
@@ -204,4 +204,21 @@ test("expected account mismatch fails before credentials are exported", () => {
 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /expected.*other@manaflow\.ai.*resolved.*person@manaflow\.ai/is);
+});
+
+// Only synthetic credentials under a temporary home: never inspect the real user's secrets.
+test("MyCMUX does not import legacy cmux credential files", () => {
+  const home = makeHome({});
+  try {
+    fs.mkdirSync(path.join(home, ".secrets"));
+    const legacy = path.join(home, ".secrets/cmuxterm-dev.env");
+    const contents = "CMUX_DOGFOOD_STACK_EMAIL=old@example.invalid\nCMUX_DOGFOOD_STACK_PASSWORD=synthetic-old\n";
+    fs.writeFileSync(legacy, contents, { mode: 0o600 });
+    const result = runLoad({ home, profile: "personal", env: {
+      CMUX_DOGFOOD_STACK_EMAIL: "", CMUX_DOGFOOD_STACK_PASSWORD: "",
+      CMUX_UITEST_STACK_EMAIL: "", CMUX_UITEST_STACK_PASSWORD: "",
+    } });
+    assert.notEqual(result.status, 0);
+    assert.equal(fs.readFileSync(legacy, "utf8"), contents);
+  } finally { fs.rmSync(home, { recursive: true, force: true }); }
 });

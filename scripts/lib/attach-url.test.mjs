@@ -13,7 +13,7 @@ import {
   schemeForIOSBundleIdentifier,
 } from "./attach-url.mjs";
 
-const DEV_EXACT_SCHEME = schemeForIOSBundleIdentifier("dev.cmux.ios.feature-a");
+const DEV_EXACT_SCHEME = schemeForIOSBundleIdentifier("com.loulaner.mycmux.ios.debug.feature-a");
 
 function samplePayload() {
   return {
@@ -33,7 +33,7 @@ function samplePayload() {
 function samplePayloadWithCanonicalURL() {
   return {
     ...samplePayload(),
-    attach_url: "cmux-ios://attach?v=2&r=100.1.2.3:8080",
+    attach_url: "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=100.1.2.3:8080",
   };
 }
 
@@ -49,7 +49,7 @@ test("builds an exact-bundle attach URL with the version and ticket", () => {
   });
   assert.match(
     attachURL,
-    /^cmux-ios-dev\.cmux\.ios\.feature-a:\/\/attach\?v=1&payload=/,
+    /^cmux-ios-com\.loulaner\.mycmux\.ios\.debug\.feature-a:\/\/attach\?v=1&payload=/,
   );
   const decoded = decodePayload(attachURL);
   assert.equal(decoded.version, 1);
@@ -59,15 +59,15 @@ test("builds an exact-bundle attach URL with the version and ticket", () => {
 
 test("refuses historical shared schemes for newly encoded URLs", () => {
   assert.throws(
-    () => buildAttachURL(samplePayload(), { scheme: RELEASE_URL_SCHEME }),
+    () => buildAttachURL(samplePayload(), { scheme: "cmux-ios" }),
     /exact-bundle/,
   );
   assert.throws(
-    () => buildAttachURL(samplePayload(), { scheme: DEV_URL_SCHEME }),
+    () => buildAttachURL(samplePayload(), { scheme: "cmux-ios-dev" }),
     /exact-bundle/,
   );
-  assert.equal(DEV_URL_SCHEME, "cmux-ios-dev");
-  assert.equal(RELEASE_URL_SCHEME, "cmux-ios");
+  assert.equal(DEV_URL_SCHEME, "cmux-ios-com.loulaner.mycmux.ios.debug");
+  assert.equal(RELEASE_URL_SCHEME, "cmux-ios-com.loulaner.mycmux.ios");
 });
 
 test("round-trips the encoded ticket back to the original object", () => {
@@ -122,7 +122,7 @@ test("defaults version to 1 when the ticket omits it", () => {
 
 test("prefers the canonical attach_url returned by the Mac RPC", () => {
   const { attachURL, routes, payload } = buildAttachURL(samplePayloadWithCanonicalURL());
-  assert.equal(attachURL, "cmux-ios://attach?v=2&r=100.1.2.3:8080");
+  assert.equal(attachURL, "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=100.1.2.3:8080");
   assert.equal(payload.attach_url, attachURL);
   assert.equal(routes.length, 2);
 });
@@ -130,13 +130,13 @@ test("prefers the canonical attach_url returned by the Mac RPC", () => {
 test("recognizes exact-bundle canonical attach URLs", () => {
   assert.equal(
     isCanonicalAttachURL(
-      "cmux-ios-dev.cmux.app.internal://attach?v=2&r=100.1.2.3:8080",
+      "cmux-ios-com.loulaner.mycmux.ios://attach?v=2&r=100.1.2.3:8080",
     ),
     true,
   );
   assert.equal(
     isCanonicalAttachURL(
-      "cmux-ios-dev.cmux.ios.feature-a://attach?v=2&r=100.1.2.3:8080",
+      "cmux-ios-com.loulaner.mycmux.ios.debug.feature-a://attach?v=2&r=100.1.2.3:8080",
     ),
     true,
   );
@@ -150,7 +150,7 @@ test("does not reuse canonical attach_url after local route filtering", () => {
   });
   assert.match(
     attachURL,
-    /^cmux-ios-dev\.cmux\.ios\.feature-a:\/\/attach\?v=1&payload=/,
+    /^cmux-ios-com\.loulaner\.mycmux\.ios\.debug\.feature-a:\/\/attach\?v=1&payload=/,
   );
   assert.equal(routes.length, 1);
   const decoded = decodePayload(attachURL);
@@ -170,4 +170,11 @@ test("does not mutate the caller's payload", () => {
     scheme: DEV_EXACT_SCHEME,
   });
   assert.equal(payload.ticket.routes.length, 2);
+});
+
+test("rejects every old and malformed pairing namespace", () => {
+  for (const scheme of ["cmux-ios", "cmux-ios-dev", "cmux-ios-com.cmux.app", "cmux-ios-dev.cmux.app.beta", "cmux-ios-dev.cmux.ios.one", "cmux-ios-com.loulaner.mycmux.ios.beta", `${DEV_URL_SCHEME}..one`, `${DEV_URL_SCHEME}.-one`]) {
+    assert.equal(isCanonicalAttachURL(`${scheme}://attach?v=2`), false);
+    assert.throws(() => buildAttachURL(samplePayload(), { scheme }), /exact-bundle/);
+  }
 });

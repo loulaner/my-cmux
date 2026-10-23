@@ -9,7 +9,7 @@
 # Flow (--surface both):
 #   1. Select exactly one auth profile for both surfaces.
 #   2. Enable the iOS pairing host on the tagged build (opt-in, default OFF):
-#        defaults write com.cmuxterm.app.debug.<tag-id> mobile.iOSPairingHost.enabled -bool true
+#        defaults write com.loulaner.mycmux.debug.<tag-id> mobile.iOSPairingHost.enabled -bool true
 #      Written BEFORE the macOS launch so a single build binds the NWListener on
 #      first launch. NOTE: the first bind per bundle id triggers a one-time macOS
 #      "Local Network" permission prompt; click Allow.
@@ -160,8 +160,8 @@ dev_setup__sanitize_bundle() {
 
 TAG_SLUG="$(dev_setup__sanitize_path "$TAG")"
 TAG_ID="$(dev_setup__sanitize_bundle "$TAG")"
-BUNDLE_ID="com.cmuxterm.app.debug.${TAG_ID}"
-SOCKET_PATH="/tmp/cmux-debug-${TAG_SLUG}.sock"
+BUNDLE_ID="com.loulaner.mycmux.debug.${TAG_ID}"
+SOCKET_PATH="/tmp/mycmux-debug-${TAG_SLUG}.sock"
 
 # --- enable the iOS pairing host (must precede the macOS launch) -------------
 enable_pairing_host() {

@@ -7,7 +7,7 @@ extension BuildFlavor {
     private static let releaseChannels: [BuildFlavor] = [.nightly, .rc]
 
     /// Detects a release channel from the bundle identifier first
-    /// (`com.cmuxterm.app.<channel>` or a tagged `com.cmuxterm.app.<channel>.<slug>`),
+    /// (`com.loulaner.mycmux.<channel>` or a tagged `com.loulaner.mycmux.<channel>.<slug>`),
     /// then from a channel token in any of the bundle names ("cmux NIGHTLY",
     /// "cmux RC"). Returns nil for stable and for identifiers that belong to
     /// no channel, so `detect` can fall through to `.stable`.
@@ -18,7 +18,7 @@ extension BuildFlavor {
     /// - Returns: The matching channel, or `nil`.
     public static func releaseChannel(normalizedBundleIdentifier: String?, bundleNames: [String]) -> BuildFlavor? {
         for channel in releaseChannels {
-            let identifier = "com.cmuxterm.app.\(channel.rawValue)"
+            let identifier = "com.loulaner.mycmux.\(channel.rawValue)"
             if normalizedBundleIdentifier == identifier
                 || normalizedBundleIdentifier?.hasPrefix("\(identifier).") == true {
                 return channel

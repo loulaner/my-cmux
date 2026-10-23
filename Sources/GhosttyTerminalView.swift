@@ -349,7 +349,7 @@ class GhosttyApp {
         }
     )
 
-    private static let releaseBundleIdentifier = "com.cmuxterm.app"
+    private static let releaseBundleIdentifier = "com.loulaner.mycmux"
     /// Shared config-file discovery seam. Resolves Ghostty config scan paths,
     /// scans them for font/appearance directives, and decides legacy/CJK/theme
     /// overrides. The C-API config-load methods below call it to decide *what*
@@ -627,7 +627,7 @@ class GhosttyApp {
             return baseURL.deletingLastPathComponent().appendingPathComponent(bgName)
         }
 
-        return URL(fileURLWithPath: "/tmp/cmux-bg.log")
+        return URL(fileURLWithPath: "/tmp/mycmux-bg.log")
     }
 
     let backgroundLogEnabled = {
@@ -741,7 +741,7 @@ class GhosttyApp {
     }
 
     #if DEBUG
-    private static let initLogPath = "/tmp/cmux-ghostty-init.log"
+    private static let initLogPath = "/tmp/mycmux-ghostty-init.log"
 
     private static func initLog(_ message: String) {
         let timestamp = ISO8601DateFormatter().string(from: Date())
@@ -1270,8 +1270,7 @@ class GhosttyApp {
         if shouldApplyManagedDefaultAppearance {
             loadCmuxDefaultAppearanceConfig(config, preferredColorScheme: preferredColorScheme)
         }
-        ghostty_config_load_default_files(config)
-        loadLegacyGhosttyConfigIfNeeded(config)
+        // MyCMUX loads only its own configuration and explicit config-file includes.
         loadCmuxAppSupportGhosttyConfigIfNeeded(config)
         ghostty_config_load_recursive_files(config)
         loadConditionalThemeOverrideIfNeeded(config, preferredColorScheme: themeColorScheme)
@@ -3755,7 +3754,7 @@ class GhosttyApp {
     func logBackground(_ message: String) {
         // Skip all work (timing capture, string formatting, and disk I/O) unless
         // background logging is explicitly enabled via env/defaults. Without this
-        // guard, direct callers wrote to /tmp/cmux-bg.log on every theme/OSC color
+        // guard, direct callers wrote to /tmp/mycmux-bg.log on every theme/OSC color
         // event even in normal runs.
         guard backgroundLogEnabled else { return }
         // The writer captures cheap timing values here and performs all string

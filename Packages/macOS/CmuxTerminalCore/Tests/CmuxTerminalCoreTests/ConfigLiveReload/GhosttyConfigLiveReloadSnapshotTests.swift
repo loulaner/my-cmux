@@ -76,12 +76,12 @@ private struct NoFonts: GhosttyFontProbing {
     @Test func watchesUserThemeFilesForBothSidesOfAConditionalTheme() {
         let result = snapshot([
             "/home/.config/ghostty/config": "theme = light:Paper,dark:Night Owl\n",
-            "/home/.config/ghostty/themes/Night Owl": "background = #011627\n",
+            "/home/.config/my-cmux/themes/Night Owl": "background = #011627\n",
         ])
 
-        #expect(result.watchedPaths.contains("/home/.config/ghostty/themes/Paper"))
-        #expect(result.watchedPaths.contains("/home/.config/ghostty/themes/Night Owl"))
-        #expect(result.contentsByPath["/home/.config/ghostty/themes/Night Owl"] == "background = #011627\n")
+        #expect(result.watchedPaths.contains("/home/.config/my-cmux/themes/Paper"))
+        #expect(result.watchedPaths.contains("/home/.config/my-cmux/themes/Night Owl"))
+        #expect(result.contentsByPath["/home/.config/my-cmux/themes/Night Owl"] == "background = #011627\n")
     }
 
     @Test func watchesAbsoluteThemePathAsWritten() {
@@ -96,11 +96,11 @@ private struct NoFonts: GhosttyFontProbing {
     @Test func themeEditChangesContentsButNotWatchedPaths() {
         let before = snapshot([
             "/home/.config/ghostty/config": "theme = Mine\n",
-            "/home/.config/ghostty/themes/Mine": "background = #000000\n",
+            "/home/.config/my-cmux/themes/Mine": "background = #000000\n",
         ])
         let after = snapshot([
             "/home/.config/ghostty/config": "theme = Mine\n",
-            "/home/.config/ghostty/themes/Mine": "background = #111111\n",
+            "/home/.config/my-cmux/themes/Mine": "background = #111111\n",
         ])
 
         #expect(before.watchedPaths == after.watchedPaths)
@@ -115,21 +115,21 @@ private struct NoFonts: GhosttyFontProbing {
         let appSupport = URL(fileURLWithPath: "/nonexistent-cmux-live-reload-test/Application Support")
 
         let paths = discovery.liveReloadTopLevelPaths(
-            currentBundleIdentifier: "com.cmuxterm.app.debug.tag",
+            currentBundleIdentifier: "com.loulaner.mycmux.debug.tag",
             appSupportDirectory: appSupport
         )
 
         let base = appSupport.path
-        #expect(paths.contains("\(base)/com.mitchellh.ghostty/config.ghostty"))
-        #expect(paths.contains("\(base)/com.mitchellh.ghostty/config"))
-        #expect(paths.contains("\(base)/com.cmuxterm.app/config.ghostty"))
-        #expect(paths.contains("\(base)/com.cmuxterm.app.debug.tag/config.ghostty"))
+        #expect(!paths.contains("\(base)/com.mitchellh.ghostty/config.ghostty"))
+        #expect(!paths.contains("\(base)/com.mitchellh.ghostty/config"))
+        #expect(paths.contains("\(base)/MyCMUX/com.loulaner.mycmux/config.ghostty"))
+        #expect(paths.contains("\(base)/MyCMUX/com.loulaner.mycmux.debug.tag/config.ghostty"))
         #expect(Set(paths).count == paths.count)
     }
 
     /// Ghostty loads `$XDG_CONFIG_HOME/ghostty/config` when that variable is
     /// set, so an edit there must be watched and reloaded.
-    @Test func readerWatchesTheConfigUnderXDGConfigHome() {
+    @Test func readerDoesNotAutomaticallyWatchOldGhosttyConfigUnderXDGConfigHome() {
         let files = InMemoryConfigFiles(contentsByPath: [
             "/xdg-home/ghostty/config.ghostty": "font-size = 13\n",
         ])
@@ -143,8 +143,8 @@ private struct NoFonts: GhosttyFontProbing {
 
         let result = reader.snapshot()
 
-        #expect(result.watchedPaths.contains("/xdg-home/ghostty/config"))
-        #expect(result.watchedPaths.contains("/xdg-home/ghostty/config.ghostty"))
-        #expect(result.contentsByPath["/xdg-home/ghostty/config.ghostty"] == "font-size = 13\n")
+        #expect(!result.watchedPaths.contains("/xdg-home/ghostty/config"))
+        #expect(!result.watchedPaths.contains("/xdg-home/ghostty/config.ghostty"))
+        #expect(result.contentsByPath["/xdg-home/ghostty/config.ghostty"] == nil)
     }
 }

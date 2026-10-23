@@ -39,7 +39,7 @@ public actor MobilePairedMacStore: MobilePairedMacPairingStoring {
             appropriateFor: nil,
             create: true
         )
-        let dir = appSupport.appendingPathComponent("cmux", isDirectory: true)
+        let dir = appSupport.appendingPathComponent("MyCMUX", isDirectory: true)
         if !fileManager.fileExists(atPath: dir.path) {
             try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
         }

@@ -173,7 +173,7 @@ extension CMUXCLI {
           docs|documentation                      Print the same output as `cmux docs settings`.
           reload                                  Reload Ghostty config + cmux.json and refresh terminals (alias for `cmux reload-config`).
           get <setting.path>                      Print a setting: its cmux.json value, else the value set in Settings, else the default.
-          set <setting.path> <value>              Write a setting to ~/.config/cmux/cmux.json. <value> is JSON (true, 1.4, "dark", [...]);
+          set <setting.path> <value>              Write a setting to ~/.config/my-cmux/cmux.json. <value> is JSON (true, 1.4, "dark", [...]);
                                                   other text is stored as a string. Comments and other keys are kept.
           unset <setting.path>                    Remove a setting from cmux.json, so the value set in Settings (or the default) applies.
           toggle <setting.path>                   Flip a true/false setting, starting from the value cmux is using.

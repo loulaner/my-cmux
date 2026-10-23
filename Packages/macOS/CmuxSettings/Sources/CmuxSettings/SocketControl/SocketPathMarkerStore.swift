@@ -94,10 +94,6 @@ public final class SocketPathMarkerStore: @unchecked Sendable {
                 fileName: variant.markerFileName,
                 directory: stateDirectory
             )?.path,
-            SocketPathMarkerFiles.markerFileURL(
-                fileName: variant.markerFileName,
-                directory: legacyDirectory
-            )?.path,
             tmpMarkerPath,
         ].compactMap(\.self)
         var seen = Set<String>()

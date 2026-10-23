@@ -12,7 +12,7 @@ public import Foundation
 public struct CmuxGhosttyConfigPathResolver {
     /// The bundle identifier of the released cmux app, used as the canonical
     /// config location and the fallback for dev/nightly/rc/staging channels.
-    public static let releaseBundleIdentifier = "com.cmuxterm.app"
+    public static let releaseBundleIdentifier = "com.loulaner.mycmux"
     private static let releaseFallbackChannelSuffixes = ["debug", "nightly", "rc", "staging"]
 
     public init() {}
@@ -91,9 +91,9 @@ public struct CmuxGhosttyConfigPathResolver {
         appSupportDirectory: URL
     ) -> URL {
         guard let currentBundleIdentifier, !currentBundleIdentifier.isEmpty else {
-            return appSupportDirectory.appendingPathComponent(Self.releaseBundleIdentifier, isDirectory: true)
+            return appSupportDirectory.appendingPathComponent("MyCMUX", isDirectory: true).appendingPathComponent(Self.releaseBundleIdentifier, isDirectory: true)
         }
-        return appSupportDirectory.appendingPathComponent(currentBundleIdentifier, isDirectory: true)
+        return appSupportDirectory.appendingPathComponent("MyCMUX", isDirectory: true).appendingPathComponent(currentBundleIdentifier, isDirectory: true)
     }
 
     private func preferredExistingConfigURLs(
@@ -101,7 +101,7 @@ public struct CmuxGhosttyConfigPathResolver {
         appSupportDirectory: URL,
         fileManager: FileManager
     ) -> [URL] {
-        let directory = appSupportDirectory.appendingPathComponent(bundleIdentifier, isDirectory: true)
+        let directory = appSupportDirectory.appendingPathComponent("MyCMUX", isDirectory: true).appendingPathComponent(bundleIdentifier, isDirectory: true)
         let legacyConfig = directory.appendingPathComponent("config", isDirectory: false)
         let configGhostty = directory.appendingPathComponent("config.ghostty", isDirectory: false)
         if isNonEmptyConfigFile(configGhostty, fileManager: fileManager) {

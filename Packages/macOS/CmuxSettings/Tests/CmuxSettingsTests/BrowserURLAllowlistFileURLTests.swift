@@ -8,7 +8,7 @@ import Testing
             managedPatterns: nil,
             userPatterns: ["reports.example.com"]
         )
-        let fileURL = try #require(URL(string: "file:///tmp/cmux-report.html"))
+        let fileURL = try #require(URL(string: "file:///tmp/mycmux-report.html"))
 
         #expect(policy.source == .user)
         #expect(policy.isActive)
@@ -25,7 +25,7 @@ import Testing
             userPatterns: ["reports.example.com"],
             allowsLocalFiles: false
         )
-        let fileURL = try #require(URL(string: "file:///tmp/cmux-report.html"))
+        let fileURL = try #require(URL(string: "file:///tmp/mycmux-report.html"))
 
         #expect(!policy.allows(fileURL))
         #expect(!policy.allowsTrustedInternalURL(fileURL))
@@ -34,7 +34,7 @@ import Testing
 
     @Test func localFileURLsRemainAvailableForManagedAllowlist() throws {
         let policy = BrowserURLAllowlistPolicy(managedPatterns: ["reports.example.com"])
-        let fileURL = try #require(URL(string: "file:///tmp/cmux-report.html"))
+        let fileURL = try #require(URL(string: "file:///tmp/mycmux-report.html"))
 
         #expect(policy.isManaged)
         #expect(policy.isActive)
@@ -45,7 +45,7 @@ import Testing
 
     @Test func emptyManagedAllowlistAllowsLocalDocumentsThroughTrustedPath() throws {
         let policy = BrowserURLAllowlistPolicy(managedPatterns: [])
-        let fileURL = try #require(URL(string: "file:///tmp/cmux-report.html"))
+        let fileURL = try #require(URL(string: "file:///tmp/mycmux-report.html"))
         let remoteURL = try #require(URL(string: "https://outside.example"))
 
         #expect(policy.isManaged)
@@ -57,10 +57,10 @@ import Testing
 
     @Test func onlyLocalFileURLsUseTheTrustedExemption() throws {
         let policy = BrowserURLAllowlistPolicy(managedPatterns: ["reports.example.com"])
-        let localhostFileURL = try #require(URL(string: "file://localhost/tmp/cmux-report.html"))
-        let networkFileURL = try #require(URL(string: "file://build-host/tmp/cmux-report.html"))
+        let localhostFileURL = try #require(URL(string: "file://localhost/tmp/mycmux-report.html"))
+        let networkFileURL = try #require(URL(string: "file://build-host/tmp/mycmux-report.html"))
         let relativeFileURL = try #require(URL(string: "file:relative-report.html"))
-        let credentialedFileURL = try #require(URL(string: "file://user:password@localhost/tmp/cmux-report.html"))
+        let credentialedFileURL = try #require(URL(string: "file://user:password@localhost/tmp/mycmux-report.html"))
 
         #expect(policy.allows(localhostFileURL))
         #expect(policy.allowsTrustedInternalURL(localhostFileURL))
@@ -79,7 +79,7 @@ import Testing
     @Test func bareFileEntryRemainsAnHTTPHostRuleOnly() throws {
         let pattern = try #require(BrowserURLAllowlistPattern("file"))
         let httpURL = try #require(URL(string: "https://file/status"))
-        let fileURL = try #require(URL(string: "file:///tmp/cmux-report.html"))
+        let fileURL = try #require(URL(string: "file:///tmp/mycmux-report.html"))
 
         #expect(pattern.matches(httpURL))
         #expect(!pattern.matches(fileURL))
@@ -87,7 +87,7 @@ import Testing
 
     @Test func wildcardDoesNotAllowRemoteOrigins() throws {
         let policy = BrowserURLAllowlistPolicy(managedPatterns: ["*"])
-        let fileURL = try #require(URL(string: "file:///tmp/cmux-report.html"))
+        let fileURL = try #require(URL(string: "file:///tmp/mycmux-report.html"))
         let remoteURL = try #require(URL(string: "https://outside.example"))
 
         #expect(policy.isActive)

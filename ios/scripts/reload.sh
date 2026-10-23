@@ -143,7 +143,7 @@ import plistlib
 import sys
 from pathlib import Path
 
-expected_group = ["group.dev.cmux.ios"]
+expected_group = ["$(CMUX_APP_GROUP_IDENTIFIER)"]
 for source_raw, destination_raw in zip(sys.argv[1::2], sys.argv[2::2]):
     source = Path(source_raw)
     destination = Path(destination_raw)
@@ -451,9 +451,9 @@ fi
 WORKSPACE="$IOS_DIR/cmux.xcworkspace"
 SCHEME="cmux-ios"
 TAG_SLUG="$(sanitize_tag "$TAG")"
-DISPLAY_NAME="cmux DEV $TAG"
-BUNDLE_ID="dev.cmux.ios.$TAG_SLUG"
-DERIVED_DATA="$HOME/Library/Developer/Xcode/DerivedData/cmux-ios-$TAG_SLUG"
+DISPLAY_NAME="MyCMUX DEV $TAG"
+BUNDLE_ID="com.loulaner.mycmux.ios.debug.$TAG_SLUG"
+DERIVED_DATA="$HOME/Library/Developer/Xcode/DerivedData/my-cmux-ios-$TAG_SLUG"
 QUEUE_SCRIPT="$IOS_DIR/../scripts/iphone-install-queue.sh"
 
 # Enforced verification default: simulator + iPhone. When a default device id
@@ -643,7 +643,7 @@ fi
 update_qr_tag_marker() {
   # FIXED /tmp path (not TMPDIR): the QR server runs in a different shell whose
   # per-session TMPDIR differs, so the rendezvous file must be machine-shared.
-  local marker="/tmp/cmux-mobile-attach-qr-tags.json"
+  local marker="/tmp/mycmux-mobile-attach-qr-tags.json"
   command -v python3 >/dev/null 2>&1 || return 0
   IOS_TAG="$TAG" MARKER="$marker" python3 - <<'PY' 2>/dev/null || true
 import json, os
@@ -891,7 +891,7 @@ reload_simulator() {
     ${SWIFT_WORKAROUND_ARGS[@]+"${SWIFT_WORKAROUND_ARGS[@]}"} \
     build
 
-  APP_PATH="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/cmux.app"
+  APP_PATH="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/MyCMUX DEV.app"
   if [[ ! -d "$APP_PATH" ]]; then
     echo "error: built app not found at $APP_PATH" >&2
     exit 1
@@ -958,7 +958,7 @@ EOF
 # ship a phone-only build when that fails.
 mac_app_present() {
   [[ -d "$(cmux_attach_mac_app_path "$TAG")" ]] && return 0
-  compgen -G "$HOME/Library/Developer/Xcode/DerivedData/cmux-$TAG/Build/Products/Debug/cmux DEV*.app" >/dev/null 2>&1
+  compgen -G "$HOME/Library/Developer/Xcode/DerivedData/my-cmux-$TAG/Build/Products/Debug/MyCMUX DEV*.app" >/dev/null 2>&1
 }
 
 ensure_mac_build() {
@@ -1060,7 +1060,7 @@ reload_device() {
   if [[ "$queue_mode" -eq 0 && "$ALLOW_DEVICE_REGISTRATION" -eq 1 ]]; then
     device_destination="platform=iOS,id=$selected_device_id"
   fi
-  device_app_path="$DERIVED_DATA/Build/Products/Debug-iphoneos/cmux.app"
+  device_app_path="$DERIVED_DATA/Build/Products/Debug-iphoneos/MyCMUX DEV.app"
   build_log="${TMPDIR:-/tmp}/cmux-ios-device-build-$TAG_SLUG.log"
 
   echo "==> Building physical device app (tag: $TAG, device: $selected_device_name)"

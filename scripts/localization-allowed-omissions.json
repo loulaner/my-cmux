@@ -2036,7 +2036,7 @@
   },
   "mobile.pairing.target.appStore": {
     "class": "brand",
-    "source": "cmux"
+    "source": "MyCMUX"
   },
   "mobile.pairing.target.beta": {
     "class": "brand",
@@ -2048,7 +2048,7 @@
   },
   "mobile.pairing.target.dev": {
     "class": "brand",
-    "source": "cmux DEV %@"
+    "source": "MyCMUX DEV %@"
   },
   "mobile.pairing.target.internal": {
     "class": "brand",
@@ -5140,5 +5140,9 @@
         ]
       }
     }
+  },
+  "mobile.pairing.target.untaggedDev": {
+    "class": "brand",
+    "source": "MyCMUX DEV"
   }
 }

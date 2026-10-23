@@ -4,7 +4,7 @@ import CmuxSurfaceCatalogModel
 import Foundation
 
 extension CmuxTuiSurfaceProvider {
-    /// Delivers `entries` to the machine's `~/.config/cmux/env` over the link — see
+    /// Delivers `entries` to the machine's `~/.config/my-cmux/env` over the link — see
     /// `CloudEnvDelivery` for the protocol and why no other channel is acceptable.
     /// Returns what the receiver reported; throws with the receiver's own reason when
     /// it refused, and with an "outdated shim" explanation when the machine does not

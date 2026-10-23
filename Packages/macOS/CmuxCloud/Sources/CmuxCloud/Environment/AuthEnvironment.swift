@@ -117,13 +117,13 @@ public enum AuthEnvironment: Sendable {
                 .trimmingCharacters(in: .whitespacesAndNewlines),
                !tag.isEmpty,
                let schemeTag = sanitizedCallbackSchemeTag(tag) {
-                return "cmux-dev-\(schemeTag)"
+                return "mycmux-dev-\(schemeTag)"
             }
-            return "cmux-dev"
+            return "mycmux-dev"
         }
-        if bundleIdentifier == "com.cmuxterm.app.nightly" { return "cmux-nightly" }
-        if bundleIdentifier == "com.cmuxterm.app.rc" { return "cmux-rc" }
-        return "cmux"
+        if bundleIdentifier == "com.loulaner.mycmux.nightly" { return "mycmux-nightly" }
+        if bundleIdentifier == "com.loulaner.mycmux.rc" { return "mycmux-rc" }
+        return "mycmux"
     }
 
     static func sanitizedCallbackSchemeTag(_ rawTag: String) -> String? {
@@ -162,7 +162,7 @@ public enum AuthEnvironment: Sendable {
 
     /// Pricing page used by every "Upgrade to cmux Pro" entrypoint
     /// (Settings, command palette, Help menu). The DEBUG-only
-    /// `~/.cmux-dev.env` file wins over inherited process values, so a
+    /// `~/.config/my-cmux/dev.env` file wins over inherited process values, so a
     /// deeplink-launched dev build can point at the current tagged backend.
     public static var pricingURL: URL {
         resolvedPricingURL(environment: runtimeEnvironment)
@@ -317,7 +317,7 @@ public enum AuthEnvironment: Sendable {
     /// Base URL for the cmux-owned cloud VM backend (`/api/vm`).
     ///
     /// Resolution order for Debug (first hit wins):
-    ///   1. `~/.cmux-dev.env` file `CMUX_VM_API_BASE_URL=...` line — explicit
+    ///   1. `~/.config/my-cmux/dev.env` file `CMUX_VM_API_BASE_URL=...` line — explicit
     ///      operator state that works for click-through, Dock, and `open`.
     ///   2. process env `CMUX_VM_API_BASE_URL` — useful for one-off launches.
     ///   3. VM backend dev origin (`http://localhost:$CMUX_PORT` in Debug, cmux.com in Release).
@@ -356,7 +356,7 @@ public enum AuthEnvironment: Sendable {
     /// every forward would die queued. The tag rig BAKES a localhost
     /// `CMUX_VM_API_BASE_URL` into every Debug bundle, so that knob must not
     /// steer the push lane; a deliberately local push rig sets
-    /// `CMUX_PUSH_API_BASE_URL` (env or `~/.cmux-dev.env`) instead. Debug
+    /// `CMUX_PUSH_API_BASE_URL` (env or `~/.config/my-cmux/dev.env`) instead. Debug
     /// defaults to shared staging (mirroring `irohBrokerBaseURL`); Release
     /// keeps the production VM-API origin.
     public static var pushAPIBaseURL: URL {
@@ -539,9 +539,9 @@ public enum AuthEnvironment: Sendable {
         var paths: [String] = []
         if let tag = ProcessInfo.processInfo.environment["CMUX_TAG"],
            tag.range(of: #"^[A-Za-z0-9._-]+\z"#, options: .regularExpression) != nil {
-            paths.append((home as NSString).appendingPathComponent(".config/cmux/dev-profiles/\(tag).env"))
+            paths.append((home as NSString).appendingPathComponent(".config/my-cmux/dev-profiles/\(tag).env"))
         }
-        paths.append((home as NSString).appendingPathComponent(".cmux-dev.env"))
+        paths.append((home as NSString).appendingPathComponent(".config/my-cmux/dev.env"))
         return paths
     }
 

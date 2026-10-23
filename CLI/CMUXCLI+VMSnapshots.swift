@@ -14,7 +14,7 @@ extension CMUXCLI {
                cmux vm restore <snapshot-id>                      Start a new machine from a snapshot.
 
         Snapshots are provider checkpoints of the whole machine (files, installed tools,
-        ~/.config/cmux/env — `cmux vm env rm` secrets before you promote one). Forks and
+        ~/.config/my-cmux/env — `cmux vm env rm` secrets before you promote one). Forks and
         `vm restore` start from them. A provider without list/delete support says so.
 
         Examples:

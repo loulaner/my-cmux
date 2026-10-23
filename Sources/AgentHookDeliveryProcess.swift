@@ -3,7 +3,7 @@ import Foundation
 import OSLog
 
 nonisolated private let agentHookDeliveryProcessLogger = Logger(
-    subsystem: "com.cmuxterm.app",
+    subsystem: "com.loulaner.mycmux",
     category: "AgentHookDelivery"
 )
 
@@ -243,7 +243,7 @@ struct AgentHookDeliveryProcess: Sendable {
         let appScope = Self.safePathComponent(
             ambientEnvironment["CMUX_BUNDLE_ID"]
                 ?? Bundle.main.bundleIdentifier
-                ?? "com.cmuxterm.app"
+                ?? "com.loulaner.mycmux"
         )
         let routeScope = Self.safePathComponent(
             event.environment["CMUX_WORKSPACE_ID"]
@@ -251,7 +251,7 @@ struct AgentHookDeliveryProcess: Sendable {
                 ?? "unrouted"
         )
         return URL(fileURLWithPath: homePath, isDirectory: true)
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("relay-hook-state", isDirectory: true)
             .appendingPathComponent(appScope, isDirectory: true)
             .appendingPathComponent(routeScope, isDirectory: true)

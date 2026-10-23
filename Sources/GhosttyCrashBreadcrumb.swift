@@ -12,7 +12,7 @@ enum GhosttyCrashBreadcrumb {
 
     private static let sessionLifecycleDirectoryName = "lifecycle"
     private static let sessionLaunchSentinelFileName = "running.sentinel"
-    private static let fallbackBundleIdentifier = "com.cmuxterm.app"
+    private static let fallbackBundleIdentifier = "com.loulaner.mycmux"
 
     nonisolated static var defaultCrashDirectoryURL: URL {
         SessionPersistencePolicy.defaultCmuxCrashDirectoryURL()
@@ -219,12 +219,12 @@ enum GhosttyCrashBreadcrumb {
                 fileURLWithPath: (xdgStateHome as NSString).expandingTildeInPath,
                 isDirectory: true
             )
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("my-cmux", isDirectory: true)
         } else {
             stateRoot = homeDirectory
                 .appendingPathComponent(".local", isDirectory: true)
                 .appendingPathComponent("state", isDirectory: true)
-                .appendingPathComponent("cmux", isDirectory: true)
+                .appendingPathComponent("my-cmux", isDirectory: true)
         }
 
         return stateRoot

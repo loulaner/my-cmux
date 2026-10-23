@@ -89,11 +89,11 @@ private func agentHookDebugLogPath(socketPath: String?, env: [String: String]) -
                 .path
         }
     }
-    if let lastPath = OwnedMarkerFileReader().trimmedContents(atPath: "/tmp/cmux-last-debug-log-path"),
+    if let lastPath = OwnedMarkerFileReader().trimmedContents(atPath: "/tmp/mycmux-last-debug-log-path"),
        let normalized = agentHookDebugNonEmpty(lastPath) {
         return NSString(string: normalized).expandingTildeInPath
     }
-    return "/tmp/cmux-debug.log"
+    return "/tmp/mycmux-debug.log"
 }
 private func agentHookDebugNonEmpty(_ value: String?) -> String? {
     guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -386,7 +386,7 @@ final class ClaudeHookSessionStore {
             release()
         }
     }
-    private static let defaultStatePath = "~/.cmuxterm/claude-hook-sessions.json"
+    private static let defaultStatePath = "~/.local/state/my-cmux/claude-hook-sessions.json"
     private static let maxStateAgeSeconds: TimeInterval = 60 * 60 * 24 * 7
     private static let maxPendingCursorShellApprovals = 16
     private static let maxPendingCursorShellCommandLength = 64 * 1024
@@ -2990,7 +2990,7 @@ private enum TopTextFormat: Equatable {
 }
 
 enum SocketPasswordResolver {
-    private static let service = "com.cmuxterm.app.socket-control"
+    private static let service = "com.loulaner.mycmux.socket-control"
     private static let account = "local-socket-password"
 
     static func resolve(explicit: String?, socketPath: String) -> String? {
@@ -3000,10 +3000,10 @@ enum SocketPasswordResolver {
         if let env = normalized(ProcessInfo.processInfo.environment["CMUX_SOCKET_PASSWORD"]) {
             return env
         }
-        if let filePassword = loadFromFile() {
+        if let filePassword = loadFromFile(socketPath: socketPath) {
             return filePassword
         }
-        return loadFromKeychain(socketPath: socketPath)
+        return nil // Never query the old product's Keychain.
     }
 
     private static func normalized(_ value: String?) -> String? {
@@ -3012,12 +3012,23 @@ enum SocketPasswordResolver {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    private static func loadFromFile() -> String? {
+    private static func loadFromFile(socketPath: String) -> String? {
+        var environment = ProcessInfo.processInfo.environment
+        let filename = URL(fileURLWithPath: socketPath).lastPathComponent
+        for channel in ["debug", "nightly", "rc", "staging"] {
+            let prefix = "mycmux-\(channel)"
+            if filename == "\(prefix).sock" {
+                environment["CMUX_BUNDLE_ID"] = "com.loulaner.mycmux.\(channel)"
+            } else if filename.hasPrefix(prefix + "-"), filename.hasSuffix(".sock") {
+                let slug = filename.dropFirst(prefix.count + 1).dropLast(5)
+                environment["CMUX_BUNDLE_ID"] = "com.loulaner.mycmux.\(channel).\(slug)"
+            }
+        }
         // Resolve through the shared store so the CLI reads the exact path the app
         // writes — the non-TCC cmux state directory, not Application Support
         // (https://github.com/manaflow-ai/cmux/issues/5146). The CLI is a
         // composition root, so it names the concrete `FileManager.default` here.
-        guard let passwordURL = SocketControlPasswordStore.defaultPasswordFileURL(fileManager: .default) else {
+        guard let passwordURL = SocketControlPasswordStore.defaultPasswordFileURL(fileManager: .default, environment: environment) else {
             return nil
         }
         guard let data = try? Data(contentsOf: passwordURL) else {
@@ -3671,8 +3682,8 @@ final class SocketClient {
         guard let expectedBundleIdentifier = CLIExecutableLocator
             .enclosingAppBundle()?
             .bundleIdentifier,
-            expectedBundleIdentifier.hasPrefix("com.cmuxterm.app.debug."),
-            expectedBundleIdentifier.count > "com.cmuxterm.app.debug.".count,
+            expectedBundleIdentifier.hasPrefix("com.loulaner.mycmux.debug."),
+            expectedBundleIdentifier.count > "com.loulaner.mycmux.debug.".count,
             SecCodeCheckValidity(
                 dynamicCode,
                 SecCSFlags(rawValue: UInt32(kSecCSStrictValidate)),
@@ -4909,8 +4920,8 @@ struct CMUXCLI {
         guard let bundleIdentifier = CLIExecutableLocator
             .enclosingAppBundle()?
             .bundleIdentifier,
-            bundleIdentifier.hasPrefix("com.cmuxterm.app.debug."),
-            bundleIdentifier.count > "com.cmuxterm.app.debug.".count else {
+            bundleIdentifier.hasPrefix("com.loulaner.mycmux.debug."),
+            bundleIdentifier.count > "com.loulaner.mycmux.debug.".count else {
             return false
         }
         var requirement: SecRequirement?
@@ -5394,7 +5405,7 @@ struct CMUXCLI {
 
     private static func vmCreateIdempotencyStoreURL() -> URL {
         FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("vm-create-idempotency.json", isDirectory: false)
     }
 
@@ -5445,7 +5456,7 @@ struct CMUXCLI {
     }
 
     private static let browserDisabledDefaultsKey = "browserDisabledOverride"
-    private static let defaultBrowserSettingsDomain = "com.cmuxterm.app"
+    private static let defaultBrowserSettingsDomain = "com.loulaner.mycmux"
     /// The shared MDM resolver, bound to the target `domain`'s suite with the
     /// channel → release-domain fallback keyed off that domain.
     private static func managedDevicePolicy(
@@ -6338,7 +6349,7 @@ struct CMUXCLI {
         // The resolver has stable debug/release fallbacks at runtime, but its
         // API remains optional for callers that do not need a bundle ID.
         let cliBundleIdentifier = CLISocketPathResolver.currentAppBundleIdentifier()
-            ?? "com.cmuxterm.app"
+            ?? "com.loulaner.mycmux"
         var explicitSocketPath: String? = nil
         var jsonOutput = false
         var idFormatArg: String? = nil
@@ -10703,7 +10714,7 @@ struct CMUXCLI {
         if lowered.hasPrefix("debug:") || lowered.hasPrefix("dev:") {
             return true
         }
-        return value == "com.cmuxterm.app" || value.hasPrefix("com.cmuxterm.app.")
+        return value == "com.loulaner.mycmux" || value.hasPrefix("com.loulaner.mycmux.")
     }
 
     /// Sends a session transfer request (`session.import` / `session.export`)
@@ -18078,7 +18089,7 @@ struct CMUXCLI {
             if let trimmedExplicit, !trimmedExplicit.isEmpty {
                 return trimmedExplicit
             }
-            return OwnedMarkerFileReader().trimmedContents(atPath: "/tmp/cmux-last-debug-log-path")
+            return OwnedMarkerFileReader().trimmedContents(atPath: "/tmp/mycmux-last-debug-log-path")
         }()
         guard let path else { return }
         let timestamp = ISO8601DateFormatter().string(from: Date())
@@ -21129,7 +21140,7 @@ struct CMUXCLI {
               env set <machine> KEY=VALUE… [--from-file <.env>]
                                         Set environment variables for every terminal, agent,
                                         and command cmux starts on the machine (persisted in
-                                        its ~/.config/cmux/env; names only are echoed back).
+                                        its ~/.config/my-cmux/env; names only are echoed back).
               env ls <machine> [--show]  List them (names; --show adds values).
               env rm <machine> KEY…      Remove them.
               tab rename <machine> <tab-id> <name>
@@ -22423,7 +22434,7 @@ struct CMUXCLI {
             Usage: cmux reload-config
 
             Run the same configuration reload as the Reload Configuration shortcut.
-            This reloads Ghostty config, re-reads ~/.config/cmux/cmux.json, and refreshes terminals.
+            This reloads Ghostty config, re-reads ~/.config/my-cmux/cmux.json, and refreshes terminals.
 
             Example:
               cmux reload-config
@@ -23105,7 +23116,7 @@ struct CMUXCLI {
               set <files|find|vault|sessions|feed|dock|cloud|devices|custom> [sidebar-name]
                                              Show, switch mode, and focus. `custom`
                                              renders a JS/Swift sidebar from
-                                             ~/.config/cmux/sidebars as a right panel;
+                                             ~/.config/my-cmux/sidebars as a right panel;
                                              the optional name picks which one.
               mode                           Print {"visible":bool,"mode":string}
               files|find|vault|sessions|feed|dock|cloud|devices|custom
@@ -23125,7 +23136,7 @@ struct CMUXCLI {
         case "sidebar":
             return String(localized: "cli.sidebar.usage", defaultValue: """
             Usage: cmux sidebar <templates|try|new|validate|reload|select|open> [name|--all] [--json]
-            Validate, reload, select, or open custom sidebars from ~/.config/cmux/sidebars.
+            Validate, reload, select, or open custom sidebars from ~/.config/my-cmux/sidebars.
             Commands:
               templates [--json] List the curated built-in templates
               try <template>    Create a temporary preview file and show open/remove commands
@@ -23764,7 +23775,7 @@ struct CMUXCLI {
             }
             let previewName = "sidebar-preview-\(UUID().uuidString.prefix(8).lowercased())"
             let directory = FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent(".config/cmux/sidebars", isDirectory: true)
+                .appendingPathComponent(".config/my-cmux/sidebars", isDirectory: true)
             do {
                 let path = try CustomSidebarTemplateInstaller().install(
                     name: previewName,
@@ -23810,7 +23821,7 @@ struct CMUXCLI {
                 throw CLIError(message: String(localized: "cli.sidebar.new.missingTemplate", defaultValue: "sidebar new requires --from <template>"))
             }
             let directory = FileManager.default.homeDirectoryForCurrentUser
-                .appendingPathComponent(".config/cmux/sidebars", isDirectory: true)
+                .appendingPathComponent(".config/my-cmux/sidebars", isDirectory: true)
             do {
                 let path = try CustomSidebarTemplateInstaller().install(
                     name: name,
@@ -26800,7 +26811,7 @@ struct CMUXCLI {
     ) throws -> URL {
         let homePath = ProcessInfo.processInfo.environment["HOME"] ?? NSHomeDirectory()
         let root = URL(fileURLWithPath: homePath, isDirectory: true)
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent(directoryName, isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true, attributes: nil)
         let tmuxURL = root.appendingPathComponent("tmux", isDirectory: false)
@@ -26809,7 +26820,7 @@ struct CMUXCLI {
     }
 
     /// Every Node child of Claude loads this preload through NODE_OPTIONS for the
-    /// whole session, so it lives in ~/.cmuxterm with the other CLI shims rather
+    /// whole session, so it lives in ~/.local/state/my-cmux with the other CLI shims rather
     /// than in $TMPDIR, which macOS purges under long-lived sessions (#12022).
     private func createClaudeNodeOptionsRestoreModule() throws -> URL {
         // Match the wrapper: refuse a relative HOME and symlinked paths.
@@ -26819,7 +26830,7 @@ struct CMUXCLI {
             throw CLIError(message: "Claude NODE_OPTIONS restore module needs an absolute HOME")
         }
         let root = URL(fileURLWithPath: homePath, isDirectory: true)
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("cmux-claude-node-options", isDirectory: true)
         let restoreModuleURL = root.appendingPathComponent("restore-node-options.cjs", isDirectory: false)
         let fileManager = FileManager.default
@@ -28667,7 +28678,7 @@ struct CMUXCLI {
     private func omoShadowConfigDir() -> URL {
         let homePath = ProcessInfo.processInfo.environment["HOME"] ?? NSHomeDirectory()
         return URL(fileURLWithPath: homePath, isDirectory: true)
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("omo-config", isDirectory: true)
     }
 
@@ -36041,7 +36052,7 @@ struct CMUXCLI {
     func agentHookStatePath(sessionStoreSuffix: String, env: [String: String]) -> String {
         let filename = "\(sessionStoreSuffix)-hook-sessions.json"
         guard let overrideDirectory = normalizedHookValue(env["CMUX_AGENT_HOOK_STATE_DIR"]) else {
-            return "~/.cmuxterm/\(filename)"
+            return "~/.local/state/my-cmux/\(filename)"
         }
         return URL(fileURLWithPath: NSString(string: overrideDirectory).expandingTildeInPath, isDirectory: true)
             .appendingPathComponent(filename, isDirectory: false)
@@ -42953,7 +42964,7 @@ export default {
         let fileManager = FileManager.default
         let homePath = ProcessInfo.processInfo.environment["HOME"] ?? NSHomeDirectory()
         let appDirectory = URL(fileURLWithPath: homePath, isDirectory: true)
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("feed-tui-opentui", isDirectory: true)
         try fileManager.createDirectory(at: appDirectory, withIntermediateDirectories: true)
 
@@ -43816,7 +43827,7 @@ export default {
     private func runFeedClear() throws {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let path = home
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("workstream.jsonl", isDirectory: false)
         let fm = FileManager.default
         guard fm.fileExists(atPath: path.path) else {

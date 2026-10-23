@@ -40,8 +40,8 @@ import subprocess
 import sys
 
 root, device = Path(sys.argv[1]), sys.argv[2]
-app = root / '.build/ios-personal/Build/Products/Release-iphoneos/cmux-personal.app'
-bundle_id = 'com.loulaner.cmuxpersonal'
+app = root / '.build/ios-personal/Build/Products/Release-iphoneos/MyCMUX.app'
+bundle_id = 'com.loulaner.mycmux.ios'
 team = sys.argv[5]
 def output(args):
     return subprocess.check_output(args, stderr=subprocess.PIPE)

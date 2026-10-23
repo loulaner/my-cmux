@@ -53,7 +53,7 @@ public struct MobileTaskAttachmentStore {
     public static func defaultRootURL(homeDirectory: URL) -> URL {
         homeDirectory
             .appendingPathComponent(".cache", isDirectory: true)
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("my-cmux", isDirectory: true)
             .appendingPathComponent("task-attachments", isDirectory: true)
     }
 

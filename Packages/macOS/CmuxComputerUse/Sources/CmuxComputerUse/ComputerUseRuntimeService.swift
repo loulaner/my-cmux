@@ -98,6 +98,8 @@ public final class ComputerUseRuntimeService {
         helperTrust: ComputerUseHelperTrust = ComputerUseHelperTrust()
     ) {
         self.helperTrust = helperTrust
+        helperUnavailableInThisBuild = !helperTrust.isAvailableInThisBuild
+        acceptsNewLaunches = helperTrust.isAvailableInThisBuild
         self.isDisabledByPolicy = isDisabledByPolicy
         self.permissionStatusDeadline = permissionStatusDeadline
         self.paths = paths
@@ -109,13 +111,15 @@ public final class ComputerUseRuntimeService {
         let nestedURL = bundle.bundleURL
             .appendingPathComponent("Contents/Library/\(Self.helperAppName).app", isDirectory: true)
         applicationName = Self.helperAppName
-        if FileManager.default.fileExists(atPath: nestedURL.path) {
+        if helperTrust.isAvailableInThisBuild, FileManager.default.fileExists(atPath: nestedURL.path) {
             bundledHelperAppURL = nestedURL
         } else {
             bundledHelperAppURL = nil
         }
-        startObservingHelperTermination()
-        scheduleHelperMaintenance()
+        if helperTrust.isAvailableInThisBuild {
+            startObservingHelperTermination()
+            scheduleHelperMaintenance()
+        }
     }
 
     deinit {
@@ -141,6 +145,7 @@ public final class ComputerUseRuntimeService {
     /// interactions need that independently registered URL. Presentation can use
     /// the identical nested app immediately, avoiding a generic first frame.
     public var presentationIcon: NSImage? {
+        guard helperTrust.isAvailableInThisBuild else { return nil }
         let candidate = installedHelperURL ?? bundledHelperAppURL
         let darkMode = NSApp.effectiveAppearance.bestMatch(
             from: [.darkAqua, .aqua]
@@ -184,6 +189,7 @@ public final class ComputerUseRuntimeService {
         at url: URL,
         register: (CFURL) -> OSStatus = { LSRegisterURL($0, true) }
     ) -> Bool {
+        guard ComputerUseHelperTrust().isAvailableInThisBuild else { return false }
         let normalizedURL = url.standardizedFileURL
         let status = register(normalizedURL as CFURL)
         if status != noErr {
@@ -223,17 +229,19 @@ public final class ComputerUseRuntimeService {
     /// completed onboarding run. This is called before the enabled setting is
     /// reconciled, so starting the helper can publish the correct first value.
     public func setInitialOnboardingCompletion(_ completed: Bool) {
-        guard !desiredEnabled else { return }
+        guard helperTrust.isAvailableInThisBuild, !desiredEnabled else { return }
         onboarding.setInitialCompletion(completed)
     }
 
     /// The onboarding was presented exposed to the host application.
     public func onboardingWasPresented() {
+        guard helperTrust.isAvailableInThisBuild else { return }
         transitionPermissionPhase(.onboardingPresented)
     }
 
     /// The onboarding was completed exposed to the host application.
     public func onboardingWasCompleted() {
+        guard helperTrust.isAvailableInThisBuild else { return }
         onboarding.markLegacyCompletion()
         scheduleReadinessPublication()
     }
@@ -274,6 +282,7 @@ public final class ComputerUseRuntimeService {
     /// The event is only a refresh trigger; the helper remains the sole
     /// authority for whether either permission is actually granted.
     public nonisolated func permissionStatusEvents() -> AsyncStream<Void> {
+        guard helperTrust.isAvailableInThisBuild else { return AsyncStream { $0.finish() } }
         let directoryURL = paths.permissionDatabaseDirectoryURL
         return Self.mergedFileSystemEvents(at: [
             directoryURL,
@@ -893,6 +902,10 @@ public final class ComputerUseRuntimeService {
     public var helperBuildReplacedHandler: (@MainActor () -> Void)?
 
     private func ensureStandaloneHelperInstalledWithinLifecycle() async -> URL? {
+        guard helperTrust.isAvailableInThisBuild else {
+            helperUnavailableInThisBuild = true
+            return nil
+        }
         guard acceptsNewLaunches, !Task.isCancelled,
               helperInstallRetry.allowsAttempt(at: uptime()) else { return nil }
         var installed = false
@@ -1106,6 +1119,7 @@ public final class ComputerUseRuntimeService {
     }
 
     func stopDaemon() async -> Bool {
+        guard helperTrust.isAvailableInThisBuild else { return false }
         let helperURL = installedHelperURL ?? paths.installedHelperAppURL
         var processIdentifiers = Set(
             runningHelperApplications(at: helperURL).keys
@@ -1459,6 +1473,7 @@ public final class ComputerUseRuntimeService {
     /// Synchronously prevents relaunch and stops the out-of-process helper.
     /// App termination cannot rely on an unstructured async task surviving exit.
     public func stopForTermination() {
+        guard helperTrust.isAvailableInThisBuild else { return }
         desiredEnabled = false
         acceptsNewLaunches = false
         permissionRefreshGeneration &+= 1
@@ -1710,6 +1725,7 @@ public final class ComputerUseRuntimeService {
     }
 
     private func checkHelperHealth() async {
+        guard helperTrust.isAvailableInThisBuild else { return }
         async let nativeListening = Self.isDaemonListening(
             paths: paths,
             transport: transport,
@@ -1892,6 +1908,7 @@ public final class ComputerUseRuntimeService {
     }
 
     private func openSystemSettings(_ deepLink: String) async -> Bool {
+        guard helperTrust.isAvailableInThisBuild else { return false }
         guard let url = URL(string: deepLink) else { return false }
         guard let systemSettingsURL = NSWorkspace.shared.urlForApplication(
             withBundleIdentifier: Self.systemSettingsBundleIdentifier
@@ -2000,7 +2017,8 @@ public final class ComputerUseRuntimeService {
         expectedPeerIdentity: AgentPIDProcessIdentity? = nil,
         socketURL: URL
     ) async -> [String: Any]? {
-        await Task.detached(priority: .userInitiated) {
+        guard ComputerUseHelperTrust().isAvailableInThisBuild else { return nil }
+        return await Task.detached(priority: .userInitiated) {
             sendDaemonRequestSynchronously(
                 request,
                 paths: paths,

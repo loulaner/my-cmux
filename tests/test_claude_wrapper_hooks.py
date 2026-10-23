@@ -2206,7 +2206,7 @@ def expect_computer_use_env_scrubbed(
     )
     state_dir = env.get("CMUX_CUA_STATE_DIR", "")
     expect(
-        state_dir.endswith("/Library/Application Support/cmux/cmux-cua/runtime/default/state"),
+        state_dir.endswith("/Library/Application Support/MyCMUX/cmux-cua/runtime/default/state"),
         f"{context}: unexpected state directory {state_dir!r}",
         failures,
     )

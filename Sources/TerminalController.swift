@@ -660,7 +660,7 @@ class TerminalController {
             transport: transport,
             listenerPolicy: listenerPolicy, notificationCenter: .default,
             effectivePasswordProvider: {
-                passwordStore.configuredPassword(allowLazyKeychainFallback: true)
+                passwordStore.configuredPassword(allowLazyKeychainFallback: false)
             },
             authorizationChangeSignals: socketPasswordFileWatcher?.events,
             events: Self.makeSocketServerEvents(

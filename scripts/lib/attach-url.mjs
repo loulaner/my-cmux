@@ -6,8 +6,7 @@
 // `<scheme>://attach?v=<n>&payload=<b64>` URL the phone consumes.
 //
 // The scheme is the exact target bundle identifier, mirroring
-// `CmxPairingURLScheme` in `Packages/Shared/CMUXMobileCore`. Historical shared
-// schemes remain parse-only for old URLs; this encoder never creates one.
+// `CmxPairingURLScheme` in `Packages/Shared/CMUXMobileCore`. Old product schemes are rejected, including historical shared URLs.
 //
 // This is the single source of truth for the encode recipe, shared by
 // `scripts/mobile-attach-qr.sh` (QR/HTML rendering) and `scripts/dev-setup.sh`
@@ -15,34 +14,29 @@
 // `node --test scripts/lib/attach-url.test.mjs`.
 
 /** The pairing/attach URL scheme development (DEBUG/tagged) builds emit. */
-export const DEV_URL_SCHEME = "cmux-ios-dev";
+export const DEV_URL_SCHEME = "cmux-ios-com.loulaner.mycmux.ios.debug";
 
 /** The pairing/attach URL scheme Release (beta + prod) builds emit. */
-export const RELEASE_URL_SCHEME = "cmux-ios";
+export const RELEASE_URL_SCHEME = "cmux-ios-com.loulaner.mycmux.ios";
+
+function supportedScheme(scheme) {
+  if ([DEV_URL_SCHEME, RELEASE_URL_SCHEME].includes(scheme)) return true;
+  const prefix = `${DEV_URL_SCHEME}.`;
+  if (!scheme.startsWith(prefix)) return false;
+  const tag = scheme.slice(prefix.length);
+  return tag !== "default" && tag.length <= 64 && /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/.test(tag);
+}
 
 export function schemeForIOSBundleIdentifier(bundleIdentifier) {
-  const normalized = String(bundleIdentifier || "").trim().toLowerCase();
-  if (
-    !normalized.includes(".") ||
-    !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(normalized)
-  ) {
-    throw new Error("An exact iOS bundle identifier is required");
-  }
-  return `cmux-ios-${normalized}`;
+  const scheme = `cmux-ios-${String(bundleIdentifier || "").trim().toLowerCase()}`;
+  if (!supportedScheme(scheme)) throw new Error("An exact supported MyCMUX iOS bundle identifier is required");
+  return scheme;
 }
 
 export function isCanonicalAttachURL(value) {
-  if (typeof value !== "string") {
-    return false;
-  }
+  if (typeof value !== "string") return false;
   const match = /^([A-Za-z][A-Za-z0-9+.-]*):\/\/attach\?/.exec(value);
-  if (!match) return false;
-  const scheme = match[1].toLowerCase();
-  if ([DEV_URL_SCHEME, RELEASE_URL_SCHEME].includes(scheme)) return true;
-  if (!scheme.startsWith("cmux-ios-")) return false;
-  const bundleIdentifier = scheme.slice("cmux-ios-".length);
-  return bundleIdentifier.includes(".") &&
-    /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(bundleIdentifier);
+  return !!match && supportedScheme(match[1].toLowerCase());
 }
 
 /**
@@ -113,14 +107,7 @@ export function buildAttachURL(payload, filter = {}) {
     return { attachURL: result.attach_url, routes, payload: result };
   }
 
-  const exactBundleIdentifier = typeof scheme === "string" &&
-    scheme.startsWith("cmux-ios-")
-    ? scheme.slice("cmux-ios-".length)
-    : "";
-  if (
-    !exactBundleIdentifier.includes(".") ||
-    !/^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$/.test(exactBundleIdentifier)
-  ) {
+  if (typeof scheme !== "string" || !supportedScheme(scheme.toLowerCase())) {
     throw new Error("An exact-bundle pairing URL scheme is required");
   }
 

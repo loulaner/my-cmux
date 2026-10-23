@@ -229,7 +229,7 @@ public struct VMTunnelManager: Sendable {
     /// `~/.cmuxterm/wireguard`, 0700, alongside the cmux-tui client state,
     /// which follows the same file-permission model for its device key.
     public var stateDir: URL {
-        home.appendingPathComponent(".cmuxterm", isDirectory: true)
+        home.appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("wireguard", isDirectory: true)
     }
 
@@ -518,7 +518,7 @@ public struct VMTunnelManager: Sendable {
         if id.contains("nightly") { return "nightly" }
         if id.contains("staging") { return "staging" }
         if id.hasSuffix(".rc") { return "rc" }
-        if id == "com.cmuxterm.app" { return "stable" }
+        if id == "com.loulaner.mycmux" { return "stable" }
         return "dev"
     }
 }

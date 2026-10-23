@@ -39,6 +39,17 @@ class DirectInstallTests(unittest.TestCase):
         self.assertEqual(module.PENDING_EXIT, 75)
         self.assertEqual(module.PENDING_STATE, 'INSTALLED_PENDING_PAIRING')
 
+    def test_old_product_receipts_are_rejected_without_device_or_socket_access(self):
+        module = load()
+        old = {'bundle_identifier': 'com.cmuxterm.app.debug.local.terminal.device',
+               'socket_path': '/tmp/cmux-debug-local-terminal-device.sock',
+               'app_executable_path': '/synthetic/mac', 'app_bundle_path': '/synthetic'}
+        with self.assertRaises(ValueError):
+            module.validate_mac_identity(old, '/synthetic/mac', '/synthetic')
+        with self.assertRaises(ValueError):
+            sys.modules['local_direct_device_build'].validate_metadata({'CFBundleIdentifier': 'dev.cmux.ios.local-terminal-device',
+                                      'CMUXDevTag': 'local-terminal-device', 'CMUXGitSHA': 'synthetic'})
+
     def test_mac_identity_mismatch_rejected(self):
         module = load()
         valid = {'bundle_identifier': module.MAC_BUNDLE, 'socket_path': module.MAC_SOCKET,
@@ -170,7 +181,7 @@ class PrivateSocketPasswordTests(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.root = pathlib.Path(self.directory.name).resolve()
         current = self.root
-        for part in ['home', '.local', 'state', 'cmux']:
+        for part in ['home', '.local', 'state', 'my-cmux', 'dev-local-terminal-device']:
             current /= part
             current.mkdir(mode=0o700)
         self.path = current / 'socket-control-password'
@@ -232,11 +243,11 @@ class PrivateSocketPasswordTests(unittest.TestCase):
             self.assertEqual(self.mac.process_start(42), 'fixed start')
             self.assertEqual(command.call_args.kwargs['env']['LC_ALL'], 'C')
 
-    def test_existing_cli_file_precedes_keychain_contract(self):
+    def test_cli_file_resolution_has_no_legacy_keychain_fallback(self):
         source = (ROOT / 'CLI/cmux.swift').read_text()
         body = source.split('enum SocketPasswordResolver {', 1)[1].split('private static func normalized', 1)[0]
-        self.assertIn('if let filePassword = loadFromFile() {\n            return filePassword\n        }', body)
-        self.assertLess(body.index('return filePassword'), body.index('return loadFromKeychain'))
+        self.assertIn('if let filePassword = loadFromFile(socketPath: socketPath) {\n            return filePassword\n        }', body)
+        self.assertNotIn('return loadFromKeychain', body)
 
 
 if __name__ == '__main__':

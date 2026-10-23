@@ -1,10 +1,11 @@
 // Dedicated device-only direct build. No changes to ordinary Debug or personal Release.
 #include "Debug.xcconfig"
-CMUX_APP_BUNDLE_IDENTIFIER = dev.cmux.ios.local-terminal-device
+CMUX_APP_BUNDLE_IDENTIFIER = com.loulaner.mycmux.ios.debug.local-terminal-device
 CMUX_HOST_BUNDLE_IDENTIFIER = $(CMUX_APP_BUNDLE_IDENTIFIER)
 PRODUCT_BUNDLE_IDENTIFIER = $(CMUX_APP_BUNDLE_IDENTIFIER)
-PRODUCT_NAME = cmux-local-direct
-PRODUCT_DISPLAY_NAME = cmux Direct DEV
+PRODUCT_NAME = MyCMUX Direct DEV
+PRODUCT_MODULE_NAME = cmux_local_direct
+PRODUCT_DISPLAY_NAME = MyCMUX Direct DEV
 CMUX_DEV_TAG = local-terminal-device
 DEVELOPMENT_TEAM =
 CODE_SIGN_IDENTITY = Apple Development

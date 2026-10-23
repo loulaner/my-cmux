@@ -3,7 +3,7 @@ import Testing
 @testable import CmuxSettings
 
 /// Behavior of the `customSidebars.renderer` setting through the real JSON
-/// store: the on-disk strings users put in `~/.config/cmux/cmux.json` must
+/// store: the on-disk strings users put in `~/.config/my-cmux/cmux.json` must
 /// decode to the right renderer, and anything else must fall back to the
 /// default (native in-process rendering).
 @Suite("customSidebars.renderer")

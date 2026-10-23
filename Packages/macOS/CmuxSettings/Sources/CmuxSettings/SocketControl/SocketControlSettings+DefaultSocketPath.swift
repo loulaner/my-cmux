@@ -67,5 +67,5 @@ private func xctestDebugSocketPath(environment: [String: String]) -> String? {
     let hash = source.utf8.reduce(UInt64(0xcbf29ce484222325)) { partial, byte in
         (partial ^ UInt64(byte)) &* 0x100000001b3
     }
-    return "/tmp/cmux-xctest-\(String(hash, radix: 16)).sock"
+    return "/tmp/mycmux-xctest-\(String(hash, radix: 16)).sock"
 }

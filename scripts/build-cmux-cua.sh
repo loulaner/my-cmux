@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+# No approved MyCMUX helper signing/TCC contract. Never build or borrow one.
+echo "Computer Use helper builds are unsupported in MyCMUX." >&2
+exit 64
+
 CMUX_CUA_REPO_URL="${CMUX_CUA_REPO_URL:-https://github.com/manaflow-ai/cmux-cua.git}"
 CMUX_CUA_PINNED_SHA="e0f738807dbff2f35fe67d7fbcc99c7082cffc23"
 CMUX_CUA_PATCH_RELATIVE_PATH="scripts/cmux-cua-codex-delivery-mode.patch"

@@ -1,11 +1,12 @@
 // Personal-device Release build; never inherits the publisher's signing team.
 #include "Release.xcconfig"
 
-CMUX_APP_BUNDLE_IDENTIFIER = com.loulaner.cmuxpersonal
+CMUX_APP_BUNDLE_IDENTIFIER = com.loulaner.mycmux.ios
 CMUX_HOST_BUNDLE_IDENTIFIER = $(CMUX_APP_BUNDLE_IDENTIFIER)
 PRODUCT_BUNDLE_IDENTIFIER = $(CMUX_APP_BUNDLE_IDENTIFIER)
-PRODUCT_NAME = cmux-personal
-PRODUCT_DISPLAY_NAME = cmux Personal
+PRODUCT_NAME = MyCMUX
+PRODUCT_MODULE_NAME = cmux_personal
+PRODUCT_DISPLAY_NAME = MyCMUX
 DEVELOPMENT_TEAM =
 CODE_SIGN_STYLE = Automatic
 CODE_SIGN_IDENTITY = Apple Development

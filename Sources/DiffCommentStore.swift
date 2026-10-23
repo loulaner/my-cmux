@@ -124,7 +124,7 @@ final class DiffCommentStore {
     ) -> URL? {
         guard !isRunningUnderAutomatedTests, let appSupportDirectory else { return nil }
         return appSupportDirectory
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent("diff-comments", isDirectory: true)
     }
 

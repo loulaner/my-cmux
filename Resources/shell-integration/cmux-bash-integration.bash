@@ -416,7 +416,7 @@ _cmux_install_cli_command_shim() {
     local shim_parent="${shim_root%/*}"
     local tmp_root="${TMPDIR:-/tmp}"
     local legacy_shim_root="${tmp_root%/}/cmux-cli-shims/$surface_component"
-    local shim_state="${HOME:-}/.cmuxterm"
+    local shim_state="${HOME:-}/.local/state/my-cmux"
     local rejected_root=""
     local REPLY
     # An inherited root is reused only while it is still private. Otherwise

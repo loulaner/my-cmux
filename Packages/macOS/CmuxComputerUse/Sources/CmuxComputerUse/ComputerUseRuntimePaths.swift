@@ -80,9 +80,9 @@ public struct ComputerUseRuntimePaths: Sendable {
             userIdentifier: userIdentifier
         )
         computerUseDirectoryURL = homeDirectoryURL
-            .appendingPathComponent("Library/Application Support/cmux/cmux-cua", isDirectory: true)
+            .appendingPathComponent("Library/Application Support/MyCMUX/cmux-cua", isDirectory: true)
         runtimeDirectoryURL = socketRootDirectoryURL
-            .appendingPathComponent("cmux-cua-\(userIdentifier)", isDirectory: true)
+            .appendingPathComponent("mycmux-cua-\(userIdentifier)", isDirectory: true)
             .appendingPathComponent(scope, isDirectory: true)
         daemonSocketURL = runtimeDirectoryURL.appendingPathComponent("cmux-cua.sock")
         codexDaemonSocketURL = runtimeDirectoryURL.appendingPathComponent("cmux-cua-codex.sock")
@@ -136,7 +136,7 @@ public struct ComputerUseRuntimePaths: Sendable {
         userIdentifier: uid_t
     ) -> String {
         let socketParent = rootDirectoryURL
-            .appendingPathComponent("cmux-cua-\(userIdentifier)", isDirectory: true)
+            .appendingPathComponent("mycmux-cua-\(userIdentifier)", isDirectory: true)
         let longestSocketName = "/cmux-cua-codex.sock"
         let fixedByteCount =
             socketParent.path.utf8.count

@@ -27,10 +27,10 @@ public struct SudoBrokerPaths: Sendable, Equatable {
             }
             .joined()
         let scope = sanitizedScope.isEmpty || sanitizedScope == "." || sanitizedScope == ".."
-            ? "com.cmuxterm.app"
+            ? "com.loulaner.mycmux"
             : sanitizedScope
         base = applicationSupportDirectory
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent("sudo", isDirectory: true)
             .appendingPathComponent(scope, isDirectory: true)
             .standardizedFileURL

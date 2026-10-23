@@ -4,7 +4,7 @@ import Foundation
 
 /// Opens workspace-group configuration and documentation surfaces.
 enum SidebarWorkspaceGroupConfigOpener {
-    /// Opens the cmux config file (`~/.config/cmux/cmux.json`) in the user's
+    /// Opens the cmux config file (`~/.config/my-cmux/cmux.json`) in the user's
     /// configured editor, materializing an empty config first if none exists.
     @MainActor
     static func openCmuxConfigInEditor() {
@@ -26,7 +26,7 @@ enum SidebarWorkspaceGroupConfigOpener {
         open(materializedCmuxConfigURL(home: home))
     }
 
-    /// Resolves `~/.config/cmux/cmux.json` under `home`, materializing an empty
+    /// Resolves `~/.config/my-cmux/cmux.json` under `home`, materializing an empty
     /// config first if none exists. Shared by the external-editor path above and
     /// in-app openers (e.g. the plus-button menu's "Customize Workspace Layouts…").
     static func materializedCmuxConfigURL(
@@ -34,7 +34,7 @@ enum SidebarWorkspaceGroupConfigOpener {
     ) -> URL {
         let configURL = home
             .appendingPathComponent(".config", isDirectory: true)
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("my-cmux", isDirectory: true)
             .appendingPathComponent("cmux.json", isDirectory: false)
         if !FileManager.default.fileExists(atPath: configURL.path) {
             try? FileManager.default.createDirectory(

@@ -286,7 +286,7 @@ extension CMUXCLI {
     /// The hook-script directory path without creating it.
     static func codexHookScriptsURL() -> URL {
         FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".cmux", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("hooks", isDirectory: true)
     }
 

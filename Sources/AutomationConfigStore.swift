@@ -38,7 +38,7 @@ final class AutomationConfigStore {
 
     static func defaultFileURL(homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
         homeDirectory
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent(fileName, isDirectory: false)
     }
 

@@ -469,7 +469,7 @@ extension URL {
                 for: .applicationSupportDirectory,
                 in: .userDomainMask
             )[0],
-            bundleIdentifier: Bundle.main.bundleIdentifier ?? "com.cmuxterm.app"
+            bundleIdentifier: Bundle.main.bundleIdentifier ?? "com.loulaner.mycmux"
         )
     }
 
@@ -478,7 +478,7 @@ extension URL {
         bundleIdentifier: String
     ) -> URL {
         let trimmedBundleIdentifier = bundleIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
-        let namespace = trimmedBundleIdentifier.isEmpty ? "com.cmuxterm.app" : trimmedBundleIdentifier
+        let namespace = trimmedBundleIdentifier.isEmpty ? "com.loulaner.mycmux" : trimmedBundleIdentifier
         let safeNamespace = namespace.replacingOccurrences(
             of: "[^A-Za-z0-9._-]",
             with: "_",
@@ -486,6 +486,7 @@ extension URL {
         )
 
         return applicationSupportDirectory
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent(safeNamespace, isDirectory: true)
             .appendingPathComponent("search.db", isDirectory: false)
     }

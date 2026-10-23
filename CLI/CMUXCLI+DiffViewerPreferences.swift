@@ -69,7 +69,7 @@ extension CMUXCLI {
             return nil
         }
         return appSupport
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent("diff-viewer", isDirectory: true)
             .appendingPathComponent("preferences.json", isDirectory: false)
     }

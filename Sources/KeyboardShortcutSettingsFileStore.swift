@@ -4,25 +4,25 @@ import CmuxFoundation
 import CmuxSettings
 import Foundation
 import os
-nonisolated private let cmuxSettingsFileStoreLogger = Logger(subsystem: "com.cmuxterm.app", category: "SettingsStore")
+nonisolated private let cmuxSettingsFileStoreLogger = Logger(subsystem: "com.loulaner.mycmux", category: "SettingsStore")
 
 final class CmuxSettingsFileStore {
     static let currentSchemaVersion = 1
     static let schemaURLString = "https://raw.githubusercontent.com/manaflow-ai/cmux/main/web/data/cmux.schema.json"
     private static let legacySchemaURLString = "https://raw.githubusercontent.com/manaflow-ai/cmux/main/web/data/cmux-settings.schema.json"
-    private static let releaseBundleIdentifier = "com.cmuxterm.app"
+    private static let releaseBundleIdentifier = "com.loulaner.mycmux"
     private static let backupsDefaultsKey = "cmux.settingsFile.backups.v1"
     private static let importedManagedDefaultsDefaultsKey = "cmux.settingsFile.importedManagedDefaults.v1"
     fileprivate static let socketPasswordBackupIdentifier = "automation.socketPassword"
 
     static var defaultPrimaryPath: String {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
-        return (home as NSString).appendingPathComponent(".config/cmux/cmux.json")
+        return (home as NSString).appendingPathComponent(".config/my-cmux/cmux.json")
     }
 
     static var defaultFallbackPath: String? {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
-        return (home as NSString).appendingPathComponent(".config/cmux/settings.json")
+        return (home as NSString).appendingPathComponent(".config/my-cmux/settings.json")
     }
 
     static var defaultApplicationSupportFallbackPath: String? {
@@ -33,6 +33,7 @@ final class CmuxSettingsFileStore {
             return nil
         }
         return appSupport
+            .appendingPathComponent("MyCMUX", isDirectory: true)
             .appendingPathComponent(releaseBundleIdentifier, isDirectory: true)
             .appendingPathComponent("settings.json", isDirectory: false)
             .path

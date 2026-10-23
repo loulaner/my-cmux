@@ -19,7 +19,7 @@ import Testing
             legacyDirectory: legacy,
             tmpMarkerPath: tmpMarkerPath
         )
-        let socketPath = "/tmp/cmux-marker-store.sock"
+        let socketPath = "/tmp/mycmux-marker-store.sock"
         store.record(socketPath)
         #expect(store.markerPaths().allSatisfy { FileManager.default.fileExists(atPath: $0) })
 
@@ -42,7 +42,7 @@ import Testing
             tmpMarkerPath: root.appendingPathComponent("tmp-marker").path
         )
         let markerPath = try #require(store.markerPaths().first)
-        let expectedPath = "/tmp/cmux-marker-oversized.sock"
+        let expectedPath = "/tmp/mycmux-marker-oversized.sock"
         let oversized = expectedPath + String(
             repeating: " ",
             count: SocketPathMarkerStore.maximumMarkerBytes

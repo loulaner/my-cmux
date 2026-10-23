@@ -11,7 +11,7 @@ public import Foundation
 public struct SessionSnapshotFileLocation: Sendable, Equatable {
     /// The stable channel's bundle identifier, also the fallback when the
     /// running bundle has none.
-    public static let stableBundleIdentifier = "com.cmuxterm.app"
+    public static let stableBundleIdentifier = "com.loulaner.mycmux"
 
     /// Maps a release channel name to its bundle identifier.
     ///
@@ -112,7 +112,7 @@ public struct SessionSnapshotFileLocation: Sendable, Equatable {
     /// `<appSupport>/cmux/`, the folder holding every install's snapshot
     /// files and the shared `session-history/` archive.
     public var cmuxDirectoryURL: URL {
-        appSupportDirectory.appendingPathComponent("cmux", isDirectory: true)
+        appSupportDirectory.appendingPathComponent("MyCMUX", isDirectory: true)
     }
 
     /// The file-name-safe form of `bundleIdentifier` used in snapshot and

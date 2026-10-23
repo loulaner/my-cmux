@@ -8,7 +8,7 @@ extension SessionPersistencePolicy {
         homeDirectory
             .appendingPathComponent(".local", isDirectory: true)
             .appendingPathComponent("state", isDirectory: true)
-            .appendingPathComponent("cmux", isDirectory: true)
+            .appendingPathComponent("my-cmux", isDirectory: true)
             .appendingPathComponent("crash", isDirectory: true)
     }
 
@@ -21,7 +21,7 @@ extension SessionPersistencePolicy {
            !xdgStateHome.isEmpty {
             urls.append(
                 URL(fileURLWithPath: (xdgStateHome as NSString).expandingTildeInPath, isDirectory: true)
-                    .appendingPathComponent("cmux", isDirectory: true)
+                    .appendingPathComponent("my-cmux", isDirectory: true)
                     .appendingPathComponent("crash", isDirectory: true)
             )
         }

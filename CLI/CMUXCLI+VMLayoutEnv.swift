@@ -52,7 +52,7 @@ extension CMUXCLI {
           cmux vm env set <machine> KEY=VALUE [KEY2=VALUE2 …] [--from-file <.env>] [-]
                                                               Set environment variables for every terminal, agent, and
                                                               command cmux starts on the machine. They persist in
-                                                              ~/.config/cmux/env on its durable volume (mode 0600) and are
+                                                              ~/.config/my-cmux/env on its durable volume (mode 0600) and are
                                                               sourced by login and interactive shells there. --from-file
                                                               and `-` (stdin) read KEY=VALUE lines (dotenv rules: blank
                                                               lines and # comments skipped, optional `export `, matching

@@ -20,7 +20,7 @@ enum FeedJumpResolver {
     ///
     /// - Parameters:
     ///   - workstreamID: The wire `workstream_id` value.
-    ///   - homeDirectory: The home directory containing `.cmuxterm`. Injected
+    ///   - homeDirectory: The home directory containing `.local/state/my-cmux`. Injected
     ///     for behavior tests; production callers use the current user's home.
     /// - Returns: The recorded target, or `nil` when the id is malformed,
     ///   missing, or ambiguous.
@@ -113,7 +113,7 @@ enum FeedJumpResolver {
 
     static func availableAgentIDs(homeDirectory: URL) -> [String] {
         let directory = homeDirectory.appendingPathComponent(
-            ".cmuxterm",
+            ".local/state/my-cmux",
             isDirectory: true
         )
         guard let names = try? FileManager.default.contentsOfDirectory(
@@ -134,7 +134,7 @@ enum FeedJumpResolver {
     ) -> [String: Target]? {
         guard isSafePathComponent(agent) else { return nil }
         let file = homeDirectory
-            .appendingPathComponent(".cmuxterm", isDirectory: true)
+            .appendingPathComponent(".local/state/my-cmux", isDirectory: true)
             .appendingPathComponent("\(agent)\(hookSessionFileSuffix)", isDirectory: false)
         guard let data = try? Data(contentsOf: file),
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -227,7 +227,7 @@ actor FeedSessionStoreLookup {
     /// read per candidate, so updates within an existing file are immediate.
     private func agentIDsForCurrentDirectory() -> [String]? {
         let directory = homeDirectory.appendingPathComponent(
-            ".cmuxterm",
+            ".local/state/my-cmux",
             isDirectory: true
         )
         guard let attributes = try? FileManager.default.attributesOfItem(

@@ -1,17 +1,10 @@
 import Foundation
 import Security
 
-/// Decides which "cmux Computer Use" helper this build may install and launch.
+/// Controls helper adoption without sharing the upstream application's TCC identity.
 ///
-/// The Accessibility and Screen Recording rows for `com.cmuxterm.cua` hold the
-/// Developer ID requirement of the release helper. An ad-hoc signed copy (what
-/// a tagged dev build bundles) can never satisfy those rows, and granting one
-/// replaces the row, which breaks the release helper. So the runtime installs
-/// only a helper whose signature satisfies ``requirementText``: its own nested
-/// helper when that is Developer ID signed (release builds), otherwise the
-/// helper of an installed cmux NIGHTLY, RC or release app. With neither,
-/// Computer Use is unavailable in this build: nothing is installed or launched,
-/// so macOS never shows a permission prompt for an ad-hoc identity.
+/// MyCMUX production is unavailable. The original Developer ID requirement and
+/// injected internal seam remain for signature-policy regression tests only.
 public struct ComputerUseHelperTrust: Sendable {
     /// The helper's bundle identifier, the key of its TCC rows.
     public static let bundleIdentifier = "com.cmuxterm.cua"
@@ -29,21 +22,24 @@ public struct ComputerUseHelperTrust: Sendable {
     private let isSigned: @Sendable (URL) -> Bool
     private let installedCandidates: @Sendable () -> [URL]
 
-    /// The production trust: the on-disk signature check and the installed release apps.
+    /// Whether this build may interact with any Computer Use helper.
+    /// MyCMUX has no approved helper signing/TCC contract; production is unavailable.
+    public let isAvailableInThisBuild: Bool
+
+    /// Creates the fail-closed MyCMUX policy without inspecting installed applications.
     public init() {
-        self.init(
-            isSigned: Self.satisfiesRequirement,
-            installedCandidates: {
-                Self.releaseCandidates(home: FileManager.default.homeDirectoryForCurrentUser)
-            }
-        )
+        isAvailableInThisBuild = false
+        isSigned = { _ in false }
+        installedCandidates = { [] }
     }
 
     /// A trust with an injected signature check and candidate list, for tests.
     init(
+        isAvailableInThisBuild: Bool = true,
         isSigned: @escaping @Sendable (URL) -> Bool,
         installedCandidates: @escaping @Sendable () -> [URL]
     ) {
+        self.isAvailableInThisBuild = isAvailableInThisBuild
         self.isSigned = isSigned
         self.installedCandidates = installedCandidates
     }
@@ -52,6 +48,7 @@ public struct ComputerUseHelperTrust: Sendable {
     /// when no Developer ID signed helper is available. Reads signatures on
     /// disk, so callers run it off the main actor.
     func installSource(nested: URL?) -> URL? {
+        guard isAvailableInThisBuild else { return nil }
         if let nested, isSigned(nested) { return nested }
         return installedCandidates().first { candidate in
             candidate.standardizedFileURL != nested?.standardizedFileURL && isSigned(candidate)
@@ -60,7 +57,7 @@ public struct ComputerUseHelperTrust: Sendable {
 
     /// Whether `url` is a Developer ID signed helper this build may launch.
     func isTrusted(_ url: URL) -> Bool {
-        isSigned(url)
+        isAvailableInThisBuild && isSigned(url)
     }
 
     /// Reads the bundle's signature on disk (no launch, no prompt). It must be
