@@ -230,7 +230,8 @@ struct cmuxApp: App {
         let tabManager = TabManager(
             workspaceCustomizationStore: workspaceCustomizationStore,
             nativeSSHConnectionBroker: TerminalController.shared.nativeSSHConnectionBroker,
-            cloudWorkspaceSelection: cloudWorkspaceCoordinator.makeSelectionState()
+            cloudWorkspaceSelection: cloudWorkspaceCoordinator.makeSelectionState(),
+            sshClipboardWriteTrustStore: AppDelegate.shared?.sshClipboardWriteTrustStore
         )
         let historyMenuCoordinator = HistoryMenuCoordinator(
             closedItemHistoryStore: closedItemHistoryStore,
@@ -1463,22 +1464,6 @@ struct cmuxApp: App {
         manager.clearCustomTitle(tabId: workspace.id)
     }
 
-    private func moveSelectedWorkspaceToTop(in manager: TabManager) {
-        guard let workspace = manager.selectedWorkspace else { return }
-        manager.moveTabsToTop([workspace.id])
-        manager.selectWorkspace(workspace)
-    }
-
-    private func moveSelectedWorkspace(in manager: TabManager, toWindow windowId: UUID) {
-        guard let workspace = manager.selectedWorkspace else { return }
-        _ = AppDelegate.shared?.moveWorkspaceToWindow(workspaceId: workspace.id, windowId: windowId, focus: true)
-    }
-
-    private func moveSelectedWorkspaceToNewWindow(in manager: TabManager) {
-        guard let workspace = manager.selectedWorkspace else { return }
-        _ = AppDelegate.shared?.moveWorkspaceToNewWindow(workspaceId: workspace.id, focus: true)
-    }
-
     private func closeWorkspaceIds(
         _ workspaceIds: [UUID],
         in manager: TabManager,
@@ -1590,6 +1575,10 @@ struct cmuxApp: App {
             }
         }
         .disabled(workspace == nil)
+
+        if let workspace {
+            WorkspaceMergeIntoMenu(sourceWorkspaceId: workspace.id)
+        }
 
         Divider()
 

@@ -176,6 +176,7 @@ select_packages() {
     CmuxSwiftRenderUI
     CmuxTestSupport
     CmuxWindowing
+    CmuxTextActions
   )
 
   changed="$work/changed-files.txt"
