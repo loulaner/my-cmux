@@ -435,10 +435,6 @@ final class RecordingSSHSink: MobileSSHComputersSink {
     func sshApplyViewport(surfaceID: String) {
         viewportApplications[surfaceID, default: 0] += 1
     }
-    func sshReplaceBrowserPanels(workspaceID: String, with descriptors: [MobileBrowserPanelDescriptor]) {}
-    func sshDeliverBrowserFrame(_ event: MobileBrowserFrameEvent) {}
-    func sshDeliverBrowserState(_ event: MobileBrowserStateEvent) {}
-    func sshBrowserStreamEnded(panelID: String, retry: Bool) {}
 
     func waitForOutput(_ surfaceID: String, timeout: Duration = .seconds(15), until predicate: (String) -> Bool) async throws {
         let deadline = ContinuousClock.now + timeout

@@ -1,5 +1,4 @@
 import CMUXMobileCore
-import CmuxMobileBrowserStream
 import CmuxMobileRPC
 import CmuxMobileShellModel
 import Foundation
@@ -8,8 +7,9 @@ import Testing
 
 @MainActor
 struct RetiredSimulatorStreamTests {
-    @Test func retiredTabFallsBackWithoutChangingBytesAcrossRefreshAndReopen() async throws {
-        let fixture = try RetiredSimulatorStreamFixture()
+    @Test(arguments: [MobileWorkspaceLastTab.Kind.simulatorStream, .browserStream, .localBrowser])
+    func retiredTabFallsBackWithoutChangingBytesAcrossRefreshAndReopen(kind: MobileWorkspaceLastTab.Kind) async throws {
+        let fixture = try RetiredSimulatorStreamFixture(remembered: .init(kind: kind, tabID: "sim-1"))
         defer { fixture.cleanDefaults() }
         for _ in 0..<3 {
             await fixture.store.openWorkspace(fixture.workspace.id)
@@ -29,24 +29,10 @@ struct RetiredSimulatorStreamTests {
         try await fixture.expectNoSimulatorRequests()
     }
 
-    @Test func activeBrowserCannotOverwriteRetiredTabMemory() async throws {
-        let fixture = try RetiredSimulatorStreamFixture()
-        defer { fixture.cleanDefaults() }
-        fixture.browser.replacePanels(in: "workspace-1", with: [MobileBrowserPanelDescriptor(
-            panelID: "browser-1", workspaceID: "workspace-1", url: nil, title: "Browser",
-            pageWidth: 800, pageHeight: 600, canGoBack: false, canGoForward: false, isLoading: false
-        )])
-        _ = fixture.browser.activate(panelID: "browser-1", in: "workspace-1")
-        await fixture.store.openWorkspace(fixture.workspace.id)
-        fixture.store.refreshWorkspaceSelection()
-        #expect(fixture.browser.activeState(in: "workspace-1")?.id == "browser-1")
-        #expect(fixture.store.pendingLastTabRestoreWorkspaceID == nil)
-        fixture.expectUnchangedMemory()
-        try await fixture.expectNoSimulatorRequests()
-    }
 
-    @Test func noTerminalDisarmsWithoutInventingASurfaceOrStartingAStream() async throws {
-        let fixture = try RetiredSimulatorStreamFixture(hasTerminal: false)
+    @Test(arguments: [MobileWorkspaceLastTab.Kind.simulatorStream, .browserStream, .localBrowser])
+    func noTerminalDisarmsWithoutInventingASurfaceOrStartingAStream(kind: MobileWorkspaceLastTab.Kind) async throws {
+        let fixture = try RetiredSimulatorStreamFixture(remembered: .init(kind: kind, tabID: "sim-1"), hasTerminal: false)
         defer { fixture.cleanDefaults() }
         await fixture.store.openWorkspace(fixture.workspace.id)
         #expect(fixture.store.selectedTerminalID == nil)
@@ -57,8 +43,9 @@ struct RetiredSimulatorStreamTests {
         try await fixture.expectNoSimulatorRequests()
     }
 
-    @Test func explicitlyPickingTheSameFallbackTerminalReplacesMemory() async throws {
-        let fixture = try RetiredSimulatorStreamFixture()
+    @Test(arguments: [MobileWorkspaceLastTab.Kind.simulatorStream, .browserStream, .localBrowser])
+    func explicitlyPickingTheSameFallbackTerminalReplacesMemory(kind: MobileWorkspaceLastTab.Kind) async throws {
+        let fixture = try RetiredSimulatorStreamFixture(remembered: .init(kind: kind, tabID: "sim-1"))
         defer { fixture.cleanDefaults() }
         await fixture.store.openWorkspace(fixture.workspace.id)
         #expect(fixture.store.selectedTerminalID == "terminal-1")
@@ -78,16 +65,6 @@ struct RetiredSimulatorStreamTests {
         #expect(fixture.persistedTab == MobileWorkspaceLastTab(kind: .terminal, tabID: "terminal-1"))
     }
 
-    @Test func undiscoveredSupportedBrowserStillWaitsWithoutOverwritingMemory() async throws {
-        let fixture = try RetiredSimulatorStreamFixture(remembered: .init(kind: .browserStream, tabID: "not-discovered"))
-        defer { fixture.cleanDefaults() }
-        await fixture.store.openWorkspace(fixture.workspace.id)
-        #expect(fixture.store.selectedTerminalID == "terminal-1")
-        #expect(fixture.store.pendingLastTabRestoreWorkspaceID == fixture.workspace.id)
-        fixture.expectUnchangedMemory()
-        try await fixture.expectNoSimulatorRequests()
-    }
-
     @Test func unhydratedSupportedTerminalStillWaits() async throws {
         let fixture = try RetiredSimulatorStreamFixture(
             remembered: .init(kind: .terminal, tabID: "not-hydrated"),
@@ -98,6 +75,47 @@ struct RetiredSimulatorStreamTests {
         #expect(fixture.store.selectedTerminalID == nil)
         #expect(fixture.store.pendingLastTabRestoreWorkspaceID == fixture.workspace.id)
         fixture.expectUnchangedMemory()
+    }
+
+    @Test(arguments: [true, false])
+    func knownBrowserMacSurfacePreservesMemory(hasTerminal: Bool) async throws {
+        let fixture = try RetiredSimulatorStreamFixture(
+            remembered: .init(kind: .macSurface, tabID: "browser-1"),
+            hasTerminal: hasTerminal, hasBrowserSurface: true
+        )
+        defer { fixture.cleanDefaults() }
+        for _ in 0..<3 {
+            await fixture.store.openWorkspace(fixture.workspace.id)
+            fixture.store.replaceForegroundWorkspaceState([fixture.workspace])
+            fixture.store.refreshWorkspaceSelection()
+            #expect(fixture.store.selectedMacSurfaceID == nil)
+            #expect(fixture.store.pendingLastTabRestoreWorkspaceID == nil)
+            fixture.expectUnchangedMemory()
+        }
+        fixture.store.selectMacSurface("browser-1")
+        #expect(fixture.store.selectedMacSurfaceID == nil)
+        fixture.expectUnchangedMemory()
+        if hasTerminal {
+            fixture.store.selectTerminalFromChrome("terminal-1")
+            #expect(fixture.persistedTab == .init(kind: .terminal, tabID: "terminal-1"))
+        }
+    }
+
+    @Test(arguments: [true, false])
+    func missingMacSurfaceRetainsExistingHydrationSemantics(hasTerminal: Bool) async throws {
+        let fixture = try RetiredSimulatorStreamFixture(
+            remembered: .init(kind: .macSurface, tabID: "missing"),
+            hasTerminal: hasTerminal, hasSimulatorSurface: false
+        )
+        defer { fixture.cleanDefaults() }
+        await fixture.store.openWorkspace(fixture.workspace.id)
+        if hasTerminal {
+            #expect(fixture.store.pendingLastTabRestoreWorkspaceID == nil)
+            #expect(fixture.persistedTab == .init(kind: .terminal, tabID: "terminal-1"))
+        } else {
+            #expect(fixture.store.pendingLastTabRestoreWorkspaceID == fixture.workspace.id)
+            fixture.expectUnchangedMemory()
+        }
     }
 
 }

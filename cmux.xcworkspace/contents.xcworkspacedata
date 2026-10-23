@@ -72,12 +72,6 @@
          location = "group:CmuxAgentChatUI">
       </FileRef>
       <FileRef
-         location = "group:CmuxMobileBrowser">
-      </FileRef>
-      <FileRef
-         location = "group:CmuxMobileBrowserStream">
-      </FileRef>
-      <FileRef
          location = "group:CmuxMobileCamera">
       </FileRef>
       <FileRef
@@ -118,9 +112,6 @@
       </FileRef>
       <FileRef
          location = "group:CmuxMobileTransport">
-      </FileRef>
-      <FileRef
-         location = "group:CmuxMobileTunnel">
       </FileRef>
       <FileRef
          location = "group:CmuxMobileWorkspace">

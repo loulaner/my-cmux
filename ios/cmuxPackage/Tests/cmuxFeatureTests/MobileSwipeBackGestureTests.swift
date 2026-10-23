@@ -2,7 +2,6 @@
 import Testing
 import UIKit
 
-@testable import CmuxMobileBrowser
 @testable import CmuxMobileShellUI
 
 /// Regression coverage for the compact workspace's left-edge swipe-back. The
@@ -14,7 +13,7 @@ import UIKit
 /// while `cmuxUITests.testEdgeSwipeBackDoesNotScrollTerminal` drives the complete
 /// gesture and observes terminal scroll delivery.
 @MainActor
-@Suite("iOS swipe-back over terminal/browser surfaces")
+@Suite("iOS swipe-back over terminal surfaces")
 struct MobileSwipeBackGestureTests {
     /// Builds a navigation controller whose root view controller hosts a
     /// `GestureHostController`, mirroring how `InteractiveSwipeBackEnabler` is
@@ -43,15 +42,6 @@ struct MobileSwipeBackGestureTests {
         return (nav, host, popGesture)
     }
 
-    /// The browser pane is pushed onto the workspace `NavigationStack`. With the
-    /// web view's own edge gesture enabled, a left-edge swipe is eaten by the web
-    /// view (going nowhere when there is no web history) instead of popping back
-    /// to the workspace list. Web history stays reachable via the chrome bar.
-    @Test("browser web view does not claim the edge swipe-back")
-    func browserWebViewDisablesBackForwardGestures() {
-        let webView = MobileBrowserView.makeConfiguredWebView()
-        #expect(webView.allowsBackForwardNavigationGestures == false)
-    }
 
     /// `InteractiveSwipeBackEnabler.GestureHostController` re-arms the swipe by
     /// taking over the pop gesture's delegate when it moves into the navigation

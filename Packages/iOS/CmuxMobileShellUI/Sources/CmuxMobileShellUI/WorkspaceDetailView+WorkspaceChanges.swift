@@ -13,11 +13,9 @@ extension WorkspaceDetailView {
         store.workspaceChangesCapable && connectionStatus == .connected
     }
 
-    /// Dirty terminal-title entry point. Browser headers keep their
-    /// existing labels and chrome unchanged.
+    /// Dirty terminal-title entry point.
     var workspaceTitleChangesChip: MobileWorkspaceChangesChip? {
-        guard activeBrowser == nil,
-              workspaceChangesAreAvailable,
+        guard workspaceChangesAreAvailable,
               let chip = workspaceChangesChip,
               chip.filesChanged > 0 else { return nil }
         return chip

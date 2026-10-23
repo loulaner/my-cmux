@@ -1,6 +1,4 @@
 import CMUXMobileCore
-import CmuxMobileBrowser
-import CmuxMobileBrowserStream
 import CmuxMobileShell
 import CmuxMobileShellModel
 import CmuxMobileSupport
@@ -20,8 +18,6 @@ struct WorkspaceDetailDelayedTerminalPreviewView: View {
         connectedHostName: "UI Test Mac",
         workspaces: initialWorkspaces
     )
-    @State private var browserStore = BrowserSurfaceStore()
-    @State private var browserStreamStore = BrowserStreamStore()
     @State private var didStartFixture = false
     @State private var themeStage = "loading"
 
@@ -31,8 +27,6 @@ struct WorkspaceDetailDelayedTerminalPreviewView: View {
             signOut: {},
             showAddDevice: nil
         )
-        .environment(browserStore)
-        .environment(browserStreamStore)
         .overlay(alignment: .topLeading) {
             if Self.showsThemeParitySequence {
                 Color.clear
@@ -56,16 +50,6 @@ struct WorkspaceDetailDelayedTerminalPreviewView: View {
                     generation += 1
                     store.replaceForegroundWorkspaceState([Self.refreshingWorkspace(generation: generation)])
                     store.selectedWorkspaceID = Self.workspaceID
-                    if ProcessInfo.processInfo.environment["CMUX_UITEST_TERMINAL_MENU_BROWSER_REFRESH"] == "1" {
-                        browserStreamStore.replacePanels(in: Self.workspaceID.rawValue, with: [
-                            MobileBrowserPanelDescriptor(
-                                panelID: "browser-refresh", workspaceID: Self.workspaceID.rawValue,
-                                url: "https://cmux.com", title: "Browser refresh \(generation)",
-                                pageWidth: 800, pageHeight: 600,
-                                canGoBack: false, canGoForward: false, isLoading: false
-                            ),
-                        ])
-                    }
                 }
                 return
             }

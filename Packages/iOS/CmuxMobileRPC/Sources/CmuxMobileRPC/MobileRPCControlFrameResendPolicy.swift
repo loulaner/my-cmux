@@ -23,7 +23,6 @@ struct MobileRPCControlFrameResendPolicy {
     /// `mobile.terminal.artifact.scan`, and `mobile.surface.focus`.
     static let readOnlyMethods: Set<String> = [
         "caffeine.status",
-        "mobile.browser.list",
         "mobile.chat.history",
         "mobile.chat.sessions",
         "mobile.directory.list",

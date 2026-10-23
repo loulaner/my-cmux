@@ -5,7 +5,6 @@ internal import LocalAuthentication
 internal import Network
 internal import CmuxMobileSupport
 public import CmuxMobileSSH
-public import CmuxMobileTunnel
 public import CmuxMobileShellModel
 public import Foundation
 public import Observation
@@ -64,14 +63,6 @@ protocol MobileSSHComputersSink: AnyObject {
     func sshDeliver(_ bytes: Data, surfaceID: String)
     /// The surface's fixed remote grid changed (``MobileSSHComputers/remoteGrid(surfaceID:)``).
     func sshApplyViewport(surfaceID: String)
-    /// Replaces the streamable browser tabs of one SSH workspace row.
-    func sshReplaceBrowserPanels(workspaceID: String, with descriptors: [MobileBrowserPanelDescriptor])
-    func sshDeliverBrowserFrame(_ event: MobileBrowserFrameEvent)
-    func sshDeliverBrowserState(_ event: MobileBrowserStateEvent)
-    /// A browser stream ended without the phone asking (tab closed or
-    /// transport lost). `retry` is false when the stream never showed a
-    /// frame, so a server that keeps refusing cannot cause a reattach loop.
-    func sshBrowserStreamEnded(panelID: String, retry: Bool)
 }
 
 /// Owns everything about SSH computers (PRD `docs/prd/ios-direct-ssh.md`):
@@ -135,14 +126,6 @@ public final class MobileSSHComputers {
     /// Recent output per surface so a remounted view repaints without asking
     /// the server. Capped; cmux-tui re-sends a snapshot on reattach anyway.
     @ObservationIgnored private var replayBySurface: [String: Data] = [:]
-    /// Live browser attachments by scoped panel id (D23).
-    @ObservationIgnored private var browserSessions: [String: any MobileSSHAttachedBrowser] = [:]
-    /// Latest page metadata per panel, for descriptors built between events.
-    @ObservationIgnored private var browserPageSize: [String: (width: Double, height: Double)] = [:]
-    @ObservationIgnored private var browserMetadata: [String: MobileBrowserStateEvent] = [:]
-    /// Panels whose current stream has delivered at least one frame.
-    @ObservationIgnored private var browserPanelsWithFrames: Set<String> = []
-    @ObservationIgnored private var publishedBrowserPanels: [String: [MobileBrowserPanelDescriptor]] = [:]
     /// Everyone waiting on each on-screen prompt. Connections that ask the
     /// same question at once (the editor's password install and the saved
     /// host's auto-connect) share one prompt and one answer.
@@ -158,16 +141,8 @@ public final class MobileSSHComputers {
     @ObservationIgnored private var autoConnectPauseGeneration: [UUID: Int] = [:]
     static let replayCap = 4 * 1_024 * 1_024
 
-    /// Owners of the phone's loopback ports across every computer. The
-    /// composite hands the same registry to paired Macs' browser networks.
-    @ObservationIgnored public let loopbackPorts: LoopbackPortRegistry
-
-    /// - Parameters:
-    ///   - directory: Where hosts and keys persist.
-    ///   - loopbackPorts: The phone-wide loopback port registry; a fresh one
-    ///     by default, so tests and previews never share ports.
-    public init(directory: URL, loopbackPorts: LoopbackPortRegistry = LoopbackPortRegistry()) {
-        self.loopbackPorts = loopbackPorts
+    /// Creates the host and key stores in the supplied directory.
+    public init(directory: URL) {
         hostStore = SSHHostStore(directory: directory)
         keyStore = SSHKeyStore(directory: directory)
         Task { await reload() }
@@ -545,9 +520,6 @@ public final class MobileSSHComputers {
         for surfaceID in surfaceIDs where MobileSSHIdentifier(surfaceID).hostID == hostID {
             await detach(surfaceID: surfaceID)
         }
-        for panelID in browserSessions.keys where MobileSSHIdentifier(panelID).hostID == hostID {
-            await stopBrowser(panelID: panelID)
-        }
         providers[hostID] = nil
         connectTasks[hostID]?.cancel()
         connectTasks[hostID] = nil
@@ -588,27 +560,8 @@ public final class MobileSSHComputers {
         try await connection(for: hostID)
     }
 
-    /// The SOCKS proxy per host for the native browser (see
-    /// `MobileSSHComputers+Browser.swift`).
-    @ObservationIgnored var browserProxies: [UUID: SSHSocksProxy] = [:]
-    @ObservationIgnored var pendingBrowserProxies: [UUID: Task<SSHSocksProxy, any Error>] = [:]
-    /// The proxy port a host used last, rebound after a reconnect so the
-    /// browser's data store keeps pointing at it.
-    @ObservationIgnored var lastBrowserProxyPorts: [UUID: Int] = [:]
-    /// Same-port loopback forwards on the phone, by port (one host each).
-    @ObservationIgnored var loopbackForwards: [Int: (hostID: UUID, forward: SSHLocalPortForward)] = [:]
-    /// Phone ports that could not be bound for a host's loopback mirror
-    /// (busy), not retried until its connection changes.
-    @ObservationIgnored var loopbackBusyPorts: [UUID: Set<Int>] = [:]
-    /// Closing listeners of a host's previous connection; a restart awaits
-    /// them so it can rebind the same ports.
-    @ObservationIgnored var browserNetworkTeardowns: [UUID: Task<Void, Never>] = [:]
-    /// Hosts whose native browser was used, so a reconnect restores the proxy.
-    @ObservationIgnored var browserHosts: Set<UUID> = []
-
     /// Forwards ride the host's connection, so they end with it (PRD D7).
     private func stopAllPortForwards(hostID: UUID) {
-        stopBrowserNetwork(hostID: hostID)
         guard let forwards = forwardsByHost.removeValue(forKey: hostID) else { return }
         Task { for forward in forwards { await forward.stop() } }
     }
@@ -896,7 +849,6 @@ public final class MobileSSHComputers {
         connection.closeFuture.whenComplete { [weak self] _ in
             Task { @MainActor in self?.connectionClosed(hostID: hostID, connection: connection) }
         }
-        restoreBrowserProxy(hostID: hostID)
         return connection
     }
 
@@ -933,7 +885,6 @@ public final class MobileSSHComputers {
         // dead connection; drop it so `replay`/`input` re-attach after a
         // reconnect instead of queueing behind a grid that already arrived.
         attachAwaitingGrid = attachAwaitingGrid.filter { !ownedByHost($0) }
-        // Browser pumps see the transport close and report `.ended` themselves.
         stopAllPortForwards(hostID: hostID)
         statusByHost[hostID] = .idle
         if let host = hosts.first(where: { $0.id == hostID }) { publish(host: host) }
@@ -1080,13 +1031,7 @@ public final class MobileSSHComputers {
                         name: $0.name
                     )
                 },
-                surfaces: workspace.browsers.map {
-                    MobileSurfacePreview(
-                        id: MobileSurfacePreview.ID(rawValue: MobileSSHIdentifier(host: host.id, local: $0.id).rawValue),
-                        kind: .browser,
-                        title: Self.browserTitle($0)
-                    )
-                }
+                surfaces: []
             )
         }
         let status: MobileMacConnectionStatus = switch statusByHost[host.id] ?? .idle {
@@ -1095,7 +1040,6 @@ public final class MobileSSHComputers {
         case .failed: .unavailable
         case .idle: rows.isEmpty ? .unavailable : .connected
         }
-        publishBrowserPanels(host: host)
         sink?.sshPublishWorkspaceState(
             MacWorkspaceState(
                 macDeviceID: computerID,
@@ -1112,145 +1056,6 @@ public final class MobileSSHComputers {
     }
 }
 
-// MARK: - Browser surfaces (D23)
-
-extension MobileSSHComputers {
-    static func browserTitle(_ browser: MobileSSHBrowser) -> String {
-        if !browser.title.isEmpty { return browser.title }
-        if let url = browser.url, !url.isEmpty { return url }
-        return L10nSSH().browserUntitled
-    }
-
-    /// Streamable browser panels of an SSH workspace row.
-    func browserPanels(inWorkspace workspaceID: String) -> [MobileBrowserPanelDescriptor] {
-        guard let hostID = MobileSSHIdentifier(workspaceID).hostID,
-              let local = MobileSSHIdentifier(workspaceID).localID,
-              let workspace = workspacesByHost[hostID]?.first(where: { $0.id == local }) else { return [] }
-        return workspace.browsers.map { descriptor(for: $0, hostID: hostID, workspaceID: workspaceID) }
-    }
-
-    private func descriptor(for browser: MobileSSHBrowser, hostID: UUID, workspaceID: String) -> MobileBrowserPanelDescriptor {
-        let panelID = MobileSSHIdentifier(host: hostID, local: browser.id).rawValue
-        let metadata = browserMetadata[panelID]
-        // Before the first frame, estimate the page from the server grid at
-        // a typical terminal cell (9x16); the first frame replaces it.
-        let size = browserPageSize[panelID]
-            ?? (Double((browser.columns ?? 80) * 9), Double((browser.rows ?? 24) * 16))
-        return MobileBrowserPanelDescriptor(
-            panelID: panelID,
-            workspaceID: workspaceID,
-            url: metadata?.url ?? browser.url,
-            title: metadata?.title ?? Self.browserTitle(browser),
-            pageWidth: size.width,
-            pageHeight: size.height,
-            canGoBack: true,
-            canGoForward: true,
-            isLoading: metadata?.isLoading ?? false
-        )
-    }
-
-    private func publishBrowserPanels(host: SSHHostRecord) {
-        for workspace in workspacesByHost[host.id] ?? [] {
-            let workspaceID = MobileSSHIdentifier(host: host.id, local: workspace.id).rawValue
-            let panels = browserPanels(inWorkspace: workspaceID)
-            // Metadata-only churn must not bump the store's discovery revision.
-            let identity = panels.map(\.panelID)
-            guard publishedBrowserPanels[workspaceID]?.map(\.panelID) != identity else { continue }
-            publishedBrowserPanels[workspaceID] = panels
-            sink?.sshReplaceBrowserPanels(workspaceID: workspaceID, with: panels)
-        }
-    }
-
-    func isBrowserStreaming(panelID: String) -> Bool {
-        browserSessions[panelID] != nil
-    }
-
-    func browserSession(panelID: String) -> (any MobileSSHAttachedBrowser)? {
-        browserSessions[panelID]
-    }
-
-    /// Attaches a browser tab (idempotent) and returns its descriptor.
-    func startBrowser(panelID: String, viewport: MobileBrowserViewport?) async throws -> MobileBrowserPanelDescriptor {
-        guard let hostID = MobileSSHIdentifier(panelID).hostID,
-              let local = MobileSSHIdentifier(panelID).localID,
-              let parsed = MobileSSHLocalID(rawValue: local) else { throw MobileSSHRuntimeError.browserUnavailable }
-        guard let (workspaceID, browser) = locateBrowser(hostID: hostID, local: local) else {
-            throw MobileSSHRuntimeError.browserUnavailable
-        }
-        if browserSessions[panelID] == nil {
-            guard let provider = try await provider(for: hostID).provider(for: parsed) as? any MobileSSHBrowserProviding else {
-                throw MobileSSHRuntimeError.browserUnavailable
-            }
-            let session = try await provider.attachBrowser(
-                browserID: parsed.providerID,
-                viewport: viewport.map { ($0.width, $0.height) }
-            ) { [weak self] event in
-                self?.handleBrowser(event, panelID: panelID)
-            }
-            if browserSessions[panelID] != nil {
-                // Lost a race with another start; keep the first stream.
-                await session.detach()
-            } else {
-                browserSessions[panelID] = session
-                browserPanelsWithFrames.remove(panelID)
-            }
-        }
-        return descriptor(for: browser, hostID: hostID, workspaceID: workspaceID)
-    }
-
-    /// Detaches a browser stream. The tab keeps running on the server.
-    func stopBrowser(panelID: String) async {
-        guard let session = browserSessions.removeValue(forKey: panelID) else { return }
-        await session.detach()
-    }
-
-    private func locateBrowser(hostID: UUID, local: String) -> (workspaceID: String, browser: MobileSSHBrowser)? {
-        for workspace in workspacesByHost[hostID] ?? [] {
-            if let browser = workspace.browsers.first(where: { $0.id == local }) {
-                return (MobileSSHIdentifier(host: hostID, local: workspace.id).rawValue, browser)
-            }
-        }
-        return nil
-    }
-
-    private func handleBrowser(_ event: MobileSSHBrowserEvent, panelID: String) {
-        switch event {
-        case let .state(url, title, isLoading, failure):
-            let state = MobileBrowserStateEvent(
-                panelID: panelID,
-                url: url,
-                title: failure.map { $0.isEmpty ? L10nSSH().browserFailed : L10nSSH().browserFailed + ": " + $0 } ?? title,
-                // cmux-tui does not report history availability; keep both
-                // buttons enabled (the server no-ops at either end).
-                canGoBack: true,
-                canGoForward: true,
-                isLoading: isLoading,
-                progress: isLoading ? 0.3 : 1,
-                editableFocused: false
-            )
-            browserMetadata[panelID] = state
-            sink?.sshDeliverBrowserState(state)
-        case let .frame(sequence, pageWidth, pageHeight, pixelWidth, pixelHeight, base64PNG):
-            browserPageSize[panelID] = (pageWidth, pageHeight)
-            browserPanelsWithFrames.insert(panelID)
-            sink?.sshDeliverBrowserFrame(MobileBrowserFrameEvent(
-                panelID: panelID,
-                sequence: sequence,
-                format: .png,
-                pageWidth: pageWidth,
-                pageHeight: pageHeight,
-                pixelWidth: pixelWidth,
-                pixelHeight: pixelHeight,
-                dataBase64: base64PNG
-            ))
-        case .ended:
-            guard browserSessions.removeValue(forKey: panelID) != nil else { return }
-            let retry = browserPanelsWithFrames.remove(panelID) != nil
-            sink?.sshBrowserStreamEnded(panelID: panelID, retry: retry)
-        }
-    }
-}
-
 /// The user's answer to a ``MobileSSHPrompt``.
 public enum MobileSSHPromptAnswer: Sendable, Equatable {
     case trust
@@ -1264,8 +1069,6 @@ enum MobileSSHRuntimeError: Error {
     case cmuxTUIMissing
     /// A discovered cmux-tui session's owner stopped.
     case cmuxTUISessionGone
-    /// The browser tab is gone or the host's mode cannot stream browsers.
-    case browserUnavailable
 }
 
 /// Pins host keys on first use (after asking) and stops on a changed key.

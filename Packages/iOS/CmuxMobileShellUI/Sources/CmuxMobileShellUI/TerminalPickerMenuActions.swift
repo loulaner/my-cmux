@@ -11,8 +11,6 @@ struct TerminalPickerMenuActions {
     /// "Split Right" / "Split Down" on a tmux window, "New Tab" or a split
     /// on a cmux-tui screen. Receives the section id.
     var createSSHTab: (String, MobileSSHSectionAction) -> Void = { _, _ in }
-    let openBrowser: () -> Void
-    let selectBrowserStream: (String) -> Void
     let openTextSheet: () -> Void
     let copyDebugLogs: () -> Void
     let sendFeedback: () -> Void

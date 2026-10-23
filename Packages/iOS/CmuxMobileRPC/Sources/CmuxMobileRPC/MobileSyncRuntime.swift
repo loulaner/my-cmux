@@ -53,18 +53,7 @@ public protocol MobileSyncRuntime: Sendable {
     var terminalInputLaneProvider: MobileTerminalLaneProvider? { get }
     /// Optional source for low-priority raw artifact bytes on an admitted Iroh peer.
     var artifactLaneProvider: MobileArtifactLaneProvider? { get }
-    /// Optional source for "On iPhone" browser tunnel connections opened
-    /// from the paired Mac. Nil keeps the phone browser off the Mac.
-    var tunnelConnectProvider: MobileTunnelConnectProvider? { get }
-    /// Optional source for the paired Mac's loopback listening ports.
-    var tunnelListeningPortsProvider: MobileTunnelListeningPortsProvider? { get }
-    /// Bounded deadline, in nanoseconds, for the render-grid liveness
-    /// watchdog's subscription probe (an idempotent `mobile.events.subscribe`
-    /// re-assert). A healthy idle terminal legitimately pushes no events, so
-    /// the watchdog verifies prolonged silence with this probe before
-    /// declaring the stream dead; the deadline bounds how long a dead
-    /// transport can stall that verdict.
-    var livenessProbeTimeoutNanoseconds: UInt64 { get }
+
 
     /// Hard ceiling on one automatic reconnect attempt (stored-Mac redial)
     /// end to end. An Iroh dial can hang far past any per-transport connect
@@ -99,8 +88,6 @@ public extension MobileSyncRuntime {
     var terminalLaneProvider: MobileTerminalLaneProvider? { nil }
     var terminalInputLaneProvider: MobileTerminalLaneProvider? { nil }
     var artifactLaneProvider: MobileArtifactLaneProvider? { nil }
-    var tunnelConnectProvider: MobileTunnelConnectProvider? { nil }
-    var tunnelListeningPortsProvider: MobileTunnelListeningPortsProvider? { nil }
 
     /// Returns a cached Stack access token for best-effort status probes.
     var stackAccessTokenForStatusProvider: @Sendable () async -> String? {

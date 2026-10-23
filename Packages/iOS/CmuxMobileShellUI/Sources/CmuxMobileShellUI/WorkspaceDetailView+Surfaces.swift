@@ -1,6 +1,4 @@
 import CMUXMobileCore
-import CmuxMobileBrowser
-import CmuxMobileBrowserStream
 import CmuxMobileShell
 import CmuxMobileShellModel
 import CmuxMobileSupport
@@ -27,33 +25,7 @@ extension WorkspaceDetailView {
                 .opacity(surface == .terminal ? 1 : 0)
                 .allowsHitTesting(surface == .terminal)
                 .accessibilityHidden(surface != .terminal)
-            if surface == .browser, let browser = activeBrowser {
-                browserContent(browser)
-                    .background(store.activeTerminalTheme.terminalBackgroundColor)
-            } else if surface == .browser {
-                waitingSurfacePlaceholder(
-                    title: L10n.string("mobile.browser.waiting", defaultValue: "Waiting for Browser"),
-                    detail: L10n.string(
-                        "mobile.browser.waitingDetail",
-                        defaultValue: "The browser will appear when the Mac is ready."
-                    ),
-                    symbol: "globe",
-                    accessibilityIdentifier: "MobileBrowserPlaceholder"
-                )
-            } else if surface == .browserStream, let browser = activeBrowserStream {
-                browserStreamContent(browser)
-                    .background(store.activeTerminalTheme.terminalBackgroundColor)
-            } else if surface == .browserStream {
-                waitingSurfacePlaceholder(
-                    title: L10n.string("mobile.browserStream.waiting", defaultValue: "Waiting for Browser"),
-                    detail: L10n.string(
-                        "mobile.browserStream.waitingDetail",
-                        defaultValue: "The first frame will appear when the Mac is ready."
-                    ),
-                    symbol: "globe",
-                    accessibilityIdentifier: "BrowserStreamPlaceholder"
-                )
-            } else if case let .macSurface(macSurface) = surface {
+            if case let .macSurface(macSurface) = surface {
                 macSurfaceContent(macSurface)
                     .background(store.activeTerminalTheme.terminalBackgroundColor)
                     // System colors, materials, and list backgrounds must
@@ -152,83 +124,6 @@ extension WorkspaceDetailView {
                 canOpenOnMac: canOpenOnMac,
                 openOnMac: openOnMac
             )
-        }
-    }
-
-    @ViewBuilder
-    func browserContent(_ browser: BrowserSurfaceState) -> some View {
-        let serverRoute = browserServerRoute
-        MobileBrowserPane(
-            state: browser,
-            serverRoute: serverRoute,
-            modePicker: onDeviceModePicker(browser),
-            addressIdentifier: sshHostID == nil ? nil : "ssh.browser.address",
-            onDiagnosticEvent: { event in
-                recordLocalBrowserDiagnostic(event, surfaceID: browser.id.rawValue)
-            }
-        )
-        // The route (proxy and data store) is fixed for a web view's
-        // lifetime, so a Mac that gains or loses the tunnel gets a new one.
-        .id("\(browser.id.rawValue)|\(serverRoute?.id ?? "")")
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func recordLocalBrowserDiagnostic(
-        _ event: BrowserSurfaceDiagnosticEvent,
-        surfaceID: String
-    ) {
-        switch event {
-        case .navigateStarted:
-            store.recordAppEvent(.browserNavigateStarted, correlationID: surfaceID)
-        case .navigateSucceeded:
-            store.recordAppEvent(.browserNavigateSucceeded, correlationID: surfaceID)
-        case .navigateFailed(let error):
-            store.recordAppEvent(
-                .browserNavigateFailed,
-                correlationID: surfaceID,
-                failure: DiagnosticFailureKind.classify(error)
-            )
-        case .backRequested:
-            store.recordAppEvent(.browserBackRequested, correlationID: surfaceID)
-        case .forwardRequested:
-            store.recordAppEvent(.browserForwardRequested, correlationID: surfaceID)
-        case .reloadRequested:
-            store.recordAppEvent(.browserReloadRequested, correlationID: surfaceID)
-        case .stopRequested:
-            store.recordAppEvent(.browserStopRequested, correlationID: surfaceID)
-        }
-    }
-
-    func browserStreamContent(_ browser: BrowserStreamSurfaceState) -> some View {
-        BrowserStreamPane(
-            state: browser,
-            actions: BrowserStreamSurfaceActions(
-                pointer: { await store.sendMobileBrowserPointer($0) },
-                scroll: { await store.sendMobileBrowserScroll($0) },
-                key: { await store.sendMobileBrowserKey($0) },
-                text: { await store.sendMobileBrowserText($0) },
-                viewport: { parameters in
-                    await browserStreamStore.reportBrowserStreamViewport(parameters)
-                    await store.updateMobileBrowserViewport(parameters)
-                },
-                navigate: { await store.navigateMobileBrowser(panelID: $0, url: $1) },
-                back: { await store.backMobileBrowser(panelID: $0) },
-                forward: { await store.forwardMobileBrowser(panelID: $0) },
-                reload: { await store.reloadMobileBrowser(panelID: $0) },
-                respondToDialog: { await store.respondToMobileBrowserDialog($0) }
-            ),
-            reconnect: { Task { await store.reconnectBrowserStream(panelID: browser.id) } },
-            modePicker: streamedModePicker(browser)
-        )
-        .id(browser.id)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // The browser-stream surface is conditionally mounted (not opacity
-        // swapped like the terminal), so leaving it — via the surface picker
-        // or nav back — removes this view and stops the stream here, replacing
-        // the old in-bar close button.
-        .onDisappear {
-            browserStreamStore.deactivate(in: workspace.rpcWorkspaceID.rawValue)
-            Task { await store.stopMobileBrowserStream(panelID: browser.id) }
         }
     }
 

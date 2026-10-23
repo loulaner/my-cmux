@@ -1,5 +1,4 @@
 import CMUXMobileCore
-import CmuxMobileBrowserStream
 import CmuxMobileRPC
 import CmuxMobileShellModel
 import Foundation
@@ -12,23 +11,25 @@ struct RetiredSimulatorStreamFixture {
     let defaults: UserDefaults
     let originalBytes: Data
     let workspace: MobileWorkspacePreview
-    let browser = BrowserStreamStore()
     let router = LivenessHostRouter()
     let store: MobileShellComposite
 
     init(
         remembered: MobileWorkspaceLastTab = .init(kind: .simulatorStream, tabID: "sim-1"),
         hasTerminal: Bool = true,
-        hasSimulatorSurface: Bool = true
+        hasSimulatorSurface: Bool = true,
+        hasBrowserSurface: Bool = false
     ) throws {
         suite = "RetiredSimulatorStreamTests.\(UUID().uuidString)"
         defaults = try #require(UserDefaults(suiteName: suite))
         workspace = MobileWorkspacePreview(
             id: "workspace-1", name: "Mixed workspace",
             terminals: hasTerminal ? [MobileTerminalPreview(id: "terminal-1", name: "Shell", isFocused: true)] : [],
-            surfaces: hasSimulatorSurface ? [MobileSurfacePreview(
+            surfaces: (hasSimulatorSurface ? [MobileSurfacePreview(
                 id: "sim-1", kind: .init(rawValue: "simulator"), title: "Simulator", isFocused: true
-            )] : [],
+            )] : []) + (hasBrowserSurface ? [MobileSurfacePreview(
+                id: "browser-1", kind: .browser, title: "Browser", isFocused: true
+            )] : []),
             simulators: [MobileSimulatorPanelDescriptor(
                 panelID: "sim-1", workspaceID: "workspace-1", title: "Simulator",
                 selectedDeviceName: "iPhone", selectedDeviceState: "Booted",
@@ -48,7 +49,7 @@ struct RetiredSimulatorStreamFixture {
             runtime: runtime, isSignedIn: true, connectionState: .connected, workspaces: [workspace],
             clientIDRepository: MobileClientIDRepository(defaults: defaults, environment: [:]),
             pairingHintDefaults: defaults, multiMacAggregationDefaults: defaults,
-            lastTabStore: memory, browserStreamEvents: browser
+            lastTabStore: memory
         )
         let route = try CmxAttachRoute(
             id: "test-only", kind: .debugLoopback,
@@ -78,6 +79,10 @@ struct RetiredSimulatorStreamFixture {
         for method in ["list", "stream.start", "stream.stop", "input.pointer", "input.text",
                        "input.button", "devices.list", "device.select", "recover"] {
             #expect(await router.count(of: "mobile.simulator.\(method)") == 0)
+        }
+        for method in ["list", "create", "stream.start", "stream.stop", "input.pointer", "input.text",
+                       "navigate", "back", "forward", "reload", "dialog.respond", "frame.ack"] {
+            #expect(await router.count(of: "mobile.browser.\(method)") == 0)
         }
         await store.remoteClient?.disconnect()
     }

@@ -3,26 +3,16 @@ import Foundation
 
 enum WorkspaceActiveSurface: Equatable {
     case terminal
-    case browser
-    case browserStream
     case macSurface(MobileSurfacePreview)
 
     static func derive(
-        hasActiveBrowser: Bool,
-        hasActiveBrowserStream: Bool = false,
         selectedMacSurface: MobileSurfacePreview? = nil
     ) -> Self {
-        if hasActiveBrowser {
-            return .browser
-        }
-        if hasActiveBrowserStream {
-            return .browserStream
-        }
         if let selectedMacSurface { return .macSurface(selectedMacSurface) }
         return .terminal
     }
 
-    /// The terminal to refocus when chrome (browser/stream) returns to the
+    /// The terminal to refocus when chrome returns to the
     /// terminal surface, or nil when autofocus must stay suppressed.
     ///
     /// The terminal stays mounted under chrome (an opacity swap, not a

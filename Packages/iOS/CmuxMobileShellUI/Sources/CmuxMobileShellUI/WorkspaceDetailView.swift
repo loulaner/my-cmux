@@ -1,8 +1,6 @@
 import CMUXMobileCore
 import CmuxAgentChat
 import CmuxAgentChatUI
-import CmuxMobileBrowser
-import CmuxMobileBrowserStream
 import CmuxMobileDiagnostics
 import CmuxMobileShell
 import CmuxMobileShellModel
@@ -54,8 +52,6 @@ struct WorkspaceDetailView: View {
     /// while the sidebar column is hidden. When visible, the sidebar toolbar
     /// owns the same action instead.
     var showsSidebarToggle = false
-    @Environment(BrowserSurfaceStore.self) var browserStore
-    @Environment(BrowserStreamStore.self) var browserStreamStore
     @Environment(MobileDisplaySettings.self) var displaySettings
     @Environment(ToastCenter.self) private var toasts
     @Environment(\.mobileChildPresentationProvider) private var childPresentationProvider
@@ -129,10 +125,6 @@ struct WorkspaceDetailView: View {
     @State private var barPresence = WorkspaceBarPresence()
     /// Terminal captured for the current "View as Text" sheet presentation.
     @State private var textSheetSurfaceID: String?
-    /// Identity of the in-flight New Browser creation. A late RPC result must
-    /// not activate its panel over a selection the user made in the meantime,
-    /// so completion applies only while its request is still current.
-    @State private var browserCreateRequest: UUID?
     /// Local presenter identity remains separate from the artifact popover payload.
     @State var isTerminalArtifactFilesPresented = false
     @State var isTerminalSizeSheetPresented = false
@@ -148,13 +140,6 @@ struct WorkspaceDetailView: View {
     @State var artifactGalleryRefreshSignal = TerminalArtifactGalleryRefreshSignal.initial
     @Environment(\.scenePhase) var scenePhase
     #endif
-    /// The active browser surface for this workspace, when a browser pane is open.
-    var activeBrowser: BrowserSurfaceState? {
-        browserStore.activeBrowser(for: workspace.id.rawValue)
-    }
-    var activeBrowserStream: BrowserStreamSurfaceState? {
-        browserStreamStore.activeState(in: workspace.rpcWorkspaceID.rawValue)
-    }
     #if os(iOS)
     /// Uses the root modal owner in the live app and local state in previews.
     func resolvedPresentation(
@@ -201,8 +186,6 @@ struct WorkspaceDetailView: View {
     }
     var activeSurface: WorkspaceActiveSurface {
         WorkspaceActiveSurface.derive(
-            hasActiveBrowser: activeBrowser != nil,
-            hasActiveBrowserStream: activeBrowserStream != nil,
             selectedMacSurface: workspace.selectedMacSurface(id: store.selectedMacSurfaceID)
         )
     }
@@ -235,7 +218,7 @@ struct WorkspaceDetailView: View {
             // plain view background only covers the content bounds, leaving
             // the split view's top safe area on the default system color.
             .mobileNavigationContainerBackground(store.activeTerminalTheme.terminalBackgroundColor)
-            // The browser and chat surfaces scroll; without this the system
+            // Chat surfaces scroll; without this the system
             // minimizes the whole bar into a floating "…" pill, unlike the
             // terminal surface, which has no system scroll view.
             .mobilePinnedNavigationBar()
@@ -243,14 +226,6 @@ struct WorkspaceDetailView: View {
 
         detailNavigationChrome(navigationContent)
             .task(id: workspace.rpcWorkspaceID.rawValue) {
-                await store.refreshMobileBrowserPanels(workspaceID: workspace.rpcWorkspaceID.rawValue)
-                store.refreshWorkspaceSelection()
-                restoreLocalBrowserTabIfRequested()
-            }
-            .onChange(of: store.pendingLocalBrowserTabRestoreWorkspaceID) { _, _ in
-                restoreLocalBrowserTabIfRequested()
-            }
-            .onChange(of: browserStreamStore.panelDiscoveryRevision(in: workspace.rpcWorkspaceID.rawValue)) { _, _ in
                 store.refreshWorkspaceSelection()
             }
             // Structural removal drops the item's retained measurement so a
@@ -593,29 +568,11 @@ struct WorkspaceDetailView: View {
     }
 
     private var toolbarTitleLabelToken: WorkspaceTitleMenuLabelToken {
-        let connectionStatus = effectiveConnectionStatus
-        if let browser = activeBrowser {
-            // Browser-style surfaces keep the workspace as the pill's title,
-            // like the terminal; the surface's own title (the page or tab)
-            // rides the subtitle line.
-            return .standard(
-                title: workspace.name,
-                subtitle: browser.title,
-                connectionStatus: connectionStatus
-            )
-        } else if let browser = activeBrowserStream {
-            return .standard(
-                title: workspace.name,
-                subtitle: browser.title,
-                connectionStatus: connectionStatus
-            )
-        } else {
-            return .standard(
-                title: workspace.name,
-                subtitle: selectedToolbarSubtitle,
-                connectionStatus: connectionStatus
-            )
-        }
+        .standard(
+            title: workspace.name,
+            subtitle: selectedToolbarSubtitle,
+            connectionStatus: effectiveConnectionStatus
+        )
     }
     #endif
 
@@ -937,15 +894,7 @@ struct WorkspaceDetailView: View {
                 canCreateWorkspace: canCreateWorkspace,
                 canCreateTerminal: store.externalHostID(ofWorkspace: workspace.id) != nil
                     || store.sshSupportsTerminalTabs(workspaceID: workspace.id),
-                hasActiveBrowser: activeBrowser != nil,
-                browserStreamRows: browserStreamStore.panels(in: workspace.rpcWorkspaceID.rawValue).map(BrowserStreamPickerRow.init),
-                supportsBrowserStream: store.supportsBrowserStream(inWorkspace: workspace.id),
-                browserStreamSupportKnown: effectiveConnectionStatus == .connected,
-                activeBrowserStreamPanelID: activeBrowserStream?.id,
-                onDeviceBrowserStreamPanelID: activeBrowser?.linkedStreamPanelID,
-                sshTabLayout: store.sshTabLayout(workspaceID: workspace.id),
-                isSSHComputer: sshHostID != nil,
-                isExternalHost: store.externalHostID(ofWorkspace: workspace.id) != nil
+                sshTabLayout: store.sshTabLayout(workspaceID: workspace.id)
             ),
             actions: TerminalPickerMenuActions(
                 selectTerminal: selectTerminalFromPicker,
@@ -953,8 +902,6 @@ struct WorkspaceDetailView: View {
                 createWorkspace: createWorkspaceFromToolbar,
                 createTerminal: createTerminalFromToolbar,
                 createSSHTab: createSSHTabFromPicker,
-                openBrowser: openBrowserFromToolbar,
-                selectBrowserStream: { selectBrowserStreamFromToolbar($0) },
                 openTextSheet: openTextSheetFromMenu,
                 copyDebugLogs: {
                     #if DEBUG
@@ -1198,12 +1145,6 @@ struct WorkspaceDetailView: View {
 
     private func createTerminalFromToolbar() {
         dismissTerminalKeyboardForChrome()
-        browserCreateRequest = nil
-        // Creating a terminal from the (shared) chrome must surface it. If a
-        // browser pane is up, close it so `body` leaves the browser branch and
-        // shows the new terminal instead of staying on the browser.
-        browserStore.closeBrowser(for: workspace.id.rawValue)
-        stopActiveBrowserStream()
         store.selectedMacSurfaceID = nil
         createTerminal()
     }
@@ -1213,99 +1154,17 @@ struct WorkspaceDetailView: View {
     /// terminal like New Terminal.
     private func createSSHTabFromPicker(_ sectionID: String, _ action: MobileSSHSectionAction) {
         dismissTerminalKeyboardForChrome()
-        browserCreateRequest = nil
-        browserStore.closeBrowser(for: workspace.id.rawValue)
-        stopActiveBrowserStream()
         store.createSSHTab(in: workspace.id, section: sectionID, action: action)
     }
 
-    private func openBrowserFromToolbar() {
-        dismissTerminalKeyboardForChrome()
-        // New Browser creates a real Mac browser pane and streams it, so it
-        // shows the same surface as the Mac Browsers rows. The phone-local
-        // WKWebView pane remains only as a fallback for Macs that cannot
-        // create panels (older builds, disconnected, or creation rejected).
-        // SSH workspaces always use the native pane: it reaches the server's
-        // `localhost` ports through SSH forwards.
-        guard sshHostID == nil,
-              store.externalHostID(ofWorkspace: workspace.id) == nil,
-              store.supportsBrowserStreamCreate else {
-            openLocalBrowserFallback()
-            return
-        }
-        let workspaceID = workspace.rpcWorkspaceID.rawValue
-        let request = UUID()
-        browserCreateRequest = request
-        Task {
-            let descriptor = await store.createMobileBrowserPanel(workspaceID: workspaceID)
-            guard browserCreateRequest == request else { return }
-            browserCreateRequest = nil
-            guard let descriptor else {
-                openLocalBrowserFallback()
-                return
-            }
-            selectBrowserStreamFromToolbar(descriptor.panelID, dismissKeyboard: false)
-        }
-    }
 
-    /// Opens (or reveals) the phone-local browser pane for this workspace. The
-    /// detail view flips to the browser because `activeBrowser` becomes
-    /// non-nil; the picker shows a check next to "New Browser" while it is up.
-    func openLocalBrowserFallback() {
-        showLocalBrowser { browserStore.openBrowser(for: $0) }
-    }
 
-    /// Makes the phone-local browser that `open` reveals (for this
-    /// workspace's raw id) the visible surface.
-    func showLocalBrowser(_ open: (String) -> BrowserSurfaceState) {
-        let workspaceID = workspace.id.rawValue
-        store.recordAppEvent(.browserCreateStarted, correlationID: workspaceID)
-        _ = open(workspaceID)
-        store.recordAppEvent(.browserCreateSucceeded, correlationID: workspaceID)
-        store.recordLastOpenedLocalBrowserTab(in: workspace.id)
-        stopActiveBrowserStream()
-        store.selectedMacSurfaceID = nil
-    }
 
-    func selectBrowserStreamFromToolbar(_ panelID: String, dismissKeyboard: Bool = true) {
-        if dismissKeyboard {
-            dismissTerminalKeyboardForChrome()
-        }
-        // A streamed tab last switched to "On iPhone" reopens there.
-        if openStreamPanelOnDeviceIfPreferred(panelID) { return }
-        browserCreateRequest = nil
-        browserStore.closeBrowser(for: workspace.id.rawValue)
-        store.selectedMacSurfaceID = nil
-        if let previous = activeBrowserStream, previous.id != panelID {
-            Task { await store.stopMobileBrowserStream(panelID: previous.id) }
-        }
-        _ = browserStreamStore.activate(panelID: panelID, in: workspace.rpcWorkspaceID.rawValue)
-        store.recordLastOpenedBrowserStreamTab(panelID: panelID, in: workspace.id)
-        Task { await store.startMobileBrowserStream(panelID: panelID) }
-    }
 
-    /// Reopens the phone-local browser pane when the store's last-opened-tab
-    /// restore asked for it. The local browser lives in this view layer's
-    /// `BrowserSurfaceStore`, so the composite hands the reopen here as a
-    /// one-shot intent; opening is idempotent for an already-open pane.
-    private func restoreLocalBrowserTabIfRequested() {
-        guard store.consumeLocalBrowserTabRestore(for: workspace.id) else { return }
-        _ = browserStore.openBrowser(for: workspace.id.rawValue)
-    }
 
-    func stopActiveBrowserStream() {
-        guard let stream = activeBrowserStream else { return }
-        browserStreamStore.deactivate(in: workspace.rpcWorkspaceID.rawValue)
-        Task { await store.stopMobileBrowserStream(panelID: stream.id) }
-    }
 
     private func selectTerminalFromPicker(_ terminalID: MobileTerminalPreview.ID) {
         dismissTerminalKeyboardForChrome()
-        browserCreateRequest = nil
-        // Choosing a terminal returns from the browser pane (if up) to the
-        // terminal. Closing the browser is enough to flip the detail view back.
-        browserStore.closeBrowser(for: workspace.id.rawValue)
-        stopActiveBrowserStream()
         store.selectedMacSurfaceID = nil
         // Switching from the picker is chrome, not a typing intent, so the
         // newly-selected surface must not grab the keyboard on attach. The
@@ -1317,9 +1176,6 @@ struct WorkspaceDetailView: View {
 
     private func selectMacSurfaceFromPicker(_ surfaceID: MobileSurfacePreview.ID) {
         dismissTerminalKeyboardForChrome()
-        browserCreateRequest = nil
-        browserStore.closeBrowser(for: workspace.id.rawValue)
-        stopActiveBrowserStream()
         store.selectMacSurface(surfaceID)
     }
 

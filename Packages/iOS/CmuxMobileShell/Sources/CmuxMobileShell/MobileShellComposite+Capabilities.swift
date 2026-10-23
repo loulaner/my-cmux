@@ -2,20 +2,6 @@ import CMUXMobileCore
 public import CmuxMobileShellModel
 
 extension MobileShellComposite {
-    /// Whether the connected Mac supports browser-pane streaming.
-    public var supportsBrowserStream: Bool { supportedHostCapabilities.contains(Self.browserStreamCapability) }
-    /// Whether the connected Mac can reflow a browser stream to the phone viewport.
-    public var supportsBrowserStreamViewport: Bool {
-        supportsBrowserStream && supportedHostCapabilities.contains(Self.browserStreamViewportCapability)
-    }
-    /// Whether the connected Mac supports native browser dialog mirroring.
-    public var supportsBrowserStreamDialogs: Bool {
-        supportsBrowserStream && supportedHostCapabilities.contains(Self.browserStreamDialogCapability)
-    }
-    /// Whether the connected Mac can create a browser panel for the phone to stream.
-    public var supportsBrowserStreamCreate: Bool {
-        supportsBrowserStream && supportedHostCapabilities.contains(Self.browserStreamCreateCapability)
-    }
     static let chatArtifactFoldersCapability = "chat.artifact.folders.v1"
     static let terminalArtifactListCapability = "terminal.artifact.list.v1"
 

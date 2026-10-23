@@ -36,11 +36,11 @@ class SimulatorStreamRemovalTests(unittest.TestCase):
             self.assertNotIn('CmuxMobileSimulatorStream', (ROOT / name).read_text())
         self.assertNotIn('CmuxSimulatorStreamKit', (ROOT / 'Packages/iOS/CmuxMobileShellUI/Package.swift').read_text())
 
-    def test_retired_memory_is_handled_before_active_browser(self):
+    def test_retired_memory_is_handled_before_supported_restore(self):
         source = (ROOT / SHELL / 'MobileShellComposite.swift').read_text()
         restore = source.split('private func restoreLastOpenedTab(', 1)[1].split('// MARK:', 1)[0]
-        self.assertLess(restore.index('remembered.kind == .simulatorStream'),
-                        restore.index('if let activeBrowser'))
+        self.assertLess(restore.index('[.simulatorStream, .browserStream, .localBrowser]'),
+                        restore.index('switch remembered.kind'))
         self.assertIn('case unsupportedPreservingMemory', source)
         self.assertIn('case .unsupportedPreservingMemory:', source)
         self.assertNotIn('startMobileSimulatorStream', restore)
@@ -50,12 +50,11 @@ class SimulatorStreamRemovalTests(unittest.TestCase):
         self.assertIn('case simulatorStream', (model / 'MobileWorkspaceLastTabStore.swift').read_text())
         self.assertIn('simulators: [MobileSimulatorPanelDescriptor]', (model / 'MobileWorkspacePreview.swift').read_text())
         for package in ('Packages/macOS/CmuxSimulator', 'Packages/Shared/CmuxSimulatorStreamKit',
-                        'Packages/iOS/CmuxMobileBrowserStream', 'Packages/iOS/CmuxMobileSSH',
+                        'Packages/iOS/CmuxMobileSSH',
                         'Packages/iOS/CmuxMobileTerminal'):
             self.assertTrue((ROOT / package / 'Package.swift').exists())
         source = (ROOT / SHELL / 'MobileShellComposite.swift').read_text()
         self.assertIn('restartTerminalLanesForMountedSurfaces()', source)
-        self.assertIn('restartActiveMobileBrowserStreams()', source)
 
 
 if __name__ == '__main__':

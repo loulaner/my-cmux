@@ -25,12 +25,12 @@ import UIKit
 
         #expect(before.map(\.title) == menuActions(in: presented).map(\.title))
         #expect(before.contains { $0.title == "Terminal 0" })
-        #expect(before.contains { $0.title == "Browser 0" })
+        #expect(!before.contains { $0.identifier.rawValue == "MobileNewBrowserMenuItem" })
         #expect(!before.contains { $0.title == "Added terminal" })
 
         let reopened = menuActions(in: coordinator.makeMenuElements())
         #expect(reopened.contains { $0.title == "Terminal 20" })
-        #expect(reopened.contains { $0.title == "Browser 20" })
+        #expect(!reopened.contains { $0.identifier.rawValue == "MobileNewBrowserMenuItem" })
         #expect(reopened.contains { $0.title == "Added terminal" })
         #expect(button.accessibilityValue == "Terminal 20")
         #expect(reopened.first { $0.identifier.rawValue == "MobileTerminalMenuItem-terminal-1" }?.state == .on)
@@ -80,36 +80,6 @@ import UIKit
         #expect(selected == ["first:terminal-1", "second:terminal-1"])
     }
 
-    @Test func reconnectingMacDoesNotShowUnsupportedBrowserHint() {
-        let reconnecting = TerminalPickerMenuValue(
-            liveTerminals: [],
-            selectedID: nil,
-            canCreateWorkspace: true,
-            hasActiveBrowser: false,
-            supportsBrowserStream: false,
-            browserStreamSupportKnown: false
-        )
-        let unsupported = TerminalPickerMenuValue(
-            liveTerminals: [],
-            selectedID: nil,
-            canCreateWorkspace: true,
-            hasActiveBrowser: false,
-            supportsBrowserStream: false,
-            browserStreamSupportKnown: true
-        )
-
-        let reconnectingActions = menuActions(in: TerminalPickerMenuContent(
-            value: reconnecting,
-            actions: actions()
-        ).makeElements())
-        let unsupportedActions = menuActions(in: TerminalPickerMenuContent(
-            value: unsupported,
-            actions: actions()
-        ).makeElements())
-
-        #expect(!reconnectingActions.contains { $0.identifier.rawValue == "BrowserStreamMacUpdateHint" })
-        #expect(unsupportedActions.contains { $0.identifier.rawValue == "BrowserStreamMacUpdateHint" })
-    }
 
     private func menuValue(generation: Int, grouped: Bool = false) -> TerminalPickerMenuValue {
         var terminals = [MobileTerminalPreview(id: "terminal-1", name: "Terminal \(generation)")]
@@ -118,13 +88,6 @@ import UIKit
             liveTerminals: terminals,
             selectedID: "terminal-1",
             canCreateWorkspace: generation == 0,
-            hasActiveBrowser: false,
-            browserStreamRows: [BrowserStreamPickerRow(MobileBrowserPanelDescriptor(
-                panelID: "browser-1", workspaceID: "workspace-1", url: "https://cmux.com",
-                title: "Browser \(generation)", pageWidth: 800, pageHeight: 600,
-                canGoBack: false, canGoForward: false, isLoading: false
-            ))],
-            supportsBrowserStream: true,
             sshTabLayout: grouped ? MobileSSHTabLayout(kind: .tmux, sections: [
                 MobileSSHTabSection(
                     id: "window-1", title: "Window \(generation)", rows: [
@@ -140,8 +103,7 @@ import UIKit
     ) -> TerminalPickerMenuActions {
         TerminalPickerMenuActions(
             selectTerminal: selectTerminal, selectMacSurface: { _ in },
-            createWorkspace: {}, createTerminal: {}, openBrowser: {},
-            selectBrowserStream: { _ in },
+            createWorkspace: {}, createTerminal: {},
             openTextSheet: {}, copyDebugLogs: {}, sendFeedback: {}
         )
     }

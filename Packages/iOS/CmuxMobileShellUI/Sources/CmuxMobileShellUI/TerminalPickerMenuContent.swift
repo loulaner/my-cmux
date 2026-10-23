@@ -44,32 +44,6 @@ struct TerminalPickerMenuContent {
             ))
         }
 
-        if value.supportsBrowserStream {
-            if !value.browserStreamRows.isEmpty {
-                sections.append(UIMenu(
-                    title: value.browserSectionTitle,
-                    options: .displayInline,
-                    children: value.browserStreamRows.map { panel in
-                        action(
-                            panel.label,
-                            image: panel.id == value.checkedBrowserStreamPanelID ? "checkmark.circle.fill" : "globe",
-                            identifier: "BrowserStreamMenuItem-\(panel.id)"
-                        ) { actions.selectBrowserStream(panel.id) }
-                    }
-                ))
-            }
-        } else if value.showsBrowserStreamUpdateHint {
-            sections.append(UIMenu(
-                title: L10n.string("mobile.browserStream.menuTitle", defaultValue: "Mac Browsers"),
-                options: .displayInline,
-                children: [action(
-                    L10n.string("mobile.macUpdateHint.browserStream", defaultValue: "Update cmux on your Mac to stream browser panes"),
-                    image: "arrow.down.circle", identifier: "BrowserStreamMacUpdateHint", enabled: false,
-                    handler: {}
-                )]
-            ))
-        }
-
         var creationActions = [action(
             L10n.string("mobile.workspace.new", defaultValue: "New Workspace"),
             image: "plus.square.on.square", identifier: "MobileNewWorkspaceMenuItem",
@@ -82,20 +56,13 @@ struct TerminalPickerMenuContent {
                 image: "plus", identifier: "MobileNewTerminalMenuItem", handler: actions.createTerminal
             ))
         }
-        creationActions.append(action(
-            L10n.string("mobile.browser.new", defaultValue: "New Browser"),
-            image: value.checksNewBrowser ? "checkmark.circle.fill" : "globe",
-            identifier: "MobileNewBrowserMenuItem", handler: actions.openBrowser
-        ))
         sections.append(UIMenu(options: .displayInline, children: creationActions))
 
         var utilityActions: [UIAction] = []
-        if !value.hasActiveBrowser {
-            utilityActions.append(action(
-                L10n.string("mobile.terminal.viewAsText", defaultValue: "View as Text"),
-                image: "doc.plaintext", identifier: "MobileViewAsTextMenuItem", handler: actions.openTextSheet
-            ))
-        }
+        utilityActions.append(action(
+            L10n.string("mobile.terminal.viewAsText", defaultValue: "View as Text"),
+            image: "doc.plaintext", identifier: "MobileViewAsTextMenuItem", handler: actions.openTextSheet
+        ))
         #if DEBUG
         utilityActions.append(action(
             L10n.string("mobile.debug.copyLogs", defaultValue: "Copy Debug Logs"),

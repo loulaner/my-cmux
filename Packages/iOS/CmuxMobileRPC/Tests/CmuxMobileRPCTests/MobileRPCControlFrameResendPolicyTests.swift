@@ -24,7 +24,8 @@ import Testing
 
     @Test func mutationsAndUnknownMethodsAreNeverResent() throws {
         for method in ["terminal.input", "terminal.paste", "workspace.create", "workspace.close",
-                       "mobile.terminal.viewport", "mobile.events.subscribe", "some.future.method"] {
+                       "mobile.terminal.viewport", "mobile.events.subscribe", "some.future.method",
+                       "mobile.browser.list", "mobile.browser.stream.start"] {
             #expect(!MobileRPCControlFrameResendPolicy.allowsResend(ofFrame: try frame(method: method)))
         }
     }

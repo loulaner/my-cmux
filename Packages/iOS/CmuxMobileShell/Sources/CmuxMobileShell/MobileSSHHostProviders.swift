@@ -212,7 +212,7 @@ final class MobileSSHHostProviders {
         await cmuxTUI.removeValue(forKey: session)?.close()
     }
 
-    /// Re-keys a provider's workspace (and its terminals and browsers) to
+    /// Re-keys a provider's workspace (and its terminals) to
     /// kind-encoded local ids.
     static func rekey(_ workspace: MobileSSHWorkspace, kind: MobileSSHWorkspaceKind, session: String?) -> MobileSSHWorkspace {
         func local(_ id: String) -> String {
@@ -230,11 +230,6 @@ final class MobileSSHHostProviders {
             var terminal = terminal
             terminal.id = local(terminal.id)
             return terminal
-        }
-        workspace.browsers = workspace.browsers.map { browser in
-            var browser = browser
-            browser.id = local(browser.id)
-            return browser
         }
         return workspace
     }

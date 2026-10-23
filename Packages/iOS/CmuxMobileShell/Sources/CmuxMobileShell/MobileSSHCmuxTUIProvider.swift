@@ -15,7 +15,7 @@ import Foundation
 /// Terminal ids are cmux-tui resource ids (`term_...`), which survive owner
 /// restarts; numeric surface ids do not, so attach re-lists to resolve them.
 @MainActor
-final class MobileSSHCmuxTUIProvider: MobileSSHWorkspaceProvider, MobileSSHBrowserProviding, MobileSSHCurrentDirectoryProviding,
+final class MobileSSHCmuxTUIProvider: MobileSSHWorkspaceProvider, MobileSSHCurrentDirectoryProviding,
     MobileSSHTopologyReporting {
     /// Session name owned by the phone, so a desktop `cmux` session on the
     /// same machine is never taken over when the phone creates workspaces.
@@ -206,15 +206,6 @@ final class MobileSSHCmuxTUIProvider: MobileSSHWorkspaceProvider, MobileSSHBrows
                     )
                 )
             },
-            browsers: workspace.browsers.filter { !$0.dead }.map { browser in
-                MobileSSHBrowser(
-                    id: browserID(browser),
-                    title: browser.title,
-                    url: browser.url,
-                    columns: browser.cols,
-                    rows: browser.rows
-                )
-            },
             kind: .cmuxTUI,
             sections: sections
         )
@@ -329,166 +320,6 @@ extension MobileSSHCmuxTUIProvider: MobileSSHTerminalCreating {
             return Self.workspace(workspace).terminals.first { $0.id == id } ?? MobileSSHTerminal(id: id, name: id)
         }
         return MobileSSHTerminal(id: "s\(surface)", name: "s\(surface)")
-    }
-}
-
-extension MobileSSHCmuxTUIProvider {
-    /// Browser content ids (`brw_...`) survive owner restarts; numeric
-    /// surface ids do not, so they are only a fallback.
-    nonisolated static func browserID(_ browser: CmuxTUIBrowserTab) -> String {
-        browser.resourceID ?? "b\(browser.surface)"
-    }
-
-    func attachBrowser(
-        browserID: String,
-        viewport: (width: Int, height: Int)?,
-        events: @escaping @MainActor (MobileSSHBrowserEvent) -> Void
-    ) async throws -> any MobileSSHAttachedBrowser {
-        try await withControl { control in
-            guard await control.supportsBrowserAttach else {
-                throw CmuxTUIError.missingCapability(CmuxTUIControl.browserPointerGuardCapability)
-            }
-            let browsers = try await control.listWorkspaces().flatMap(\.browsers)
-            guard let browser = browsers.first(where: { Self.browserID($0) == browserID }) else {
-                throw CmuxTUIError.commandFailed(command: "attach-surface", message: "browser \(browserID) is gone", code: nil)
-            }
-            let cell = try await control.cellPixels()
-            let grid = viewport.map { MobileSSHCmuxTUIBrowser.grid(width: $0.width, height: $0.height, cell: cell) }
-            let attachment = try await control.attachBrowser(surface: browser.surface, cols: grid?.cols, rows: grid?.rows)
-            return MobileSSHCmuxTUIBrowser(attachment: attachment, cell: cell, grid: grid, events: events)
-        }
-    }
-}
-
-/// One cmux-tui browser attach stream adapted to the phone's streamed
-/// browser view: PNG frames pass through as base64, the pointer guard
-/// (`browser-pointer-frame-guard-v1`) gates input on presented frames, and
-/// the phone's point viewport becomes a cell grid via the session cell size.
-@MainActor
-final class MobileSSHCmuxTUIBrowser: MobileSSHAttachedBrowser {
-    private let attachment: CmuxTUIBrowserAttachment
-    private let cell: (width: Int, height: Int)
-    private var grid: (cols: Int, rows: Int)?
-    private var pointerGuard = CmuxTUIBrowserPointerGuard()
-    /// Image sequence to pointer token, for frames not yet displayed.
-    private var pointerTokenBySequence: [UInt64: UInt64] = [:]
-    private var pump: Task<Void, Never>?
-    private var control: CmuxTUIControl { attachment.control }
-    private var surface: Int { attachment.surface }
-
-    init(
-        attachment: CmuxTUIBrowserAttachment,
-        cell: (width: Int, height: Int),
-        grid: (cols: Int, rows: Int)?,
-        events: @escaping @MainActor (MobileSSHBrowserEvent) -> Void
-    ) {
-        self.attachment = attachment
-        self.cell = cell
-        self.grid = grid
-        pump = Task { @MainActor [weak self] in
-            for await event in attachment.events {
-                guard let self else { return }
-                switch event {
-                case .state(let state):
-                    self.pointerGuard.apply(state)
-                    if var frame = state.frame {
-                        frame.status = state.status
-                        events(self.admit(frame))
-                    }
-                    events(.state(
-                        url: state.url.isEmpty ? nil : state.url,
-                        title: state.title,
-                        isLoading: state.status == .starting,
-                        failure: state.status == .failed ? (state.error ?? "") : nil
-                    ))
-                case .frame(let frame):
-                    self.pointerGuard.apply(frame)
-                    events(self.admit(frame))
-                case .ended, .disconnected:
-                    events(.ended)
-                }
-            }
-        }
-    }
-
-    static func grid(width: Int, height: Int, cell: (width: Int, height: Int)) -> (cols: Int, rows: Int) {
-        (max(1, width / max(1, cell.width)), max(1, height / max(1, cell.height)))
-    }
-
-    private func admit(_ frame: CmuxTUIBrowserFrame) -> MobileSSHBrowserEvent {
-        if let token = frame.pointerFrameSeq {
-            pointerTokenBySequence[frame.seq] = token
-            // Only the newest few frames can still be displayed.
-            if pointerTokenBySequence.count > 8, let oldest = pointerTokenBySequence.keys.min() {
-                pointerTokenBySequence[oldest] = nil
-            }
-        }
-        return .frame(
-            sequence: frame.seq,
-            pageWidth: Double(frame.width),
-            pageHeight: Double(frame.height),
-            pixelWidth: frame.imageWidth,
-            pixelHeight: frame.imageHeight,
-            base64PNG: frame.base64PNG
-        )
-    }
-
-    func frameDisplayed(sequence: UInt64) async throws {
-        for stale in pointerTokenBySequence.keys where stale < sequence {
-            pointerTokenBySequence[stale] = nil
-        }
-        guard let token = pointerTokenBySequence.removeValue(forKey: sequence),
-              pointerGuard.acknowledge(token) else { return }
-        try await control.presentBrowserFrame(surface: surface, token: token)
-    }
-
-    /// The presented token, or `nil` while the page is navigating, resizing,
-    /// or has not shown a frame yet (the server would reject the input).
-    private var token: UInt64? { pointerGuard.pointerToken }
-
-    func click(x: Double, y: Double, clickCount: Int) async throws {
-        guard let token else { return }
-        try await control.browserMouse(surface: surface, kind: .down, x: x, y: y, clickCount: clickCount, token: token)
-        try await control.browserMouse(surface: surface, kind: .up, x: x, y: y, clickCount: clickCount, token: token)
-    }
-
-    func pointer(down: Bool, x: Double, y: Double, clickCount: Int) async throws {
-        guard let token else { return }
-        try await control.browserMouse(surface: surface, kind: down ? .down : .up, x: x, y: y, clickCount: clickCount, token: token)
-    }
-
-    func scroll(x: Double, y: Double, deltaY: Double) async throws {
-        guard deltaY != 0, let token else { return }
-        try await control.browserWheel(surface: surface, x: x, y: y, deltaY: deltaY, token: token)
-    }
-
-    func key(_ token: String, modifiers: [String]) async throws {
-        guard let key = CmuxTUIBrowserKey.named(token, modifiers: modifiers) else { return }
-        try await control.browserKeyPress(surface: surface, key: key)
-    }
-
-    func text(_ text: String) async throws {
-        try await control.browserInsertText(surface: surface, text: text)
-    }
-
-    func navigate(_ url: String) async throws {
-        try await control.browserNavigate(surface: surface, url: url)
-    }
-
-    func back() async throws { try await control.browser(.back, surface: surface) }
-    func forward() async throws { try await control.browser(.forward, surface: surface) }
-    func reload() async throws { try await control.browser(.reload, surface: surface) }
-
-    func viewport(width: Int, height: Int) async throws {
-        let next = Self.grid(width: width, height: height, cell: cell)
-        if let grid, grid == next { return }
-        grid = next
-        try await control.resizeBrowser(surface: surface, cols: next.cols, rows: next.rows)
-    }
-
-    func detach() async {
-        pump?.cancel()
-        try? await attachment.detach()
     }
 }
 

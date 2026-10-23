@@ -7791,14 +7791,6 @@ final class cmuxUITests: XCTestCase {
     }
 
     @MainActor
-    func testTerminalDropdownKeepsBottomScrollDuringBrowserRefresh() throws {
-        let app = launchWorkspaceDetailRefreshingTerminalMenuPreviewApp(environment: [
-            "CMUX_UITEST_TERMINAL_MENU_BROWSER_REFRESH": "1",
-        ])
-        assertTerminalDropdownKeepsBottomScrollDuringRefresh(in: app)
-    }
-
-    @MainActor
     private func assertTerminalDropdownKeepsBottomScrollDuringRefresh(in app: XCUIApplication) {
         defer { app.terminate() }
 
@@ -7821,7 +7813,7 @@ final class cmuxUITests: XCTestCase {
         while Date() < deadline {
             XCTAssertTrue(
                 refreshedTarget.exists && refreshedTarget.isHittable,
-                "Bottom terminal must stay visible and hittable while workspace and browser titles refresh."
+                "Bottom terminal must stay visible and hittable while workspace titles refresh."
             )
             RunLoop.current.run(until: Date().addingTimeInterval(0.1))
         }

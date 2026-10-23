@@ -1,5 +1,5 @@
 @testable import CmuxMobileShell
-import CmuxMobileSSH
+@testable import CmuxMobileSSH
 import Foundation
 import Testing
 
@@ -46,9 +46,16 @@ import Testing
             key: "k1",
             name: "api",
             terminals: [CmuxTUITerminal(surface: 1, pane: 10, screen: 100, resourceID: "term_a", title: "zsh")],
+            browsers: [CmuxTUIBrowserTab(
+                surface: 7, pane: 10, screen: 100, resourceID: "brw_1", url: nil,
+                title: "Retired browser", status: .live, error: nil, framesStalled: false,
+                cols: 80, rows: 24, dead: false
+            )],
             screens: [CmuxTUIScreen(id: 100, name: nil, activePane: 10, panes: [CmuxTUIPane(id: 10)])]
         )
         let workspace = MobileSSHHostProviders.rekey(MobileSSHCmuxTUIProvider.workspace(tui), kind: .cmuxTUI, session: "main")
+        #expect(workspace.terminals.map(\.id) == ["tui:main/term_a"])
+        #expect(workspace.sections.count == 1)
         let layout = MobileSSHComputers.tabLayout(workspace, hostID: UUID())
         #expect(try #require(layout.sections.first).actions == [.newTab, .splitRight, .splitDown])
     }

@@ -77,8 +77,7 @@ import Testing
             ],
             selectedID: "terminal-1",
             selectedMacSurfaceID: surface.id,
-            canCreateWorkspace: true,
-            hasActiveBrowser: false
+            canCreateWorkspace: true
         )
         #expect(value.terminalRows.count == 1)
         #expect(value.macSurfaceRows == [TerminalPickerMenuRow(surface)])
@@ -92,7 +91,7 @@ import Testing
         let value = TerminalPickerMenuValue(
             liveTerminals: [terminal], liveSurfaces: [simulator, markdown],
             selectedID: terminal.id, selectedMacSurfaceID: simulator.id,
-            canCreateWorkspace: true, hasActiveBrowser: false
+            canCreateWorkspace: true
         )
         #expect(value.terminalRows == [TerminalPickerMenuRow(terminal)])
         #expect(value.macSurfaceRows == [TerminalPickerMenuRow(markdown)])
@@ -100,7 +99,7 @@ import Testing
         #expect(!simulator.kind.isTerminal)
         let simulatorOnly = TerminalPickerMenuValue(
             liveTerminals: [], liveSurfaces: [simulator], selectedID: nil,
-            canCreateWorkspace: false, hasActiveBrowser: false
+            canCreateWorkspace: false
         )
         #expect(simulatorOnly.rows.isEmpty)
         #expect(simulatorOnly.selectedID == nil)
@@ -111,7 +110,6 @@ import Testing
         let surface = MobileSurfacePreview(id: "surface-1", kind: .todo, title: "Todos")
         func value(
             selectedMacSurfaceID: MobileSurfacePreview.ID?,
-            hasActiveBrowser: Bool = false,
             liveSurfaces: [MobileSurfacePreview]? = nil
         ) -> TerminalPickerMenuValue {
             TerminalPickerMenuValue(
@@ -122,8 +120,7 @@ import Testing
                 ],
                 selectedID: terminal.id,
                 selectedMacSurfaceID: selectedMacSurfaceID,
-                canCreateWorkspace: true,
-                hasActiveBrowser: hasActiveBrowser
+                canCreateWorkspace: true
             )
         }
 
@@ -131,8 +128,6 @@ import Testing
         #expect(value(selectedMacSurfaceID: surface.id).checkedRowID == .macSurface(surface.id))
         // No surface selection: the resolved terminal is checked.
         #expect(value(selectedMacSurfaceID: nil).checkedRowID == .terminal(terminal.id))
-        // Phone browser overlay owns the screen: nothing is checked.
-        #expect(value(selectedMacSurfaceID: surface.id, hasActiveBrowser: true).checkedRowID == nil)
         // Stale surface selection (row gone) falls back to the terminal row.
         #expect(
             value(
@@ -142,110 +137,9 @@ import Testing
         )
     }
 
-    @Test func browserSurfacesLeaveMacSurfacesWhenTheMacStreamsBrowsers() {
-        let browser = MobileSurfacePreview(id: "surface-web", kind: .browser, title: "cmux.com")
-        let markdown = MobileSurfacePreview(id: "surface-md", kind: .markdown, title: "README")
-        func value(supportsBrowserStream: Bool) -> TerminalPickerMenuValue {
-            TerminalPickerMenuValue(
-                liveTerminals: [],
-                liveSurfaces: [browser, markdown],
-                selectedID: nil,
-                canCreateWorkspace: true,
-                hasActiveBrowser: false,
-                supportsBrowserStream: supportsBrowserStream
-            )
-        }
 
-        let streaming = value(supportsBrowserStream: true)
-        #expect(streaming.macSurfaceRows.map(\.id) == [.macSurface(markdown.id)])
-        let legacyMac = value(supportsBrowserStream: false)
-        #expect(legacyMac.macSurfaceRows.map(\.id) == [.macSurface(browser.id), .macSurface(markdown.id)])
-    }
 
-    @Test func browserUpdateHintRequiresAConnectedCapabilitySnapshot() {
-        func value(
-            supportsBrowserStream: Bool,
-            browserStreamSupportKnown: Bool
-        ) -> TerminalPickerMenuValue {
-            TerminalPickerMenuValue(
-                liveTerminals: [],
-                selectedID: nil,
-                canCreateWorkspace: true,
-                hasActiveBrowser: false,
-                supportsBrowserStream: supportsBrowserStream,
-                browserStreamSupportKnown: browserStreamSupportKnown
-            )
-        }
 
-        // An empty capability set while disconnected/reconnecting is unknown,
-        // so it must not claim that the Mac needs an update.
-        #expect(value(supportsBrowserStream: false, browserStreamSupportKnown: false).showsBrowserStreamUpdateHint == false)
-        // Once connected, the same missing capability is an authoritative
-        // unsupported-host result and the hint is appropriate.
-        #expect(value(supportsBrowserStream: false, browserStreamSupportKnown: true).showsBrowserStreamUpdateHint)
-        #expect(value(supportsBrowserStream: true, browserStreamSupportKnown: true).showsBrowserStreamUpdateHint == false)
-    }
-
-    /// SSH computers' browser tabs are not on a Mac, so the switcher's
-    /// browser section is named by the computer's kind.
-    @Test func browserSectionIsNamedByComputerKind() {
-        let terminal = MobileTerminalPreview(id: "terminal-1", name: "Shell 1")
-        func value(isSSHComputer: Bool) -> TerminalPickerMenuValue {
-            TerminalPickerMenuValue(
-                liveTerminals: [terminal],
-                selectedID: terminal.id,
-                canCreateWorkspace: true,
-                hasActiveBrowser: false,
-                supportsBrowserStream: true,
-                isSSHComputer: isSSHComputer
-            )
-        }
-        #expect(value(isSSHComputer: false).browserSectionTitle == "Mac Browsers")
-        #expect(value(isSSHComputer: true).browserSectionTitle == "Browsers")
-        // The next opening uses the current computer kind.
-        #expect(value(isSSHComputer: false) != value(isSSHComputer: true))
-    }
-
-    @Test func onDeviceStreamedTabKeepsItsBrowserRowChecked() {
-        let rows = ["panel-1", "panel-2"].map { id in
-            BrowserStreamPickerRow(MobileBrowserPanelDescriptor(
-                panelID: id, workspaceID: "ws", url: "http://localhost:8765/", title: id,
-                pageWidth: 0, pageHeight: 0, canGoBack: false, canGoForward: false, isLoading: false
-            ))
-        }
-        func value(hasActiveBrowser: Bool, streamed: String? = nil, onDevice: String? = nil) -> TerminalPickerMenuValue {
-            TerminalPickerMenuValue(
-                liveTerminals: [MobileTerminalPreview(id: "terminal-1", name: "Build")],
-                selectedID: "terminal-1",
-                canCreateWorkspace: true,
-                hasActiveBrowser: hasActiveBrowser,
-                browserStreamRows: rows,
-                supportsBrowserStream: true,
-                activeBrowserStreamPanelID: streamed,
-                onDeviceBrowserStreamPanelID: onDevice
-            )
-        }
-
-        // Streamed and On iPhone check the same tab row, never New Browser.
-        let streamed = value(hasActiveBrowser: false, streamed: "panel-2")
-        let onDevice = value(hasActiveBrowser: true, onDevice: "panel-2")
-        #expect(streamed.checkedBrowserStreamPanelID == "panel-2")
-        #expect(onDevice.checkedBrowserStreamPanelID == "panel-2")
-        #expect(onDevice.checksNewBrowser == false)
-        #expect(onDevice.checkedRowID == nil)
-
-        // A plain phone-local browser is New Browser.
-        let plain = value(hasActiveBrowser: true)
-        #expect(plain.checkedBrowserStreamPanelID == nil)
-        #expect(plain.checksNewBrowser)
-
-        // A tab the Mac closed leaves New Browser checked; a stale link
-        // without a visible browser checks nothing.
-        #expect(value(hasActiveBrowser: true, onDevice: "gone").checksNewBrowser)
-        let hidden = value(hasActiveBrowser: false, onDevice: "panel-1")
-        #expect(hidden.checkedBrowserStreamPanelID == nil)
-        #expect(hidden.checksNewBrowser == false)
-    }
 
     private func menuValue(
         liveTerminals: [MobileTerminalPreview],
@@ -254,8 +148,18 @@ import Testing
         TerminalPickerMenuValue(
             liveTerminals: liveTerminals,
             selectedID: selectedID,
-            canCreateWorkspace: true,
-            hasActiveBrowser: false
+            canCreateWorkspace: true
         )
+    }
+    @Test func mixedMenuExcludesRetiredBrowsersButKeepsFilesAndMarkdown() {
+        let kinds: [MobileSurfacePreview.Kind] = [.browser, .filePreview, .markdown, .extensionBrowser, .other("simulator")]
+        let surfaces = kinds.map { MobileSurfacePreview(id: .init(rawValue: $0.rawValue), kind: $0, title: $0.rawValue) }
+        let value = TerminalPickerMenuValue(
+            liveTerminals: [MobileTerminalPreview(id: "terminal", name: "Shell")],
+            liveSurfaces: surfaces, selectedID: "terminal", canCreateWorkspace: true
+        )
+        #expect(value.terminalRows.count == 1)
+        #expect(value.macSurfaceRows.map(\.surfaceKind) == [.filePreview, .markdown, .extensionBrowser])
+        #expect(value.checkedRowID == .terminal("terminal"))
     }
 }

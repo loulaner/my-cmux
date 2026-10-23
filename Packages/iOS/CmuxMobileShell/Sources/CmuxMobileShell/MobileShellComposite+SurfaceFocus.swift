@@ -8,7 +8,7 @@ extension MobileShellComposite {
     /// ``selectedTerminalID`` alone so the terminal selection (and composer
     /// draft) survives the surface visit.
     public func selectMacSurface(_ surfaceID: MobileSurfacePreview.ID) {
-        guard selectedWorkspace?.surfaces.first(where: { $0.id == surfaceID })?.kind != .other("simulator") else {
+        guard selectedWorkspace?.surfaces.first(where: { $0.id == surfaceID })?.kind.isSelectableMacSurface == true else {
             return
         }
         selectedMacSurfaceID = surfaceID

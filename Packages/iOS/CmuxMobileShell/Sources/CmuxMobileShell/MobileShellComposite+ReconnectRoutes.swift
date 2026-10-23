@@ -461,7 +461,6 @@ extension MobileShellComposite {
             // may still miss a notification dismissal or a delayed push.
             scheduleNotificationReconcile(client: client)
         }
-        restartActiveMobileBrowserStreams()
         recoverForegroundConnectionIfNeeded(resyncAfterHealthy: shouldResync)
         recoverDisconnectedOnForegroundIfNeeded()
         recoverPendingInactiveRecoveryIfNeeded()
@@ -489,7 +488,6 @@ extension MobileShellComposite {
         suspendSecondaryConnectionEstablishmentForBackground()
         guard lastBackgroundedAt == nil else { return }
         lastBackgroundedAt = runtime?.now() ?? Date()
-        stopActiveMobileBrowserStreamsForBackground()
     }
 
     /// A foreground return while disconnected redials the stored Mac

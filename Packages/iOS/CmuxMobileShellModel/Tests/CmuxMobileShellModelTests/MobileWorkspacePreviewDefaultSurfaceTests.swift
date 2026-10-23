@@ -54,13 +54,13 @@ struct MobileWorkspacePreviewDefaultSurfaceTests {
     }
 
     @Test func fallbackPicksFirstNonTerminalSurfaceInSpatialOrder() {
-        let browserSurface = surface(id: "surface-browser", kind: .browser)
+        let browserSurface = surface(id: "surface-file", kind: .filePreview)
         let workspace = workspace(terminals: [], surfaces: [browserSurface, todoSurface])
         #expect(workspace.selectedMacSurface(id: nil) == browserSurface)
     }
 
     @Test func fallbackPrefersTheFocusedNonTerminalSurfaceOverSpatialOrder() {
-        let focusedSurface = surface(id: "surface-focused", kind: .browser, isFocused: true)
+        let focusedSurface = surface(id: "surface-focused", kind: .markdown, isFocused: true)
         let workspace = workspace(terminals: [], surfaces: [todoSurface, focusedSurface])
         #expect(workspace.selectedMacSurface(id: nil) == focusedSurface)
     }
@@ -77,7 +77,7 @@ struct MobileWorkspacePreviewDefaultSurfaceTests {
     }
 
     @Test func explicitSelectionStillWins() {
-        let browserSurface = surface(id: "surface-browser", kind: .browser)
+        let browserSurface = surface(id: "surface-file", kind: .filePreview)
         let workspace = workspace(terminals: [], surfaces: [todoSurface, browserSurface])
         #expect(workspace.selectedMacSurface(id: browserSurface.id) == browserSurface)
     }
@@ -92,5 +92,19 @@ struct MobileWorkspacePreviewDefaultSurfaceTests {
         let terminalSurface = surface(id: "surface-term", kind: .terminal)
         let workspace = workspace(terminals: [], surfaces: [terminalSurface])
         #expect(workspace.selectedMacSurface(id: nil) == nil)
+    }
+    @Test func browserFocusIsIgnoredWithoutReclassifyingTheWireKind() {
+        let browser = surface(id: "browser", kind: .init(rawValue: "browser"), isFocused: true)
+        let file = surface(id: "file", kind: .filePreview)
+        let markdown = surface(id: "markdown", kind: .markdown)
+        let mixed = workspace(terminals: [], surfaces: [browser, file, markdown])
+        #expect(browser.kind == .browser)
+        #expect(!browser.kind.isTerminal)
+        #expect(mixed.focusedNonTerminalSurface == nil)
+        #expect(mixed.selectedMacSurface(id: nil) == file)
+        #expect(mixed.selectedMacSurface(id: browser.id) == file)
+        #expect(mixed.selectedMacSurface(id: markdown.id) == markdown)
+        #expect(workspace(terminals: [], surfaces: [browser]).selectedMacSurface(id: nil) == nil)
+        #expect(MobileSurfacePreview.Kind.extensionBrowser.isSelectableMacSurface)
     }
 }

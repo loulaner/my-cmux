@@ -10,7 +10,7 @@ import SwiftUI
 /// DEBUG-only fixture host for the Mac-surface renderers.
 ///
 /// Mounted by the root view when `CMUX_UITEST_MAC_SURFACE_GALLERY` names a
-/// page (`todo`, `file`, `markdown`, `fallback`, or `picker`). It renders the
+/// page (`todo`, `file`, `markdown`, or `picker`). It renders the
 /// production surface components with stubbed data and loaders so dark/light
 /// simulator screenshots don't require sign-in, pairing, or a live Mac.
 /// Unlike the production host — which locks the overlay's `colorScheme` to
@@ -44,13 +44,6 @@ public struct MacSurfaceGalleryPreviewView: View {
                 path: Self.markdownPath,
                 loader: Self.fixtureLoader,
                 connectionStatus: .connected
-            )
-        case "fallback":
-            SurfaceFallbackCardView(
-                surface: Self.browserSurface,
-                workspaceName: "Todos",
-                canOpenOnMac: true,
-                openOnMac: { true }
             )
         case "picker":
             pickerPage
@@ -92,22 +85,18 @@ public struct MacSurfaceGalleryPreviewView: View {
                         liveTerminals: Self.fixtureTerminals,
                         liveSurfaces: [
                             Self.todoSurface,
-                            Self.browserSurface,
                             Self.fileSurface,
                             Self.markdownSurface,
                         ],
                         selectedID: nil,
                         selectedMacSurfaceID: Self.todoSurface.id,
-                        canCreateWorkspace: true,
-                        hasActiveBrowser: false
+                        canCreateWorkspace: true
                     ),
                     actions: TerminalPickerMenuActions(
                         selectTerminal: { _ in },
                         selectMacSurface: { _ in },
                         createWorkspace: {},
                         createTerminal: {},
-                        openBrowser: {},
-                        selectBrowserStream: { _ in },
                         openTextSheet: {},
                         copyDebugLogs: {},
                         sendFeedback: {}
@@ -143,12 +132,6 @@ public struct MacSurfaceGalleryPreviewView: View {
         kind: .markdown,
         title: "iosrf-demo.md",
         filePath: markdownPath
-    )
-
-    private static let browserSurface = MobileSurfacePreview(
-        id: "gallery-browser",
-        kind: .browser,
-        title: "cmux.com"
     )
 
     private static let todoSnapshot = MobileTodoSnapshot(

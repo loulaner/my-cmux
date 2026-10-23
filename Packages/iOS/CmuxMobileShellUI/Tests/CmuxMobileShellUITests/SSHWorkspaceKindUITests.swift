@@ -64,7 +64,6 @@ import Testing
             liveTerminals: [terminal],
             selectedID: terminal.id,
             canCreateWorkspace: true,
-            hasActiveBrowser: false,
             sshTabLayout: layout
         )
         #expect(value.sshTabLayout == layout)
@@ -84,8 +83,7 @@ import Testing
         let flat = TerminalPickerMenuValue(
             liveTerminals: [terminal],
             selectedID: terminal.id,
-            canCreateWorkspace: true,
-            hasActiveBrowser: false
+            canCreateWorkspace: true
         )
         #expect(flat != value)
     }

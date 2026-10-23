@@ -3,45 +3,20 @@ import CmuxMobileShellModel
 @testable import CmuxMobileShellUI
 
 @Suite struct WorkspaceActiveSurfaceTests {
-    @Test func browserTakesPrecedenceOverTerminal() {
-        #expect(WorkspaceActiveSurface.derive(
-            hasActiveBrowser: true
-        ) == .browser)
-    }
 
     @Test func terminalIsDefaultSurface() {
         #expect(WorkspaceActiveSurface.derive(
-            hasActiveBrowser: false
         ) == .terminal)
     }
 
-    @Test func explicitMacSurfaceIsBelowBrowserAndAboveTerminal() {
+    @Test func explicitMacSurfaceWinsOverTerminal() {
         let surface = MobileSurfacePreview(id: "surface", kind: .markdown, title: "README")
         #expect(WorkspaceActiveSurface.derive(
-            hasActiveBrowser: false,
             selectedMacSurface: surface
         ) == .macSurface(surface))
-        #expect(WorkspaceActiveSurface.derive(
-            hasActiveBrowser: true,
-            selectedMacSurface: surface
-        ) == .browser)
     }
 
-    @Test func browserStreamActivatesWhenNoLocalBrowserIsOpen() {
-        #expect(WorkspaceActiveSurface.derive(
-            hasActiveBrowser: false,
-            hasActiveBrowserStream: true
-        ) == .browserStream)
-    }
 
-    @Test func browserStreamOverlaysASelectedMacSurface() {
-        let surface = MobileSurfacePreview(id: "surface", kind: .markdown, title: "README")
-        #expect(WorkspaceActiveSurface.derive(
-            hasActiveBrowser: false,
-            hasActiveBrowserStream: true,
-            selectedMacSurface: surface
-        ) == .browserStream)
-    }
 
     @Test func chromeReturnRefocusesTheSelectedTerminal() {
         #expect(WorkspaceActiveSurface.chromeReturnRefocusTerminalID(

@@ -60,10 +60,10 @@ public struct MobileSurfacePreview: Identifiable, Equatable, Sendable {
         /// Whether this kind is a terminal rendered by the existing terminal path.
         public var isTerminal: Bool { self == .terminal }
 
-        /// Whether iOS can select this non-terminal surface. Retired Simulator
-        /// surfaces remain decoded as unknown kinds, not terminal substitutes.
+        /// Whether iOS can select this non-terminal surface. Retired browser and
+        /// Simulator kinds remain decodable, never terminal substitutes.
         public var isSelectableMacSurface: Bool {
-            !isTerminal && self != .other("simulator")
+            !isTerminal && self != .browser && self != .other("simulator")
         }
     }
 

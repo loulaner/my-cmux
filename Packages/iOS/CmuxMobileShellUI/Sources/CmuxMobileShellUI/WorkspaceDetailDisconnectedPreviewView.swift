@@ -1,6 +1,4 @@
 import CMUXMobileCore
-import CmuxMobileBrowser
-import CmuxMobileBrowserStream
 import CmuxMobileShell
 import CmuxMobileShellModel
 import CmuxMobileSupport
@@ -45,8 +43,6 @@ struct WorkspaceDetailDisconnectedPreviewView: View {
         connectedHostName: "UI Test Mac",
         workspaces: initialWorkspaces
     )
-    @State private var browserStore = BrowserSurfaceStore()
-    @State private var browserStreamStore = BrowserStreamStore()
     @State private var didStartFixture = false
 
     var body: some View {
@@ -55,8 +51,6 @@ struct WorkspaceDetailDisconnectedPreviewView: View {
             signOut: {},
             showAddDevice: nil
         )
-        .environment(browserStore)
-        .environment(browserStreamStore)
         .task {
             guard !didStartFixture else { return }
             didStartFixture = true

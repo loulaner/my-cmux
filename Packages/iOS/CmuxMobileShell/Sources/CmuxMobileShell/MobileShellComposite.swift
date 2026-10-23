@@ -1,7 +1,6 @@
 public import CMUXMobileCore
 public import CmuxAgentChat
 internal import CmuxMobileDiagnostics
-public import CmuxMobileBrowserStream
 public import CmuxMobilePairedMac
 public import CmuxMobileRPC
 public import CmuxMobileShellModel
@@ -56,7 +55,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                     "feed.changed",
                     "caffeine.status.changed",
                     "mobile.compatible_tags.changed",
-                    "browser.frame", "browser.state", "browser.closed", "browser.dialog", "browser.dialog.resolved",
                 ]
             case .renderGrid:
                 return [
@@ -67,7 +65,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                     "feed.changed",
                     "caffeine.status.changed",
                     "mobile.compatible_tags.changed",
-                    "browser.frame", "browser.state", "browser.closed", "browser.dialog", "browser.dialog.resolved",
                 ]
             case .rawBytes:
                 return [
@@ -78,7 +75,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                     "feed.changed",
                     "caffeine.status.changed",
                     "mobile.compatible_tags.changed",
-                    "browser.frame", "browser.state", "browser.closed", "browser.dialog", "browser.dialog.resolved",
                 ]
             }
         }
@@ -115,10 +111,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
     static let terminalVerifiedReplayCapability = "terminal.render_grid.verified_replay.v1"
     static let terminalScreenAnchorCapability = "terminal.render_grid.screen_anchor.v1"
     private static let terminalBytesCapability = "terminal.bytes.v1"
-    static let browserStreamCapability = MobileBrowserStreamCapability.identifier
-    static let browserStreamViewportCapability = MobileBrowserStreamCapability.viewportIdentifier
-    static let browserStreamDialogCapability = MobileBrowserStreamCapability.dialogIdentifier
-    static let browserStreamCreateCapability = MobileBrowserStreamCapability.createIdentifier
     static let terminalReplayCapability = "terminal.replay.v1"
     static let terminalInputOrderedCapability = "terminal.input.ordered.v1"
     static let maxTerminalReplayBarrierDroppedOutputBeforeFailOpen: UInt64 = 256
@@ -202,9 +194,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
             recordForegroundTransportSelected()
             if connectionState == .connected {
                 restartTerminalLanesForMountedSurfaces()
-                browserStreamEvents?.setBrowserStreamConnectionStatus(.connected)
-                reassertSSHBrowserStreamConnectionStatus()
-                restartActiveMobileBrowserStreams()
                 scheduleWorkspaceChangesSummaryRefresh()
                 #if DEBUG
                 startLatencyProbeIfReady()
@@ -212,14 +201,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                 #endif
             } else {
                 deactivateAllTerminalLanes()
-                startedMobileBrowserPanelIDs.removeAll()
-                diagnosedMobileBrowserFramePanelIDs.removeAll()
-                diagnosedMobileBrowserStatePanelIDs.removeAll()
-                diagnosedMobileBrowserFrameAckFailurePanelIDs.removeAll()
-                browserStreamEvents?.setBrowserStreamConnectionStatus(
-                    macConnectionStatus == .reconnecting ? .reconnecting : .disconnected
-                )
-                reassertSSHBrowserStreamConnectionStatus()
                 resetWorkspaceChangesState()
                 #if DEBUG
                 cancelLatencyProbe()
@@ -556,12 +537,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
     /// churn (no recording, no restore disarm) instead of explicit tab opens.
     /// Not observed: it gates recording, not view state.
     @ObservationIgnored private var isSyncingDerivedTabSelection = false
-    /// One-shot intent for the workspace detail view to reopen the
-    /// phone-local browser tab. The local browser lives in the view-layer
-    /// `BrowserSurfaceStore`, which this store cannot reach, so restoring
-    /// that tab kind is handed off to the detail view. Observable so the
-    /// mounted detail reacts when a restore arms it after the view's task.
-    public private(set) var pendingLocalBrowserTabRestoreWorkspaceID: MobileWorkspacePreview.ID?
     /// Device-local sort preference for the aggregated All Computers list
     /// (mode + user computer order). `@ObservationIgnored`: views read the
     /// observable ``workspaceSortMode`` / ``workspaceComputerPriority``
@@ -653,22 +628,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         workspaceChangeChipsByWorkspaceID = chips
     }
 
-    /// Separate app-lifetime browser event sink; never stored in workspace preview state.
-    @ObservationIgnored let browserStreamEvents: (any BrowserStreamEventReceiving)?
-    @ObservationIgnored let mobileBrowserStreamLifecycle = MobileBrowserStreamLifecycleCoordinator()
-    @ObservationIgnored var startedMobileBrowserPanelIDs: Set<String> = []
-    /// Panels whose first frame in the current subscription was logged. Frame
-    /// payloads are intentionally sampled at this boundary so a busy page
-    /// cannot evict every other diagnostic from the bounded ring.
-    @ObservationIgnored var diagnosedMobileBrowserFramePanelIDs: Set<String> = []
-    /// Panels whose first decoded state in the current subscription was logged.
-    /// State pushes may repeat during navigation, so this follows the same
-    /// per-subscription sampling policy as frames.
-    @ObservationIgnored var diagnosedMobileBrowserStatePanelIDs: Set<String> = []
-    /// Panels with an outstanding frame-ack failure. One event opens an outage;
-    /// a later successful acknowledgement clears it so a distinct outage can
-    /// be recorded without logging at frame cadence.
-    @ObservationIgnored var diagnosedMobileBrowserFrameAckFailurePanelIDs: Set<String> = []
     /// Surfaces whose first output in the current mount was logged. Sampling
     /// proves that output reached each feature path without letting a busy
     /// terminal evict the rest of the bounded diagnostic timeline.
@@ -973,7 +932,7 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                 // restore so the synchronizer below (and later data-arrival
                 // syncs) put back the tab this device last showed there.
                 pendingLastTabRestoreWorkspaceID = selectedWorkspaceID
-                pendingLocalBrowserTabRestoreWorkspaceID = nil; announceWorkspaceScopeForSelection()
+                announceWorkspaceScopeForSelection()
             }
             syncSelectedTerminalForWorkspace()
         }
@@ -1462,9 +1421,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
     /// SSH computers (hosts, keys, live sessions). Local to this device and
     /// independent of the cmux account. See `MobileShellComposite+SSHComputers.swift`.
     public let sshComputers: MobileSSHComputers
-    /// The "On iPhone" browser network per paired Mac, keyed by Mac device
-    /// id. See `MobileShellComposite+MacBrowserTunnel.swift`.
-    @ObservationIgnored var macBrowserNetworks: [String: MobileMacBrowserNetwork] = [:]
     @ObservationIgnored var notificationFeedSnapshotsByMac: [String: NotificationFeedMacSnapshot] = [:]
     @ObservationIgnored var notificationFeedKnownRevisionsByMac: [String: Int] = [:]
     @ObservationIgnored var notificationFeedSuccessfulMacIDs: Set<String> = []
@@ -1926,7 +1882,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
 
     /// Create a mobile shell store with injectable runtime services for app
     /// composition, previews, and package tests.
-    /// - Parameter browserStreamEvents: App-lifetime browser stream state kept outside workspace previews.
     public init(
         runtime: (any MobileSyncRuntime)? = nil,
         macListAuthState: MobileMacListAuthState? = nil,
@@ -1974,7 +1929,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         terminalInputAckResubscribeClock: any Clock<Duration> = ContinuousClock(),
         taskTemplateStore: (any MobileTaskTemplateStoring)? = nil,
         taskModelCatalogClient: MobileTaskModelCatalogClient = .live(),
-        browserStreamEvents: (any BrowserStreamEventReceiving)? = nil,
         storedMacReconnectRestoringDeadlineSeconds: Double = 15,
         sshComputers: MobileSSHComputers? = nil,
         workspaceSnapshotStore: MobileWorkspaceSnapshotStore? = nil
@@ -2002,7 +1956,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         self.terminalInputAckResubscribeClock = terminalInputAckResubscribeClock
         self.taskTemplateStore = taskTemplateStore
         self.taskModelCatalogClient = taskModelCatalogClient
-        self.browserStreamEvents = browserStreamEvents
         self.storedMacReconnectRestoringDeadlineSeconds = storedMacReconnectRestoringDeadlineSeconds
         self.pairedMacStore = pairedMacStore
         self.buildCompatibilityPolicy = buildCompatibilityPolicy
@@ -2167,12 +2120,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         self.rawTerminalInputLatencyBatchNumber = 0
         #endif
         self.pairingAttemptID = UUID()
-        // The watchdog's re-arm must bypass the started-dedupe set: unanswered
-        // input means the Mac-side session is gone (or never took), whatever
-        // the phone's bookkeeping says.
-        browserStreamEvents?.configureBrowserStreamRestart { [weak self] panelID in
-            await self?.forceRestartMobileBrowserStream(panelID: panelID)
-        }
         selectedTerminalID = nil
         selectedMacSurfaceID = nil
         syncSelectedTerminalForWorkspace()
@@ -2236,7 +2183,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         // last-tab state through `.standard` (the app injects a persistent
         // store through the composite initializer instead).
         lastTabStore: MobileWorkspaceLastTabStore = .inMemory,
-        browserStreamEvents: (any BrowserStreamEventReceiving)? = nil,
         terminalInputAckResubscribeClock: any Clock<Duration> = ContinuousClock(),
         controlPlaneSchedulingClock: any Clock<Duration> = ContinuousClock()
     ) -> CMUXMobileShellStore {
@@ -2246,8 +2192,7 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
             deliveredNotificationClearer: NoopDeliveredNotificationClearer(),
             lastTabStore: lastTabStore,
             controlPlaneSchedulingClock: controlPlaneSchedulingClock,
-            terminalInputAckResubscribeClock: terminalInputAckResubscribeClock,
-            browserStreamEvents: browserStreamEvents
+            terminalInputAckResubscribeClock: terminalInputAckResubscribeClock
         )
     }
 
@@ -2292,8 +2237,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         // not survive an account boundary or leak into the next session's
         // projections.
         resetStateSyncForAccountBoundary()
-        // Browser tunnels to the previous account's Macs end with it.
-        Task { await stopMacBrowserNetworks() }
         lastPresenceReconnectEvidence = nil
         presencePushRecoveryThrottle.reset()
         pendingInactiveRecoveryTrigger = nil
@@ -12964,9 +12907,7 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         // Clear stale Mac selections and promote an active or Mac-focused
         // non-terminal before assigning a preferred terminal fallback.
         syncDefaultSurfaceForWorkspace()
-        let workspaceID = selectedWorkspace.rpcWorkspaceID.rawValue
-        if selectedMacSurfaceID != nil
-            || (browserStreamEvents as? BrowserStreamStore)?.activeState(in: workspaceID) != nil {
+        if selectedMacSurfaceID != nil {
             return
         }
         selectedTerminalID = selectedWorkspace.preferredTerminal?.id
@@ -12988,48 +12929,15 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
     /// an empty terminal frame when only Mac surfaces or streamed panels exist.
     private func syncDefaultSurfaceForWorkspace() {
         guard let selectedWorkspace else { return }
-        let workspaceID = selectedWorkspace.rpcWorkspaceID.rawValue
-        if let selectedMacSurfaceID,
-           !selectedWorkspace.surfaces.contains(where: { $0.id == selectedMacSurfaceID && $0.kind.isSelectableMacSurface }) {
+        if let selectedMacSurfaceID {
+            if selectedWorkspace.surfaces.contains(where: { $0.id == selectedMacSurfaceID && $0.kind.isSelectableMacSurface }) {
+                return
+            }
             self.selectedMacSurfaceID = nil
         }
-        if let browserStore = browserStreamEvents as? BrowserStreamStore,
-           browserStore.activeState(in: workspaceID) != nil {
-            return
-        }
-
-        func activateStream(for surfaceID: MobileSurfacePreview.ID) -> Bool {
-            if let browserStore = browserStreamEvents as? BrowserStreamStore,
-               let browserPanelID = browserStore.panels(in: workspaceID)
-                .first(where: { $0.panelID == surfaceID.rawValue })?.panelID {
-                _ = browserStore.activate(panelID: browserPanelID, in: workspaceID)
-                return true
-            }
-            return false
-        }
-
-        if let selectedMacSurfaceID {
-            if activateStream(for: selectedMacSurfaceID) {
-                return
-            }
-            if selectedWorkspace.surfaces.contains(where: { $0.id == selectedMacSurfaceID }) {
-                return
-            }
-        }
-
-        if let selectedSurface = selectedWorkspace.focusedNonTerminalSurface
+        if let surface = selectedWorkspace.focusedNonTerminalSurface
             ?? selectedWorkspace.selectedMacSurface(id: nil) {
-            if activateStream(for: selectedSurface.id) {
-                return
-            }
-            selectedMacSurfaceID = selectedSurface.id
-            return
-        }
-
-        if let browserStore = browserStreamEvents as? BrowserStreamStore,
-           let browserPanelID = browserStore.panels(in: workspaceID).first?.panelID {
-            _ = browserStore.activate(panelID: browserPanelID, in: workspaceID)
-            return
+            selectedMacSurfaceID = surface.id
         }
     }
 
@@ -13075,59 +12983,13 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         )
     }
 
-    /// Records a Mac browser stream pick as the workspace's last opened tab.
-    /// Called by the detail view's picker action, which owns stream
-    /// activation; an explicit pick also disarms a pending restore.
-    public func recordLastOpenedBrowserStreamTab(
-        panelID: String,
-        in workspaceID: MobileWorkspacePreview.ID
-    ) {
-        pendingLastTabRestoreWorkspaceID = nil
-        guard let workspace = workspaces.first(where: { $0.id == workspaceID }) else { return }
-        lastTabStore.set(
-            MobileWorkspaceLastTab(kind: .browserStream, tabID: panelID),
-            for: workspace.lastTabStateID
-        )
-    }
 
-    /// Records the phone-local browser as the workspace's last opened tab.
-    /// Called by the detail view when it opens the local browser pane.
-    public func recordLastOpenedLocalBrowserTab(in workspaceID: MobileWorkspacePreview.ID) {
-        pendingLastTabRestoreWorkspaceID = nil
-        guard let workspace = workspaces.first(where: { $0.id == workspaceID }) else { return }
-        lastTabStore.set(
-            MobileWorkspaceLastTab(
-                kind: .localBrowser,
-                tabID: MobileWorkspaceLastTab.localBrowserTabID
-            ),
-            for: workspace.lastTabStateID
-        )
-    }
 
-    /// Consumes the one-shot local-browser restore intent for `workspaceID`.
-    /// The detail view calls this and reopens its local browser pane when it
-    /// returns true; the local browser lives in the view-layer store this
-    /// composite cannot reach.
-    public func consumeLocalBrowserTabRestore(for workspaceID: MobileWorkspacePreview.ID) -> Bool {
-        guard pendingLocalBrowserTabRestoreWorkspaceID == workspaceID else { return false }
-        pendingLocalBrowserTabRestoreWorkspaceID = nil
-        return true
-    }
 
     /// Records whatever tab the workspace is actually displaying, used once
     /// per completed open (when nothing was restorable) so the next open
-    /// reproduces this one. The phone-local browser is view-owned and
-    /// invisible here; its open action records itself.
+    /// reproduces this one.
     private func recordDisplayedTab(in workspace: MobileWorkspacePreview) {
-        let workspaceID = workspace.rpcWorkspaceID.rawValue
-        if let browserStore = browserStreamEvents as? BrowserStreamStore,
-           let browser = browserStore.activeState(in: workspaceID) {
-            lastTabStore.set(
-                MobileWorkspaceLastTab(kind: .browserStream, tabID: browser.id),
-                for: workspace.lastTabStateID
-            )
-            return
-        }
         if let surfaceID = selectedMacSurfaceID,
            workspace.surfaces.contains(where: { $0.id == surfaceID && $0.kind.isSelectableMacSurface }) {
             lastTabStore.set(
@@ -13149,19 +13011,13 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         guard let remembered = lastTabStore.lastTab(for: workspace.lastTabStateID) else {
             return .unavailable
         }
-        // Retired-kind memory must survive even when another browser stream
-        // is already active; the generic live-stream winner would overwrite it.
-        if remembered.kind == .simulatorStream {
+        // Retired records are preserved before any selectable-surface fallback.
+        if [.simulatorStream, .browserStream, .localBrowser].contains(remembered.kind) {
             return .unsupportedPreservingMemory
         }
-        let workspaceID = workspace.rpcWorkspaceID.rawValue
-        let browserStore = browserStreamEvents as? BrowserStreamStore
-        // A stream already live in this workspace: matching memory means the
-        // open landed on the remembered tab; a different live stream is newer
-        // user-visible state than the memory and wins.
-        if let activeBrowser = browserStore?.activeState(in: workspaceID) {
-            return remembered.kind == .browserStream && remembered.tabID == activeBrowser.id
-                ? .restored : .unavailable
+        if remembered.kind == .macSurface,
+           workspace.surfaces.contains(where: { $0.id.rawValue == remembered.tabID && $0.kind == .browser }) {
+            return .unsupportedPreservingMemory
         }
         switch remembered.kind {
         case .terminal:
@@ -13193,28 +13049,8 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
             }
             selectedMacSurfaceID = id
             return .restored
-        case .browserStream:
-            guard let browserStore else { return .unavailable }
-            if browserStore.panels(in: workspaceID).contains(where: { $0.panelID == remembered.tabID }) {
-                _ = browserStore.activate(panelID: remembered.tabID, in: workspaceID)
-                let panelID = remembered.tabID
-                Task { await startMobileBrowserStream(panelID: panelID) }
-                return .restored
-            }
-            // Not discovered yet: the Mac row still lists the pane, or panel
-            // discovery has never completed for this workspace — the detail
-            // view's refresh will re-run this sync.
-            if workspace.surfaces.contains(where: { $0.id.rawValue == remembered.tabID && $0.kind == .browser })
-                || browserStore.panelDiscoveryRevision(in: workspaceID) == 0 {
-                return .waiting
-            }
-            return .unavailable
-        case .simulatorStream:
+        case .simulatorStream, .browserStream, .localBrowser:
             return .unsupportedPreservingMemory
-        case .localBrowser:
-            // View-owned tab: hand the reopen to the mounted detail view.
-            pendingLocalBrowserTabRestoreWorkspaceID = workspace.id
-            return .restored
         }
     }
 
@@ -14406,8 +14242,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
             supportedHostCapabilities = Set(payload.capabilities)
             phonePushMacStatus = payload.phonePush
             seedForegroundCaffeineStatusIfSupported()
-            restartActiveMobileBrowserStreams()
-            refreshVisibleMobileBrowserPanels()
             prepareTerminalThemeRevisionAuthority(
                 macInstanceTag: payload.macInstanceTag, producerEpoch: payload.terminalThemeRevisionEpoch,
                 connectionID: connectionGeneration.uuidString
@@ -14605,7 +14439,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                 self.markMacConnectionHealthy()
                 if event.topic == "workspace.updated" {
                     self.scheduleWorkspaceListRefreshFromEvent()
-                    self.refreshVisibleMobileBrowserPanels()
                 } else if event.topic == "mobile.sync.delta" {
                     self.handleStateSyncDeltaEvent(event)
                 } else if event.topic == "terminal.render_grid" {
@@ -14654,16 +14487,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                     )
                 } else if event.topic == "mobile.compatible_tags.changed" {
                     await self.handleCompatibleMacTagsChangedEvent(event)
-                } else if event.topic == "browser.frame" {
-                    self.handleMobileBrowserFrameEvent(event)
-                } else if event.topic == "browser.state" {
-                    self.handleMobileBrowserStateEvent(event)
-                } else if event.topic == "browser.closed" {
-                    self.handleMobileBrowserClosedEvent(event)
-                } else if event.topic == "browser.dialog" {
-                    self.handleMobileBrowserDialogEvent(event)
-                } else if event.topic == "browser.dialog.resolved" {
-                    self.handleMobileBrowserDialogResolvedEvent(event)
                 }
             }
             guard let self else { return }

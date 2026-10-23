@@ -2,7 +2,6 @@ import CMUXAuthCore
 import CMUXMobileCore
 import CmuxAuthRuntime
 import CmuxMobilePairedMac
-import CmuxMobileBrowserStream
 import CmuxMobileRPC
 import CmuxMobileShell
 import CmuxMobileShellModel
@@ -394,32 +393,23 @@ public struct CMUXMobileRootScene: View {
 
     @MainActor
     private func makeMobileAppView() -> CMUXMobileAppView {
-        let browserStreamStore = BrowserStreamStore()
         #if os(iOS)
-        let store = makeStore(
-            browserStreamEvents: browserStreamStore
-        )
+        let store = makeStore()
         return CMUXMobileAppView(
             store: store,
-            browserStreamStore: browserStreamStore,
             onboardingStore: onboardingStore,
             signOutHook: signOutHook
         )
         #else
         return CMUXMobileAppView(
-            store: makeStore(
-                browserStreamEvents: browserStreamStore
-            ),
-            browserStreamStore: browserStreamStore,
+            store: makeStore(),
             signOutHook: signOutHook
         )
         #endif
     }
 
     @MainActor
-    package func makeStore(
-        browserStreamEvents: (any BrowserStreamEventReceiving)? = nil
-    ) -> CMUXMobileShellStore {
+    package func makeStore() -> CMUXMobileShellStore {
         let coordinator = auth.coordinator
         let buildScope = MobileIOSBuildScope.current()
         let identityProvider = AuthCoordinatorIdentityProvider(
@@ -486,7 +476,6 @@ public struct CMUXMobileRootScene: View {
                 defaults: .standard,
                 diagnosticLog: diagnosticLog
             ),
-            browserStreamEvents: browserStreamEvents,
             // SSH hosts and keys are device-local and account-independent
             // (docs/prd/ios-direct-ssh.md D5): Application Support, never
             // cleared by sign-out.
