@@ -21,9 +21,6 @@ struct TerminalPickerMenuValue: Equatable {
     let activeBrowserStreamPanelID: String?
     /// The streamed tab the phone-local browser shows "On iPhone", if any.
     let onDeviceBrowserStreamPanelID: String?
-    let simulatorStreamRows: [SimulatorStreamPickerRow]
-    let supportsSimulatorStream: Bool
-    let activeSimulatorStreamPanelID: String?
     /// SSH tmux and cmux-tui workspaces: terminals grouped by tmux window or
     /// cmux-tui screen (PRD D32). `nil` keeps the flat Terminals section
     /// (Mac workspaces, shells).
@@ -48,15 +45,12 @@ struct TerminalPickerMenuValue: Equatable {
         browserStreamSupportKnown: Bool = false,
         activeBrowserStreamPanelID: String? = nil,
         onDeviceBrowserStreamPanelID: String? = nil,
-        simulatorStreamRows: [SimulatorStreamPickerRow] = [],
-        supportsSimulatorStream: Bool = false,
-        activeSimulatorStreamPanelID: String? = nil,
         sshTabLayout: MobileSSHTabLayout? = nil,
         isSSHComputer: Bool = false,
         isExternalHost: Bool = false
     ) {
         let resolvedRows = liveTerminals.map(TerminalPickerMenuRow.init)
-            + liveSurfaces.filter { !$0.kind.isTerminal }.map(TerminalPickerMenuRow.init)
+            + liveSurfaces.filter { $0.kind.isSelectableMacSurface }.map(TerminalPickerMenuRow.init)
         rows = resolvedRows
         let selection = resolvedRows.resolvedTerminalPickerSelection(selectedID: selectedID)
         self.selectedID = selection?.id
@@ -72,9 +66,6 @@ struct TerminalPickerMenuValue: Equatable {
         self.browserStreamSupportKnown = browserStreamSupportKnown
         self.activeBrowserStreamPanelID = activeBrowserStreamPanelID
         self.onDeviceBrowserStreamPanelID = onDeviceBrowserStreamPanelID
-        self.simulatorStreamRows = simulatorStreamRows
-        self.supportsSimulatorStream = supportsSimulatorStream
-        self.activeSimulatorStreamPanelID = activeSimulatorStreamPanelID
         self.sshTabLayout = sshTabLayout
         self.isSSHComputer = isSSHComputer
         self.isExternalHost = isExternalHost
@@ -95,7 +86,7 @@ struct TerminalPickerMenuValue: Equatable {
     /// selection whose row has disappeared falls back to the resolved
     /// terminal, matching `selectedName`.
     var checkedRowID: TerminalPickerMenuRow.ID? {
-        if hasActiveBrowser || activeBrowserStreamPanelID != nil || activeSimulatorStreamPanelID != nil { return nil }
+        if hasActiveBrowser || activeBrowserStreamPanelID != nil { return nil }
         if let selectedMacSurfaceID,
            rows.contains(where: { $0.id == .macSurface(selectedMacSurfaceID) }) {
             return .macSurface(selectedMacSurfaceID)

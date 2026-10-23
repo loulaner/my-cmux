@@ -298,6 +298,47 @@ def expect(label, result, expected_code):
     return False
 
 
+def ignore_file_scenario(directory, *, tracked, ignored=True):
+    """Use the real guard in a disposable Git repo, never a developer cache."""
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = os.path.join(tmp, "repo")
+        os.makedirs(repo)
+        make_base_repo(repo)
+        git(repo, "commit", "--allow-empty", "-qm", "unchanged graph")
+        relative = f"{directory}/.gitignore"
+        write_text(
+            os.path.join(repo, relative),
+            "# Automatically created by ruff.\n*\n" + ("" if ignored else "!/.gitignore\n"),
+        )
+        if tracked:
+            git(repo, "add", "-f", "--", relative)
+        else:
+            # The generated wildcard also ignores its own .gitignore.
+            check = subprocess.run(
+                ["git", "check-ignore", "--", relative], cwd=repo,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            )
+            assert check.returncode == (0 if ignored else 1), check.stderr
+        result = run_guard(repo)
+        if result.returncode == 1:
+            assert f"{relative} ignores Package.resolved" in result.stdout, result.stdout
+        return result
+
+
+def missing_lockfile_scenario(*, keep_untracked_file):
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = os.path.join(tmp, "repo")
+        os.makedirs(repo)
+        make_base_repo(repo)
+        git(repo, "commit", "--allow-empty", "-qm", "unchanged graph")
+        lockfile = "Packages/iOS/CmuxMobileShellUI/Package.resolved"
+        args = ["rm"] + (["--cached"] if keep_untracked_file else [])
+        git(repo, *args, "--", lockfile)
+        result = run_guard(repo)
+        assert f"Missing Package.resolved for SwiftPM package with remote pins: {lockfile}" in result.stdout, result.stdout
+        return result
+
+
 def main():
     ok = True
 
@@ -346,6 +387,30 @@ def main():
         scenario(change_xcode_remote_requirement),
         1,
     )
+
+    for directory, tracked, expected in (
+        (".ruff_cache", False, 0),
+        (".ruff_cache", True, 1),
+        ("project", False, 1),
+        ("project", True, 1),
+        ("project/.ruff_cache", False, 1),
+    ):
+        ok &= expect(
+            f"ignore boundary: {directory}, tracked={tracked}",
+            ignore_file_scenario(directory, tracked=tracked),
+            expected,
+        )
+    ok &= expect(
+        "untracked but non-ignored Ruff rule is still checked",
+        ignore_file_scenario(".ruff_cache", tracked=False, ignored=False),
+        1,
+    )
+    for keep_untracked_file in (False, True):
+        ok &= expect(
+            f"required lockfile rejected, untracked file present={keep_untracked_file}",
+            missing_lockfile_scenario(keep_untracked_file=keep_untracked_file),
+            1,
+        )
 
     if not ok:
         return 1

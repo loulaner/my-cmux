@@ -169,7 +169,7 @@ extension WorkspaceDetailView {
     /// The terminal Browse Files in the title menu opens at: the shown SSH
     /// terminal, `nil` for Mac workspaces or while a browser covers it.
     var sshFilesTerminalID: String? {
-        guard activeBrowser == nil, activeBrowserStream == nil, activeSimulatorStream == nil,
+        guard activeBrowser == nil, activeBrowserStream == nil,
               let terminalID = selectedTerminal?.id.rawValue,
               isSSHTerminal(terminalID) else { return nil }
         return terminalID

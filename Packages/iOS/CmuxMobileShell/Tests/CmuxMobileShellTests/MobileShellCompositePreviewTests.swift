@@ -900,36 +900,6 @@ import Testing
         #expect(browserStreams.activeState(in: "ws-b")?.id == "panel-1")
     }
 
-    @Test func reopeningSameWorkspaceRestoresSimulatorStreamTab() async {
-        let simulatorStreams = MobileSimulatorStreamStore()
-        let store = MobileShellComposite.preview(simulatorStreamStore: simulatorStreams)
-        store.signIn()
-        let simulator = MobileSimulatorPanelDescriptor(
-            panelID: "sim-1", workspaceID: "ws-b", title: "iPhone",
-            selectedDeviceName: "iPhone 17", selectedDeviceState: "Booted",
-            status: "ready", isReady: true,
-            supportsTouch: true, supportsKeyboard: true,
-            supportsHardwareButtons: true, supportsRotation: true
-        )
-        let workspaceB = MobileWorkspacePreview(
-            id: "ws-b",
-            name: "Beta",
-            terminals: [MobileTerminalPreview(id: "b1", name: "Shell", isFocused: true)],
-            simulators: [simulator]
-        )
-        store.replaceForegroundWorkspaceState([workspaceB])
-        store.selectedWorkspaceID = workspaceB.id
-        simulatorStreams.replaceSimulatorPanels(in: "ws-b", with: [simulator])
-        _ = simulatorStreams.activate(panelID: "sim-1", in: "ws-b")
-        store.recordLastOpenedSimulatorStreamTab(panelID: "sim-1", in: workspaceB.id)
-
-        simulatorStreams.deactivate(in: "ws-b")
-        #expect(simulatorStreams.activeState(in: "ws-b") == nil)
-
-        await store.openWorkspace(workspaceB.id)
-        #expect(simulatorStreams.activeState(in: "ws-b")?.id == "sim-1")
-    }
-
     @Test func reopeningSameWorkspaceRestoresLocalBrowserTab() async {
         let store = MobileShellComposite.preview()
         store.signIn()

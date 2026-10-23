@@ -14,78 +14,6 @@ import Testing
 
 @MainActor
 @Suite struct WorkspaceDetailViewDefaultSurfaceSelectionTests {
-    @Test func simulatorOnlyWorkspaceAutoSelectsItsFocusedPanelWhenPanelsArrive() async {
-        let workspaceID = "workspace-1"
-        let firstDescriptor = Self.descriptor(panelID: "sim-1")
-        let focusedDescriptor = Self.descriptor(panelID: "sim-2")
-        let firstSimulatorSurface = MobileSurfacePreview(
-            id: .init(rawValue: firstDescriptor.panelID),
-            kind: .other("simulator"),
-            title: "First Simulator"
-        )
-        let focusedSimulatorSurface = MobileSurfacePreview(
-            id: .init(rawValue: focusedDescriptor.panelID),
-            kind: .other("simulator"),
-            title: "Focused Simulator",
-            isFocused: true
-        )
-        let initialWorkspace = MobileWorkspacePreview(
-            id: .init(rawValue: workspaceID),
-            name: "Workspace",
-            terminals: [],
-            surfaces: [firstSimulatorSurface, focusedSimulatorSurface]
-        )
-        let updatedWorkspace = MobileWorkspacePreview(
-            id: .init(rawValue: workspaceID),
-            name: "Workspace",
-            terminals: [],
-            surfaces: [firstSimulatorSurface, focusedSimulatorSurface],
-            simulators: [firstDescriptor, focusedDescriptor]
-        )
-        let simulatorStore = MobileSimulatorStreamStore()
-        let browserStreamStore = BrowserStreamStore()
-        let shell = MobileShellComposite(
-            workspaces: [initialWorkspace],
-            browserStreamEvents: browserStreamStore,
-            simulatorStreamStore: simulatorStore
-        )
-        let browserStore = BrowserSurfaceStore()
-        let displaySettings = MobileDisplaySettings(
-            defaults: UserDefaults(suiteName: "cmux.tests.\(UUID().uuidString)")!
-        )
-        let toasts = ToastCenter()
-        let model = WorkspaceDetailHarnessModel(workspace: initialWorkspace)
-
-        let controller = UIHostingController(
-            rootView: WorkspaceDetailHarness(
-                model: model,
-                store: shell,
-                browserStore: browserStore,
-                browserStreamStore: browserStreamStore,
-                simulatorStore: simulatorStore,
-                displaySettings: displaySettings,
-                toasts: toasts
-            )
-        )
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-        window.rootViewController = controller
-        window.makeKeyAndVisible()
-        controller.view.layoutIfNeeded()
-
-        #expect(simulatorStore.activeState(in: workspaceID) == nil)
-
-        model.workspace = updatedWorkspace
-        controller.view.layoutIfNeeded()
-        await Self.waitForActivePanel(
-            expectedID: focusedDescriptor.panelID,
-            activeID: { simulatorStore.activeState(in: workspaceID)?.id }
-        )
-        controller.view.layoutIfNeeded()
-
-        #expect(simulatorStore.activeState(in: workspaceID)?.id == focusedDescriptor.panelID)
-        window.isHidden = true
-    }
-
     @Test func browserOnlyWorkspaceAutoSelectsItsFirstStreamPanelWhenPanelsArrive() async {
         let workspaceID = "workspace-1"
         let initialWorkspace = MobileWorkspacePreview(
@@ -100,11 +28,9 @@ import Testing
         )
         let browserStore = BrowserSurfaceStore()
         let browserStreamStore = BrowserStreamStore()
-        let simulatorStore = MobileSimulatorStreamStore()
         let shell = MobileShellComposite(
             workspaces: [initialWorkspace],
-            browserStreamEvents: browserStreamStore,
-            simulatorStreamStore: simulatorStore
+            browserStreamEvents: browserStreamStore
         )
         let displaySettings = MobileDisplaySettings(
             defaults: UserDefaults(suiteName: "cmux.tests.\(UUID().uuidString)")!
@@ -118,7 +44,6 @@ import Testing
                 store: shell,
                 browserStore: browserStore,
                 browserStreamStore: browserStreamStore,
-                simulatorStore: simulatorStore,
                 displaySettings: displaySettings,
                 toasts: toasts
             )
@@ -154,28 +79,6 @@ import Testing
         }
     }
 
-    private static func descriptor() -> MobileSimulatorPanelDescriptor {
-        descriptor(panelID: "sim-1")
-    }
-
-    private static func descriptor(panelID: String) -> MobileSimulatorPanelDescriptor {
-        MobileSimulatorPanelDescriptor(
-            panelID: panelID,
-            workspaceID: "workspace-1",
-            title: "Simulator",
-            selectedDeviceName: "iPhone 17",
-            selectedDeviceState: "Booted",
-            status: "streaming",
-            isReady: true,
-            supportsTouch: true,
-            supportsKeyboard: true,
-            supportsHardwareButtons: true,
-            supportsRotation: true,
-            ownerConnectionID: nil,
-            isOwnedByCurrentConnection: nil
-        )
-    }
-
     private static func browserDescriptor() -> MobileBrowserPanelDescriptor {
         MobileBrowserPanelDescriptor(
             panelID: "browser-1",
@@ -196,7 +99,6 @@ private struct WorkspaceDetailHarness: View {
     let store: MobileShellComposite
     let browserStore: BrowserSurfaceStore
     let browserStreamStore: BrowserStreamStore
-    let simulatorStore: MobileSimulatorStreamStore
     let displaySettings: MobileDisplaySettings
     let toasts: ToastCenter
 
@@ -220,7 +122,6 @@ private struct WorkspaceDetailHarness: View {
         )
         .environment(browserStore)
         .environment(browserStreamStore)
-        .environment(simulatorStore)
         .environment(displaySettings)
         .environment(toasts)
     }

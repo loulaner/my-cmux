@@ -108,7 +108,6 @@ public struct MacSurfaceGalleryPreviewView: View {
                         createTerminal: {},
                         openBrowser: {},
                         selectBrowserStream: { _ in },
-                        selectSimulatorStream: { _ in },
                         openTextSheet: {},
                         copyDebugLogs: {},
                         sendFeedback: {}

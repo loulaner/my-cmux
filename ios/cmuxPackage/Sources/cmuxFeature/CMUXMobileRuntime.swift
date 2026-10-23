@@ -38,7 +38,6 @@ public struct CMUXMobileRuntime: Sendable, MobileSyncRuntime {
     public var independentEventsMergeSurfaceLanes: Bool
     public var terminalLaneProvider: MobileTerminalLaneProvider?
     public var terminalInputLaneProvider: MobileTerminalLaneProvider?
-    public var simulatorStreamLaneProvider: MobileSimulatorStreamLaneProvider?
     public var artifactLaneProvider: MobileArtifactLaneProvider?
     public var tunnelConnectProvider: MobileTunnelConnectProvider?
     public var tunnelListeningPortsProvider: MobileTunnelListeningPortsProvider?
@@ -153,7 +152,6 @@ public struct CMUXMobileRuntime: Sendable, MobileSyncRuntime {
         terminalLaneProvider: MobileTerminalLaneProvider? = nil,
         terminalInputLaneProvider: MobileTerminalLaneProvider? = nil,
         artifactLaneProvider: MobileArtifactLaneProvider? = nil,
-        simulatorStreamLaneProvider: MobileSimulatorStreamLaneProvider? = nil,
         independentEventsMergeSurfaceLanes: Bool = false,
         tunnelConnectProvider: MobileTunnelConnectProvider? = nil,
         tunnelListeningPortsProvider: MobileTunnelListeningPortsProvider? = nil
@@ -172,7 +170,6 @@ public struct CMUXMobileRuntime: Sendable, MobileSyncRuntime {
         self.terminalLaneProvider = terminalLaneProvider
         self.terminalInputLaneProvider = terminalInputLaneProvider
         self.artifactLaneProvider = artifactLaneProvider
-        self.simulatorStreamLaneProvider = simulatorStreamLaneProvider
         self.independentEventsMergeSurfaceLanes = independentEventsMergeSurfaceLanes
         self.tunnelConnectProvider = tunnelConnectProvider
         self.tunnelListeningPortsProvider = tunnelListeningPortsProvider
@@ -192,7 +189,6 @@ public struct CMUXMobileRuntime: Sendable, MobileSyncRuntime {
         terminalLaneProvider: MobileTerminalLaneProvider? = nil,
         terminalInputLaneProvider: MobileTerminalLaneProvider? = nil,
         artifactLaneProvider: MobileArtifactLaneProvider? = nil,
-        simulatorStreamLaneProvider: MobileSimulatorStreamLaneProvider? = nil,
         independentEventsMergeSurfaceLanes: Bool = false,
         tunnelConnectProvider: MobileTunnelConnectProvider? = nil,
         tunnelListeningPortsProvider: MobileTunnelListeningPortsProvider? = nil
@@ -210,7 +206,6 @@ public struct CMUXMobileRuntime: Sendable, MobileSyncRuntime {
         self.terminalLaneProvider = terminalLaneProvider
         self.terminalInputLaneProvider = terminalInputLaneProvider
         self.artifactLaneProvider = artifactLaneProvider
-        self.simulatorStreamLaneProvider = simulatorStreamLaneProvider
         self.independentEventsMergeSurfaceLanes = independentEventsMergeSurfaceLanes
         self.tunnelConnectProvider = tunnelConnectProvider
         self.tunnelListeningPortsProvider = tunnelListeningPortsProvider

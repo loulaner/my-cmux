@@ -26,13 +26,11 @@ import UIKit
         #expect(before.map(\.title) == menuActions(in: presented).map(\.title))
         #expect(before.contains { $0.title == "Terminal 0" })
         #expect(before.contains { $0.title == "Browser 0" })
-        #expect(before.contains { $0.title == "Simulator 0" })
         #expect(!before.contains { $0.title == "Added terminal" })
 
         let reopened = menuActions(in: coordinator.makeMenuElements())
         #expect(reopened.contains { $0.title == "Terminal 20" })
         #expect(reopened.contains { $0.title == "Browser 20" })
-        #expect(reopened.contains { $0.title == "Simulator 20" })
         #expect(reopened.contains { $0.title == "Added terminal" })
         #expect(button.accessibilityValue == "Terminal 20")
         #expect(reopened.first { $0.identifier.rawValue == "MobileTerminalMenuItem-terminal-1" }?.state == .on)
@@ -127,13 +125,6 @@ import UIKit
                 canGoBack: false, canGoForward: false, isLoading: false
             ))],
             supportsBrowserStream: true,
-            simulatorStreamRows: [SimulatorStreamPickerRow(MobileSimulatorPanelDescriptor(
-                panelID: "simulator-1", workspaceID: "workspace-1", title: "Simulator",
-                selectedDeviceName: "Simulator \(generation)", selectedDeviceState: "Booted",
-                status: "ready", isReady: true, supportsTouch: true, supportsKeyboard: true,
-                supportsHardwareButtons: true, supportsRotation: true
-            ))],
-            supportsSimulatorStream: true,
             sshTabLayout: grouped ? MobileSSHTabLayout(kind: .tmux, sections: [
                 MobileSSHTabSection(
                     id: "window-1", title: "Window \(generation)", rows: [
@@ -150,7 +141,7 @@ import UIKit
         TerminalPickerMenuActions(
             selectTerminal: selectTerminal, selectMacSurface: { _ in },
             createWorkspace: {}, createTerminal: {}, openBrowser: {},
-            selectBrowserStream: { _ in }, selectSimulatorStream: { _ in },
+            selectBrowserStream: { _ in },
             openTextSheet: {}, copyDebugLogs: {}, sendFeedback: {}
         )
     }

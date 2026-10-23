@@ -35,10 +35,11 @@ class ExtensionsRemovedTests(unittest.TestCase):
                 self.assertNotIn(key, ent)
 
     def test_composition_does_not_construct_or_clean_up_system_vpn(self):
-        for name in ['MobileCloudComposition', 'CMUXMobileRootScene']:
-            source = (ROOT / 'ios/cmuxPackage/Sources/cmuxFeature' / (name + '.swift')).read_text()
-            for forbidden in ['makeSystemVPNController', 'CloudSystemVPN', 'cloudSystemVPNController', 'removeFromPreferences', 'waitForPendingOperationAndGate']:
-                self.assertNotIn(forbidden, source)
+        feature = ROOT / 'ios/cmuxPackage/Sources/cmuxFeature'
+        self.assertFalse((feature / 'MobileCloudComposition.swift').exists())
+        source = (feature / 'CMUXMobileRootScene.swift').read_text()
+        for forbidden in ['makeSystemVPNController', 'CloudSystemVPN', 'cloudSystemVPNController', 'removeFromPreferences', 'waitForPendingOperationAndGate']:
+            self.assertNotIn(forbidden, source)
 
 
 if __name__ == '__main__':

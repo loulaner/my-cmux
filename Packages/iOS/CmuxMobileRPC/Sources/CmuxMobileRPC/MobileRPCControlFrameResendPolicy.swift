@@ -32,8 +32,6 @@ struct MobileRPCControlFrameResendPolicy {
         "mobile.host.status",
         "mobile.panel.artifact.stat",
         "mobile.rpc.methods",
-        "mobile.simulator.devices.list",
-        "mobile.simulator.list",
         "mobile.sync.fetch",
         "mobile.task.models.list",
         "mobile.terminal.artifact.list",

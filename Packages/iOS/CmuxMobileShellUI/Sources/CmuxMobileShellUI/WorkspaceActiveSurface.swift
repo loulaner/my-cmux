@@ -5,13 +5,11 @@ enum WorkspaceActiveSurface: Equatable {
     case terminal
     case browser
     case browserStream
-    case simulatorStream
     case macSurface(MobileSurfacePreview)
 
     static func derive(
         hasActiveBrowser: Bool,
         hasActiveBrowserStream: Bool = false,
-        hasActiveSimulatorStream: Bool = false,
         selectedMacSurface: MobileSurfacePreview? = nil
     ) -> Self {
         if hasActiveBrowser {
@@ -19,9 +17,6 @@ enum WorkspaceActiveSurface: Equatable {
         }
         if hasActiveBrowserStream {
             return .browserStream
-        }
-        if hasActiveSimulatorStream {
-            return .simulatorStream
         }
         if let selectedMacSurface { return .macSurface(selectedMacSurface) }
         return .terminal

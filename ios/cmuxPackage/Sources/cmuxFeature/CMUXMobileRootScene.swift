@@ -395,27 +395,22 @@ public struct CMUXMobileRootScene: View {
     @MainActor
     private func makeMobileAppView() -> CMUXMobileAppView {
         let browserStreamStore = BrowserStreamStore()
-        let simulatorStreamStore = MobileSimulatorStreamStore()
         #if os(iOS)
         let store = makeStore(
-            browserStreamEvents: browserStreamStore,
-            simulatorStreamStore: simulatorStreamStore
+            browserStreamEvents: browserStreamStore
         )
         return CMUXMobileAppView(
             store: store,
             browserStreamStore: browserStreamStore,
-            simulatorStreamStore: simulatorStreamStore,
             onboardingStore: onboardingStore,
             signOutHook: signOutHook
         )
         #else
         return CMUXMobileAppView(
             store: makeStore(
-                browserStreamEvents: browserStreamStore,
-                simulatorStreamStore: simulatorStreamStore
+                browserStreamEvents: browserStreamStore
             ),
             browserStreamStore: browserStreamStore,
-            simulatorStreamStore: simulatorStreamStore,
             signOutHook: signOutHook
         )
         #endif
@@ -423,8 +418,7 @@ public struct CMUXMobileRootScene: View {
 
     @MainActor
     package func makeStore(
-        browserStreamEvents: (any BrowserStreamEventReceiving)? = nil,
-        simulatorStreamStore: MobileSimulatorStreamStore? = nil
+        browserStreamEvents: (any BrowserStreamEventReceiving)? = nil
     ) -> CMUXMobileShellStore {
         let coordinator = auth.coordinator
         let buildScope = MobileIOSBuildScope.current()
@@ -493,7 +487,6 @@ public struct CMUXMobileRootScene: View {
                 diagnosticLog: diagnosticLog
             ),
             browserStreamEvents: browserStreamEvents,
-            simulatorStreamStore: simulatorStreamStore,
             // SSH hosts and keys are device-local and account-independent
             // (docs/prd/ios-direct-ssh.md D5): Application Support, never
             // cleared by sign-out.

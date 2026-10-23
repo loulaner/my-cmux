@@ -350,6 +350,19 @@ def ignores_package_resolved(gitignore: Path) -> bool:
     return ignored
 
 
+def is_ignored_ruff_cache_file(path: str, tracked_gitignores: set[str]) -> bool:
+    """Exclude only ignored, untracked files inside the root Ruff cache."""
+    if not path.startswith(".ruff_cache/") or path in tracked_gitignores:
+        return False
+    try:
+        git_stdout("check-ignore", "--", path)
+    except subprocess.CalledProcessError as error:
+        if error.returncode == 1:  # Git explicitly says this file is not ignored.
+            return False
+        raise
+    return True
+
+
 def main() -> int:
     errors: list[str] = []
     all_manifests = tracked_package_manifests(include_allowed_vendor=True)
@@ -487,11 +500,14 @@ def main() -> int:
             f"Package.resolved diff: {IOS_WORKSPACE_PACKAGE_RESOLVED}"
         )
 
+    tracked_gitignores = set(git_ls_files(".gitignore", "*/.gitignore"))
     for gitignore in sorted(Path(".").rglob(".gitignore")):
         rel = gitignore.as_posix()
         if rel.startswith("./"):
             rel = rel[2:]
         if has_skipped_part(rel):
+            continue
+        if is_ignored_ruff_cache_file(rel, tracked_gitignores):
             continue
         if not ignores_package_resolved(gitignore):
             continue

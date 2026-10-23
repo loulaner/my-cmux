@@ -85,6 +85,27 @@ import Testing
         #expect(value.selectedName == "README")
     }
 
+    @Test func retiredSimulatorSurfaceIsNotAPickerRowOrATerminal() {
+        let simulator = MobileSurfacePreview(id: "sim-1", kind: .init(rawValue: "simulator"), title: "Simulator")
+        let markdown = MobileSurfacePreview(id: "readme", kind: .markdown, title: "README")
+        let terminal = MobileTerminalPreview(id: "terminal-1", name: "Shell")
+        let value = TerminalPickerMenuValue(
+            liveTerminals: [terminal], liveSurfaces: [simulator, markdown],
+            selectedID: terminal.id, selectedMacSurfaceID: simulator.id,
+            canCreateWorkspace: true, hasActiveBrowser: false
+        )
+        #expect(value.terminalRows == [TerminalPickerMenuRow(terminal)])
+        #expect(value.macSurfaceRows == [TerminalPickerMenuRow(markdown)])
+        #expect(value.checkedRowID == .terminal(terminal.id))
+        #expect(!simulator.kind.isTerminal)
+        let simulatorOnly = TerminalPickerMenuValue(
+            liveTerminals: [], liveSurfaces: [simulator], selectedID: nil,
+            canCreateWorkspace: false, hasActiveBrowser: false
+        )
+        #expect(simulatorOnly.rows.isEmpty)
+        #expect(simulatorOnly.selectedID == nil)
+    }
+
     @Test func exactlyOneRowCarriesTheCheckmark() {
         let terminal = MobileTerminalPreview(id: "terminal-1", name: "Shell")
         let surface = MobileSurfacePreview(id: "surface-1", kind: .todo, title: "Todos")

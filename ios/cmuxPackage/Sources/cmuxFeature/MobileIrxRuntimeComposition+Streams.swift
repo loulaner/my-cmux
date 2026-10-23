@@ -125,30 +125,6 @@ extension MobileIrxRuntimeComposition {
         return IrxArtifactLane(lane: lane)
     }
 
-    public func openSimulatorStreamLane(
-        for request: CmxByteTransportRequest,
-        panelID: UUID
-    ) async throws -> MobileIrohSimulatorStreamLane {
-        let peerHex = try peerTarget(for: request)
-        let session = try await ensureSession(
-            forPeer: peerHex,
-            trigger: "simulator-stream-lane"
-        )
-        // Same legacy resource dialect the terminal lane uses; the Mac's
-        // dialect server routes it to MobileHostIrohSimulatorStreamLaneHandler.
-        let lane = try await session.connection.openLane(
-            IrxLaneDescriptor(
-                lane: .simulatorStream,
-                resource: "simstream:\(panelID.uuidString.lowercased())"
-            )
-        )
-        journal.record(
-            "client-simstream", "lane-opened",
-            ["panel": panelID.uuidString.lowercased()]
-        )
-        return MobileIrohSimulatorStreamLane(stream: lane.bidirectional())
-    }
-
     /// Opens one "On iPhone" browser tunnel connection from the Mac to
     /// `host:port` on the peer's admitted session. The Mac applies its
     /// destination policy and limits; a refusal throws

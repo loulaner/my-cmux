@@ -47,7 +47,6 @@ struct WorkspaceDetailDisconnectedPreviewView: View {
     )
     @State private var browserStore = BrowserSurfaceStore()
     @State private var browserStreamStore = BrowserStreamStore()
-    @State private var simulatorStreamStore = MobileSimulatorStreamStore()
     @State private var didStartFixture = false
 
     var body: some View {
@@ -58,7 +57,6 @@ struct WorkspaceDetailDisconnectedPreviewView: View {
         )
         .environment(browserStore)
         .environment(browserStreamStore)
-        .environment(simulatorStreamStore)
         .task {
             guard !didStartFixture else { return }
             didStartFixture = true

@@ -36,7 +36,6 @@ public struct ComputerPickerPersistencePreviewView: View {
     }
     private let browserStore = BrowserSurfaceStore()
     private let browserStreamStore = BrowserStreamStore()
-    private let simulatorStreamStore = MobileSimulatorStreamStore()
 
     /// Creates an isolated source of computer snapshots without network discovery.
     public init() {}
@@ -56,7 +55,6 @@ public struct ComputerPickerPersistencePreviewView: View {
         )
         .environment(browserStore)
         .environment(browserStreamStore)
-        .environment(simulatorStreamStore)
         .task {
             guard Self.refreshesPicker else { return }
             var generation = 0

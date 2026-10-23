@@ -56,7 +56,6 @@ struct WorkspaceDetailView: View {
     var showsSidebarToggle = false
     @Environment(BrowserSurfaceStore.self) var browserStore
     @Environment(BrowserStreamStore.self) var browserStreamStore
-    @Environment(MobileSimulatorStreamStore.self) var simulatorStreamStore
     @Environment(MobileDisplaySettings.self) var displaySettings
     @Environment(ToastCenter.self) private var toasts
     @Environment(\.mobileChildPresentationProvider) private var childPresentationProvider
@@ -156,9 +155,6 @@ struct WorkspaceDetailView: View {
     var activeBrowserStream: BrowserStreamSurfaceState? {
         browserStreamStore.activeState(in: workspace.rpcWorkspaceID.rawValue)
     }
-    var activeSimulatorStream: MobileSimulatorStreamSurfaceState? {
-        simulatorStreamStore.activeState(in: workspace.rpcWorkspaceID.rawValue)
-    }
     #if os(iOS)
     /// Uses the root modal owner in the live app and local state in previews.
     func resolvedPresentation(
@@ -207,7 +203,6 @@ struct WorkspaceDetailView: View {
         WorkspaceActiveSurface.derive(
             hasActiveBrowser: activeBrowser != nil,
             hasActiveBrowserStream: activeBrowserStream != nil,
-            hasActiveSimulatorStream: activeSimulatorStream != nil,
             selectedMacSurface: workspace.selectedMacSurface(id: store.selectedMacSurfaceID)
         )
     }
@@ -249,7 +244,6 @@ struct WorkspaceDetailView: View {
         detailNavigationChrome(navigationContent)
             .task(id: workspace.rpcWorkspaceID.rawValue) {
                 await store.refreshMobileBrowserPanels(workspaceID: workspace.rpcWorkspaceID.rawValue)
-                syncSimulatorStreamPanels()
                 store.refreshWorkspaceSelection()
                 restoreLocalBrowserTabIfRequested()
             }
@@ -257,10 +251,6 @@ struct WorkspaceDetailView: View {
                 restoreLocalBrowserTabIfRequested()
             }
             .onChange(of: browserStreamStore.panelDiscoveryRevision(in: workspace.rpcWorkspaceID.rawValue)) { _, _ in
-                store.refreshWorkspaceSelection()
-            }
-            .onChange(of: workspace.simulators) { _, _ in
-                syncSimulatorStreamPanels()
                 store.refreshWorkspaceSelection()
             }
             // Structural removal drops the item's retained measurement so a
@@ -619,12 +609,6 @@ struct WorkspaceDetailView: View {
                 subtitle: browser.title,
                 connectionStatus: connectionStatus
             )
-        } else if let simulator = activeSimulatorStream {
-            return .standard(
-                title: workspace.name,
-                subtitle: simulator.selectedDeviceName ?? simulator.title,
-                connectionStatus: connectionStatus
-            )
         } else {
             return .standard(
                 title: workspace.name,
@@ -959,9 +943,6 @@ struct WorkspaceDetailView: View {
                 browserStreamSupportKnown: effectiveConnectionStatus == .connected,
                 activeBrowserStreamPanelID: activeBrowserStream?.id,
                 onDeviceBrowserStreamPanelID: activeBrowser?.linkedStreamPanelID,
-                simulatorStreamRows: simulatorStreamStore.panels(in: workspace.rpcWorkspaceID.rawValue).map(SimulatorStreamPickerRow.init),
-                supportsSimulatorStream: store.supportsSimulatorStream,
-                activeSimulatorStreamPanelID: activeSimulatorStream?.id,
                 sshTabLayout: store.sshTabLayout(workspaceID: workspace.id),
                 isSSHComputer: sshHostID != nil,
                 isExternalHost: store.externalHostID(ofWorkspace: workspace.id) != nil
@@ -974,7 +955,6 @@ struct WorkspaceDetailView: View {
                 createSSHTab: createSSHTabFromPicker,
                 openBrowser: openBrowserFromToolbar,
                 selectBrowserStream: { selectBrowserStreamFromToolbar($0) },
-                selectSimulatorStream: selectSimulatorStreamFromToolbar,
                 openTextSheet: openTextSheetFromMenu,
                 copyDebugLogs: {
                     #if DEBUG
@@ -1224,7 +1204,6 @@ struct WorkspaceDetailView: View {
         // shows the new terminal instead of staying on the browser.
         browserStore.closeBrowser(for: workspace.id.rawValue)
         stopActiveBrowserStream()
-        stopActiveSimulatorStream()
         store.selectedMacSurfaceID = nil
         createTerminal()
     }
@@ -1237,7 +1216,6 @@ struct WorkspaceDetailView: View {
         browserCreateRequest = nil
         browserStore.closeBrowser(for: workspace.id.rawValue)
         stopActiveBrowserStream()
-        stopActiveSimulatorStream()
         store.createSSHTab(in: workspace.id, section: sectionID, action: action)
     }
 
@@ -1286,7 +1264,6 @@ struct WorkspaceDetailView: View {
         store.recordAppEvent(.browserCreateSucceeded, correlationID: workspaceID)
         store.recordLastOpenedLocalBrowserTab(in: workspace.id)
         stopActiveBrowserStream()
-        stopActiveSimulatorStream()
         store.selectedMacSurfaceID = nil
     }
 
@@ -1298,7 +1275,6 @@ struct WorkspaceDetailView: View {
         if openStreamPanelOnDeviceIfPreferred(panelID) { return }
         browserCreateRequest = nil
         browserStore.closeBrowser(for: workspace.id.rawValue)
-        stopActiveSimulatorStream()
         store.selectedMacSurfaceID = nil
         if let previous = activeBrowserStream, previous.id != panelID {
             Task { await store.stopMobileBrowserStream(panelID: previous.id) }
@@ -1306,40 +1282,6 @@ struct WorkspaceDetailView: View {
         _ = browserStreamStore.activate(panelID: panelID, in: workspace.rpcWorkspaceID.rawValue)
         store.recordLastOpenedBrowserStreamTab(panelID: panelID, in: workspace.id)
         Task { await store.startMobileBrowserStream(panelID: panelID) }
-    }
-
-    private func selectSimulatorStreamFromToolbar(_ panelID: String) {
-        dismissTerminalKeyboardForChrome()
-        browserStore.closeBrowser(for: workspace.id.rawValue)
-        stopActiveBrowserStream()
-        store.selectedMacSurfaceID = nil
-        let workspaceID = workspace.rpcWorkspaceID.rawValue
-        let previousPanelID: String? = activeSimulatorStream.flatMap {
-            $0.id == panelID ? nil : $0.id
-        }
-        // Settle the previous panel's local state before activating the new
-        // one, so switching A -> B leaves A idle instead of frozen on a stale
-        // `.streaming`/`.starting` status.
-        if let previousPanelID {
-            simulatorStreamStore.deactivate(panelID: previousPanelID, in: workspaceID)
-        }
-        _ = simulatorStreamStore.activate(panelID: panelID, in: workspaceID)
-        store.recordLastOpenedSimulatorStreamTab(panelID: panelID, in: workspace.id)
-        // One task, stop awaited before start: two independent tasks have no
-        // ordering guarantee, and the reversed order would tear down the new
-        // stream (or churn host sessions) right after it started.
-        Task {
-            if let previousPanelID {
-                await store.stopMobileSimulatorStream(
-                    panelID: previousPanelID,
-                    workspaceID: workspaceID
-                )
-            }
-            await store.startMobileSimulatorStream(
-                panelID: panelID,
-                workspaceID: workspaceID
-            )
-        }
     }
 
     /// Reopens the phone-local browser pane when the store's last-opened-tab
@@ -1357,10 +1299,6 @@ struct WorkspaceDetailView: View {
         Task { await store.stopMobileBrowserStream(panelID: stream.id) }
     }
 
-    private func stopActiveSimulatorStream() {
-        store.stopActiveMobileSimulatorStream(in: workspace.rpcWorkspaceID.rawValue)
-    }
-
     private func selectTerminalFromPicker(_ terminalID: MobileTerminalPreview.ID) {
         dismissTerminalKeyboardForChrome()
         browserCreateRequest = nil
@@ -1368,7 +1306,6 @@ struct WorkspaceDetailView: View {
         // terminal. Closing the browser is enough to flip the detail view back.
         browserStore.closeBrowser(for: workspace.id.rawValue)
         stopActiveBrowserStream()
-        stopActiveSimulatorStream()
         store.selectedMacSurfaceID = nil
         // Switching from the picker is chrome, not a typing intent, so the
         // newly-selected surface must not grab the keyboard on attach. The
@@ -1383,10 +1320,6 @@ struct WorkspaceDetailView: View {
         browserCreateRequest = nil
         browserStore.closeBrowser(for: workspace.id.rawValue)
         stopActiveBrowserStream()
-        // Streams outrank Mac surfaces in `WorkspaceActiveSurface.derive`, so
-        // a selected Simulator stream must be cleared before the Mac surface
-        // can become visible.
-        stopActiveSimulatorStream()
         store.selectMacSurface(surfaceID)
     }
 
@@ -1396,12 +1329,5 @@ struct WorkspaceDetailView: View {
         // it; then sweep any other responder across the scene.
         GhosttySurfaceView.resignActiveInput()
         UIApplication.shared.dismissMobileKeyboard()
-    }
-
-    private func syncSimulatorStreamPanels() {
-        simulatorStreamStore.replaceSimulatorPanels(
-            in: workspace.rpcWorkspaceID.rawValue,
-            with: workspace.simulators
-        )
     }
 }

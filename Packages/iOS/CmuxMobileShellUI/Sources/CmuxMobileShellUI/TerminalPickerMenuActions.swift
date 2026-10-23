@@ -13,7 +13,6 @@ struct TerminalPickerMenuActions {
     var createSSHTab: (String, MobileSSHSectionAction) -> Void = { _, _ in }
     let openBrowser: () -> Void
     let selectBrowserStream: (String) -> Void
-    let selectSimulatorStream: (String) -> Void
     let openTextSheet: () -> Void
     let copyDebugLogs: () -> Void
     let sendFeedback: () -> Void

@@ -44,20 +44,6 @@ struct TerminalPickerMenuContent {
             ))
         }
 
-        if value.supportsSimulatorStream, !value.simulatorStreamRows.isEmpty {
-            sections.append(UIMenu(
-                title: L10n.string("mobile.simulatorStream.menuTitle", defaultValue: "Mac Simulators"),
-                options: .displayInline,
-                children: value.simulatorStreamRows.map { panel in
-                    action(
-                        panel.label,
-                        image: panel.id == value.activeSimulatorStreamPanelID ? "checkmark.circle.fill" : "iphone",
-                        identifier: "SimulatorStreamMenuItem-\(panel.id)"
-                    ) { actions.selectSimulatorStream(panel.id) }
-                }
-            ))
-        }
-
         if value.supportsBrowserStream {
             if !value.browserStreamRows.isEmpty {
                 sections.append(UIMenu(

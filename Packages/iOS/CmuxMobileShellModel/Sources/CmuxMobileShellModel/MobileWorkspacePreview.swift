@@ -208,7 +208,7 @@ extension MobileWorkspacePreview {
     /// reports one. This is separate from the terminal fallback because an
     /// explicitly selected terminal on iOS must remain authoritative.
     public var focusedNonTerminalSurface: MobileSurfacePreview? {
-        surfaces.first { !$0.kind.isTerminal && $0.isFocused }
+        surfaces.first { $0.kind.isSelectableMacSurface && $0.isFocused }
     }
 
     /// The non-terminal Mac surface to present, honoring the picker selection.
@@ -224,12 +224,12 @@ extension MobileWorkspacePreview {
     /// background.
     public func selectedMacSurface(id: MobileSurfacePreview.ID?) -> MobileSurfacePreview? {
         guard let id else { return defaultMacSurface }
-        return surfaces.first { $0.id == id && !$0.kind.isTerminal } ?? defaultMacSurface
+        return surfaces.first { $0.id == id && $0.kind.isSelectableMacSurface } ?? defaultMacSurface
     }
 
     private var defaultMacSurface: MobileSurfacePreview? {
         guard terminals.isEmpty else { return nil }
-        return surfaces.first { !$0.kind.isTerminal && $0.isFocused }
-            ?? surfaces.first { !$0.kind.isTerminal }
+        return surfaces.first { $0.kind.isSelectableMacSurface && $0.isFocused }
+            ?? surfaces.first { $0.kind.isSelectableMacSurface }
     }
 }

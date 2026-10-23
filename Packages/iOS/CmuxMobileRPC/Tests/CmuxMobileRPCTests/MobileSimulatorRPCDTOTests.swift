@@ -12,7 +12,7 @@ import Testing
                     "title": "App",
                     "is_selected": true,
                     "current_directory": NSNull(),
-                    "terminals": [],
+                    "terminals": [["id": "terminal-1", "title": "Shell", "is_focused": true]],
                     "simulators": [
                         [
                             "panel_id": "sim-1",
@@ -35,6 +35,7 @@ import Testing
         ])
 
         let response = try MobileSyncWorkspaceListResponse.decode(data)
+        #expect(response.workspaces.first?.terminals.first?.id == "terminal-1")
         let simulator = try #require(response.workspaces.first?.simulators.first)
         #expect(simulator.panelID == "sim-1")
         #expect(simulator.workspaceID == "workspace-1")
@@ -78,26 +79,5 @@ import Testing
         let simulator = try #require(response.workspaces.first?.simulators.first)
         #expect(simulator.ownerConnectionID == "conn-1")
         #expect(simulator.isOwnedByCurrentConnection == nil)
-    }
-
-    @Test func simulatorPointerRequestUsesWorkspaceScopedWireKeys() throws {
-        let data = try MobileSimulatorRPCRequestEncoder().requestData(
-            method: "mobile.simulator.input.pointer",
-            parameters: MobileSimulatorPointerInput(
-                panelID: "sim-1",
-                workspaceID: "workspace-1",
-                phase: .moved,
-                x: 0.25,
-                y: 0.75
-            )
-        )
-        let request = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        let params = try #require(request["params"] as? [String: Any])
-        #expect(request["method"] as? String == "mobile.simulator.input.pointer")
-        #expect(params["panel_id"] as? String == "sim-1")
-        #expect(params["workspace_id"] as? String == "workspace-1")
-        #expect(params["phase"] as? String == "moved")
-        #expect(params["x"] as? Double == 0.25)
-        #expect(params["y"] as? Double == 0.75)
     }
 }
