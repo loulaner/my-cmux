@@ -6,10 +6,8 @@
 
 CMUX_APP_BUNDLE_IDENTIFIER = com.loulaner.mycmux.ios
 PRODUCT_BUNDLE_IDENTIFIER = $(CMUX_APP_BUNDLE_IDENTIFIER)
-// Manual Release archives default to BETA's registered notification extension.
-// Distribution scripts override both host and extension identifiers for other lanes.
+// Keep the host identity explicit for pairing and credential isolation.
 CMUX_HOST_BUNDLE_IDENTIFIER = $(CMUX_APP_BUNDLE_IDENTIFIER)
-CMUX_NOTIFICATION_SERVICE_BUNDLE_IDENTIFIER = $(CMUX_HOST_BUNDLE_IDENTIFIER).NotificationService
 DEVELOPMENT_TEAM =
 
 // Release/TestFlight/App Store artifacts always use production authorities.

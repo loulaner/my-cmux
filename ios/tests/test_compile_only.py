@@ -57,6 +57,34 @@ class CompileOnlyTests(unittest.TestCase):
                 with self.assertRaises(FileExistsError):
                     module.execute(scheme, output, runner=run)
 
+    def test_all_schemes_reject_extensions_and_removed_metadata(self):
+        module = load('compile_only', 'build-compile-only.py')
+        for scheme, (configuration, bundle, product) in module.SCHEMES.items():
+            for forbidden in ['extension', 'provider', 'push']:
+                with self.subTest(scheme=scheme, forbidden=forbidden), tempfile.TemporaryDirectory() as temporary:
+                    output = Path(temporary) / 'run'
+
+                    def run(argv, **kwargs):
+                        app = output / 'DerivedData/Build/Products' / (configuration + '-iphoneos') / (product + '.app')
+                        app.mkdir(parents=True)
+                        info = {'CFBundleIdentifier': bundle, 'CFBundleExecutable': product}
+                        if scheme == 'cmux-local-direct':
+                            info.update(CMUXDevTag='local-terminal-device', CMUXGitSHA='fixture')
+                        if forbidden == 'extension':
+                            (app / 'PlugIns/Unexpected.appex').mkdir(parents=True)
+                        elif forbidden == 'provider':
+                            info['CMUXCloudVPNProviderBundleIdentifier'] = 'unexpected'
+                        else:
+                            info['UIBackgroundModes'] = ['remote-notification']
+                        (app / 'Info.plist').write_bytes(plistlib.dumps(info))
+                        return subprocess.CompletedProcess(argv, 0)
+
+                    with self.assertRaises(ValueError):
+                        module.execute(scheme, output, runner=run)
+                    receipt = json.loads((output / 'receipt.json').read_text())
+                    self.assertFalse(receipt['installable'])
+                    self.assertNotEqual(receipt['state'], 'COMPILED_UNSIGNED_NOT_INSTALLABLE')
+
     def test_unknown_options_and_schemes_never_execute(self):
         module = load('compile_only', 'build-compile-only.py')
         for extra in [['--team', 'AAAAAAAAAA'], ['--device-id', 'fixture'], ['--', 'test'],

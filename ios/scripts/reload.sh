@@ -137,8 +137,7 @@ cmux_ios_render_tagged_device_no_app_group_entitlements() {
   mkdir -p "$output_dir"
 
   /usr/bin/python3 - \
-    "$IOS_DIR/Config/cmux.entitlements" "$output_dir/cmux.entitlements" \
-    "$IOS_DIR/Config/NotificationService.entitlements" "$output_dir/NotificationService.entitlements" <<'PY'
+    "$IOS_DIR/Config/cmux.entitlements" "$output_dir/cmux.entitlements" <<'PY'
 import plistlib
 import sys
 from pathlib import Path
@@ -1130,7 +1129,6 @@ reload_device() {
       echo "==> ASC API-key profile cannot grant group.dev.cmux.ios; retrying tagged Debug device signing without the App Group"
       if ! run_and_capture "$fallback_build_log" "${build_args[@]}" \
           "CMUX_APP_CODE_SIGN_ENTITLEMENTS=$fallback_entitlements_dir/cmux.entitlements" \
-          "CMUX_NOTIFICATION_SERVICE_CODE_SIGN_ENTITLEMENTS=$fallback_entitlements_dir/NotificationService.entitlements" \
           build; then
         print_device_build_failure "$fallback_build_log"
         exit 1

@@ -1,13 +1,9 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-for arg in "$@"; do
-  case "$arg" in
-    --lane|--lane=*)
-      echo "error: upload-app-store.sh always uses --lane appstore; do not pass --lane" >&2
-      exit 2
-      ;;
-  esac
-done
-exec "$SCRIPT_DIR/upload-testflight.sh" --lane appstore "$@"
+#!/bin/bash
+# Compatibility entry point: official store distribution is removed from MyCMUX.
+message='旧官方发布已从MyCMUX移除；本仓当前仅支持已定义个人构建/安装与compile-only，不支持商店发布。'
+if [[ $# -eq 1 && "$1" == "--help" ]]; then
+  printf '%s\n' "$message"
+  exit 0
+fi
+printf '%s\n' "$message" >&2
+exit 64

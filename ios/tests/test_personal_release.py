@@ -58,7 +58,7 @@ class PersonalReleaseTests(unittest.TestCase):
         for kind in ["PBXResourcesBuildPhase", "PBXFrameworksBuildPhase"]:
             self.assertEqual(file_refs("cmux", kind), file_refs("cmux-personal", kind))
         self.assertTrue(set(self.targets["cmux"]["buildPhases"]).isdisjoint(self.targets["cmux-personal"]["buildPhases"]))
-        self.assertEqual(len(self.targets["cmux"]["dependencies"]), 2)
+        self.assertEqual(len(self.targets["cmux"]["dependencies"]), 0)
 
     def test_only_release_is_selectable_and_scheme_targets_personal(self):
         target = self.targets["cmux-personal"]
@@ -83,7 +83,7 @@ class PersonalReleaseTests(unittest.TestCase):
         self.assertTrue(personal.pop("CMUXPersonalBuild"))
         for key in ["UIBackgroundModes", "CMUXCloudVPNProviderBundleIdentifier"]:
             self.assertNotIn(key, personal)
-            original.pop(key)
+            self.assertNotIn(key, original)
         self.assertEqual(personal, original)
 
     def test_personal_config_does_not_claim_official_signing_identity(self):

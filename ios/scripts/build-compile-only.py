@@ -53,8 +53,10 @@ def execute(scheme, output, runner=subprocess.run):
         if scheme == 'cmux-local-direct':
             from local_direct_device_build import validate_metadata
             validate_metadata(info)
-        if scheme != 'cmux-ios' and list(app.rglob('*.appex')):
+        if list(app.rglob('*.appex')):
             raise ValueError('Unexpected embedded extension')
+        if 'CMUXCloudVPNProviderBundleIdentifier' in info or 'remote-notification' in info.get('UIBackgroundModes', []):
+            raise ValueError('Unexpected VPN provider or background push metadata')
         receipt['app_path'] = str(app)
         receipt['state'] = 'COMPILED_UNSIGNED_NOT_INSTALLABLE'
     (output / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')

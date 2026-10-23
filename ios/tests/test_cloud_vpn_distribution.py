@@ -1,76 +1,71 @@
 #!/usr/bin/env python3
-"""Exercise both public iOS exports with fake Apple signing tools."""
-
-from __future__ import annotations
-
-import plistlib
-import sys
+"""The retired store distribution entry points fail closed, without Apple tools."""
+import os
+import subprocess
 import tempfile
 import unittest
-import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "tests"))
-import test_ios_appstore_lane_identity as fixtures
+ENTRY_POINTS = ('upload-testflight.sh', 'cloud-testflight.sh', 'upload-app-store.sh')
 
 
-class CloudVPNDistributionTests(unittest.TestCase):
-    def export(self, lane, overrides=None):
-        temp = tempfile.TemporaryDirectory()
-        self.addCleanup(temp.cleanup)
-        path = Path(temp.name)
-        fakebin = path / "bin"
-        fixtures._install_fake_tools(fakebin)
-        env = fixtures._base_env(path, fakebin)
-        env.update({
-            "CMUX_IOS_UPLOAD_DIR": str(path / "upload"),
-            "CMUX_FAKE_INCLUDE_NOTIFICATION_EXTENSION": "1" if lane == "beta" else "0",
-        })
-        env.update(overrides or {})
-        result = fixtures._run([
-            "bash", str(ROOT / "ios/scripts/upload-testflight.sh"),
-            "--lane", lane, "--signing", "manual", "--export-only",
-            "--build-number", "20261006000100",
-        ], env=env, tmp=path, log_failure=False)
-        return path, result
-
-    def test_both_exports_share_host_keychain_and_packet_tunnel(self):
-        for lane, host in (("appstore", "com.cmux.app"), ("beta", "dev.cmux.app.beta")):
-            with self.subTest(lane=lane):
-                path, result = self.export(lane)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                options = plistlib.loads((path / "ExportOptions.plist").read_bytes())
-                self.assertIn(host + ".CloudVPN", options["provisioningProfiles"])
-                ipa = next((path / "upload/export").glob("*-resigned.ipa"))
-                with zipfile.ZipFile(ipa) as archive:
-                    for component in ("", "PlugIns/CloudVPN.appex/"):
-                        ent = plistlib.loads(archive.read(
-                            "Payload/cmux.app/" + component + "FakeSignedEntitlements.plist"
-                        ))
-                        self.assertEqual(ent["keychain-access-groups"], [fixtures.TEAM_ID + "." + host])
-                        self.assertIn("packet-tunnel-provider", ent["com.apple.developer.networking.networkextension"])
-                        self.assertNotIn("hotspot-provider", ent["com.apple.developer.networking.networkextension"])
-
-    def test_both_exports_reject_signed_hotspot_provider(self):
-        self.assert_rejected("CMUX_FAKE_HOST_HOTSPOT_PROVIDER", "hotspot-provider")
-
-    def test_both_exports_reject_empty_signed_vpn_group(self):
-        self.assert_rejected("CMUX_FAKE_VPN_EMPTY_SIGNED_GROUP", "keychain")
-
-    def test_both_exports_reject_unauthorized_profile_group(self):
-        self.assert_rejected("CMUX_FAKE_VPN_UNAUTHORIZED_GROUP", "keychain")
-
-    def test_both_exports_reject_host_without_packet_tunnel(self):
-        self.assert_rejected("CMUX_FAKE_HOST_MISSING_PACKET_TUNNEL", "packet-tunnel")
-
-    def assert_rejected(self, override, diagnostic):
-        for lane in ("appstore", "beta"):
-            with self.subTest(lane=lane):
-                _, result = self.export(lane, {override: "1"})
-                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertIn(diagnostic, result.stderr.lower())
+def assert_unsupported(case, script, arguments, help_only=False):
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        home = root / 'home'
+        home.mkdir()
+        fakebin = root / 'bin'
+        fakebin.mkdir()
+        calls = root / 'tool-calls'
+        for tool in ('xcodebuild', 'security', 'codesign', 'xcrun', 'curl', 'git',
+                     'python', 'python3', 'ssh', 'scp', 'cmux', 'plutil', 'rm',
+                     'mkdir', 'dirname', 'find', 'cat', 'asc', 'fleet'):
+            path = fakebin / tool
+            path.write_text('#!/bin/bash\nprintf "%s\\n" "$0" >> "$TOOL_CALLS"\nexit 97\n')
+            path.chmod(0o755)
+        # Existing user data must neither be removed nor migrated by a retired command.
+        for name in ('AppStoreConnect.local.plist', 'old.mobileprovision', 'old-app', 'private-key.p8'):
+            (home / name).write_text('fixture; do not read or modify\n')
+        snapshot = lambda: {str(p.relative_to(root)): p.read_bytes()
+                            for p in root.rglob('*') if p.is_file()}
+        before = snapshot()
+        environment = {
+            'HOME': str(home), 'TMPDIR': str(home), 'PATH': str(fakebin),
+            'TOOL_CALLS': str(calls), 'ASC_API_KEY_ID': 'FAKE',
+            'ASC_API_ISSUER_ID': 'FAKE', 'ASC_API_KEY_PATH': str(home / 'private-key.p8'),
+            'IOS_DISTRIBUTION_IDENTITY': 'Fake Distribution',
+            'IOS_APPSTORE_PROVISIONING_PROFILE_NAME': 'Fake',
+            'IOS_BETA_PROVISIONING_PROFILE_NAME': 'Fake',
+            'CMUX_ALLOW_UNAUTHENTICATED_INSTALL': '1',
+            'PRODUCT_BUNDLE_IDENTIFIER': 'com.loulaner.mycmux.ios',
+            'CMUX_IOS_UPLOAD_DIR': str(home / 'upload'),
+        }
+        result = subprocess.run(['/bin/bash', str(ROOT / 'ios/scripts' / script), *arguments],
+                                cwd=home, env=environment, capture_output=True, text=True)
+        case.assertEqual(result.returncode, 0 if help_only else 64, result.stderr)
+        case.assertIn('旧官方发布已从MyCMUX移除', result.stdout + result.stderr)
+        case.assertFalse(calls.exists(), 'retired entry called an external tool')
+        case.assertEqual(snapshot(), before, 'retired entry wrote or deleted user data')
 
 
-if __name__ == "__main__":
+class RetiredDistributionTests(unittest.TestCase):
+    def test_business_invocations_are_unsupported_without_side_effects(self):
+        for script in ENTRY_POINTS:
+            for arguments in ([], ['--no-upload'], ['--prepare-only'],
+                              ['--archive-path', '/never/archive'], ['--lane', 'appstore'],
+                              ['--bundle-id', 'com.cmux.app'],
+                              ['--bundle-id', 'com.loulaner.mycmux.ios'],
+                              ['--help', '--prepare-only'], ['--export-only'],
+                              ['--signing', 'manual']):
+                with self.subTest(script=script, arguments=arguments):
+                    assert_unsupported(self, script, arguments)
+
+    def test_help_is_explanation_only(self):
+        for script in ENTRY_POINTS:
+            with self.subTest(script=script):
+                assert_unsupported(self, script, ['--help'], help_only=True)
+
+
+if __name__ == '__main__':
     unittest.main()

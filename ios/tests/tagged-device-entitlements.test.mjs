@@ -15,7 +15,6 @@ const sharedConfig = read("ios/Config/Shared.xcconfig");
 const releaseConfig = read("ios/Config/Release.xcconfig");
 const project = read("ios/cmux-ios.xcodeproj/project.pbxproj");
 const appEntitlements = read("ios/Config/cmux.entitlements");
-const extensionEntitlements = read("ios/Config/NotificationService.entitlements");
 const releaseEntitlements = read("ios/Config/cmux-release.entitlements");
 const uploadTestFlight = read("ios/scripts/upload-testflight.sh");
 const cloudTestFlight = read("ios/scripts/cloud-testflight.sh");
@@ -181,16 +180,10 @@ test("tagged Debug API-key signing can retry without the App Group", () => {
   try {
     assert.equal(result.status, 0, result.stderr);
     const app = fs.readFileSync(path.join(tempRoot, "cmux.entitlements"), "utf8");
-    const extension = fs.readFileSync(
-      path.join(tempRoot, "NotificationService.entitlements"),
-      "utf8",
-    );
+    assert.equal(fs.existsSync(path.join(tempRoot, "NotificationService.entitlements")), false);
     assert.doesNotMatch(app, /com\.apple\.security\.application-groups/u);
-    assert.doesNotMatch(extension, /com\.apple\.security\.application-groups/u);
-    assert.match(app, /<key>aps-environment<\/key>\s*<string>development<\/string>/u);
-    assert.match(app, /com\.apple\.developer\.usernotifications\.time-sensitive/u);
+    assert.doesNotMatch(app, /aps-environment|usernotifications\.time-sensitive|networkextension/u);
     assert.match(app, /keychain-access-groups/u);
-    assert.match(extension, /keychain-access-groups/u);
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
@@ -203,13 +196,13 @@ test("tagged Debug API-key signing can retry without the App Group", () => {
     reload,
     /CMUX_APP_CODE_SIGN_ENTITLEMENTS=\$fallback_entitlements_dir\/cmux\.entitlements/u,
   );
-  assert.match(
+  assert.doesNotMatch(
     reload,
     /CMUX_NOTIFICATION_SERVICE_CODE_SIGN_ENTITLEMENTS=\$fallback_entitlements_dir\/NotificationService\.entitlements/u,
   );
   assert.match(
     reload,
-    /run_and_capture "\$fallback_build_log" "\$\{build_args\[@\]\}" \\\s*\n\s*"CMUX_APP_CODE_SIGN_ENTITLEMENTS=\$fallback_entitlements_dir\/cmux\.entitlements" \\\s*\n\s*"CMUX_NOTIFICATION_SERVICE_CODE_SIGN_ENTITLEMENTS=\$fallback_entitlements_dir\/NotificationService\.entitlements" \\\s*\n\s*build/u,
+    /run_and_capture "\$fallback_build_log" "\$\{build_args\[@\]\}" \\\s*\n\s*"CMUX_APP_CODE_SIGN_ENTITLEMENTS=\$fallback_entitlements_dir\/cmux\.entitlements" \\\s*\n\s*build/u,
   );
 });
 
@@ -239,9 +232,9 @@ test("App Group fallback is narrow and preserves capable signing paths", () => {
     assert.notEqual(unrelated.status, 0);
   }
 
-  for (const entitlements of [appEntitlements, extensionEntitlements]) {
+  for (const entitlements of [appEntitlements]) {
     assert.match(entitlements, /com\.apple\.security\.application-groups/u);
-    assert.match(entitlements, /group\.dev\.cmux\.ios/u);
+    assert.match(entitlements, /\$\(CMUX_APP_GROUP_IDENTIFIER\)/u);
   }
 
   const renderer = extractShellFunction(
@@ -249,9 +242,9 @@ test("App Group fallback is narrow and preserves capable signing paths", () => {
     "cmux_ios_render_tagged_device_no_app_group_entitlements",
   );
   assert.match(renderer, /Config\/cmux\.entitlements/u);
-  assert.match(renderer, /Config\/NotificationService\.entitlements/u);
+  assert.doesNotMatch(renderer, /Config\/NotificationService\.entitlements/u);
   assert.doesNotMatch(renderer, /release/i);
-  assert.match(renderer, /expected_group = \["group\.dev\.cmux\.ios"\]/u);
+  assert.match(renderer, /expected_group = \["\$\(CMUX_APP_GROUP_IDENTIFIER\)"\]/u);
 });
 
 test("tagged Simulator builds keep the existing full entitlement selection", () => {
@@ -261,7 +254,7 @@ test("tagged Simulator builds keep the existing full entitlement selection", () 
     sharedConfig,
     /CMUX_APP_CODE_SIGN_ENTITLEMENTS = Config\/cmux\.entitlements/u,
   );
-  assert.match(
+  assert.doesNotMatch(
     sharedConfig,
     /CMUX_NOTIFICATION_SERVICE_CODE_SIGN_ENTITLEMENTS = Config\/NotificationService\.entitlements/u,
   );
@@ -278,7 +271,7 @@ test("Release and TestFlight entitlement behavior stays on the production lane",
     releaseConfig,
     /CODE_SIGN_ENTITLEMENTS = \$\(CMUX_APP_CODE_SIGN_ENTITLEMENTS\)/u,
   );
-  assert.match(
+  assert.doesNotMatch(
     releaseEntitlements,
     /<key>aps-environment<\/key>\s*<string>production<\/string>/u,
   );
@@ -286,20 +279,16 @@ test("Release and TestFlight entitlement behavior stays on the production lane",
   const extensionSelectorMatches = project.match(
     /CODE_SIGN_ENTITLEMENTS = "\$\(CMUX_NOTIFICATION_SERVICE_CODE_SIGN_ENTITLEMENTS\)";/gu,
   ) ?? [];
-  assert.equal(extensionSelectorMatches.length, 2);
-  assert.match(extensionEntitlements, /group\.dev\.cmux\.ios/u);
+  assert.equal(extensionSelectorMatches.length, 0);
 
   assert.doesNotMatch(releaseConfig, /fallback_entitlements|no-app-group/u);
   assert.doesNotMatch(uploadTestFlight, /fallback_entitlements|no-app-group/u);
   assert.doesNotMatch(cloudTestFlight, /fallback_entitlements|no-app-group/u);
 
-  // The shipping manual re-sign path still seeds from the selected distribution
-  // provisioning profile before merging cmux-release.entitlements.
-  assert.match(
-    uploadTestFlight,
-    /plutil -extract Entitlements xml1 -o "\$PROFILE_ENTITLEMENTS"/u,
-  );
-  assert.match(uploadTestFlight, /Merge \$PROFILE_ENTITLEMENTS/u);
+  // Store publishing has no signing implementation to reuse as a fallback.
+  assert.doesNotMatch(uploadTestFlight, /security|codesign|plutil|resign_cloud_vpn_extension/u);
+  assert.doesNotMatch(cloudTestFlight, /security|codesign|plutil/u);
+
 });
 
 test("production configurations cannot enter the tagged Debug fallback", () => {
@@ -335,7 +324,7 @@ test("production configurations cannot enter the tagged Debug fallback", () => {
     retryCommand,
     /CMUX_APP_CODE_SIGN_ENTITLEMENTS=\$fallback_entitlements_dir\/cmux\.entitlements/u,
   );
-  assert.match(
+  assert.doesNotMatch(
     retryCommand,
     /CMUX_NOTIFICATION_SERVICE_CODE_SIGN_ENTITLEMENTS=\$fallback_entitlements_dir\/NotificationService\.entitlements/u,
   );

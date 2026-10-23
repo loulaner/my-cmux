@@ -401,7 +401,9 @@ jobs:
           submodules: false
 
       - name: Guard removed iOS purchasing capability
-        run: python3 ios/tests/test_billing_removed.py
+        run: |
+          python3 ios/tests/test_billing_removed.py
+          python3 ios/tests/test_extensions_removed.py
 
       - name: Lint iOS package conventions
         run: |

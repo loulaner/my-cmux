@@ -98,9 +98,6 @@ public struct CMUXMobileRootScene: View {
     /// Publishes Cloud machines' workspaces into the shell store. Built with
     /// the controller so both live for the app's lifetime.
     @State private var cloudWorkspaceBridge: CloudWorkspaceBridge?
-    /// The optional system VPN. Nil when this build does not embed the packet
-    /// tunnel extension, which hides its switch.
-    @State private var cloudSystemVPNController: CloudSystemVPNController?
     /// Foreground state for the Cloud tunnel: the lease only holds while the
     /// scene is active, since iOS suspends the in-process tunnel's socket.
     @Environment(\.scenePhase) private var scenePhase
@@ -222,7 +219,6 @@ public struct CMUXMobileRootScene: View {
         _cloudWorkspaceBridge = State(
             initialValue: controller.map(cloudComposition.makeWorkspaceBridge(controller:))
         )
-        _cloudSystemVPNController = State(initialValue: cloudComposition.makeSystemVPNController())
     }
     #else
     /// Creates the root scene (non-iOS: no push).
@@ -422,7 +418,6 @@ public struct CMUXMobileRootScene: View {
             .environment(macCompatCenter)
             .environment(\.mobileWebAppSession, webAppSession)
             .environment(\.cloudSessionController, cloudSessionController)
-            .environment(\.cloudSystemVPNController, cloudSystemVPNController)
             // The shell owns no Cloud code; it mounts what is supplied here.
             .environment(
                 \.mobileCloudTabContent,
@@ -450,19 +445,12 @@ public struct CMUXMobileRootScene: View {
                 guard !auth.coordinator.isRestoringSession else { return }
                 guard scope != nil, auth.coordinator.isAuthenticated else { return }
                 cloudSessionController?.refreshMachines()
-                cloudSystemVPNController?.setScope(
-                    scope,
-                    teamID: auth.coordinator.resolvedTeamID
-                )
             }
             .onChange(of: auth.coordinator.isAuthenticated) { _, authenticated in
                 guard !authenticated, !auth.coordinator.isRestoringSession else { return }
                 cloudSessionController?.setVisibilityScope(nil)
                 cloudSessionController?.resetForSignOut()
                 cloudWorkspaceBridge?.resetForSignOut()
-                // Signed out: one account's private routes never outlive its
-                // session, so the saved VPN is removed.
-                cloudSystemVPNController?.setScope(nil)
             }
             .onChange(of: auth.coordinator.isRestoringSession) { _, restoring in
                 // A cached session finishing restore does not change the scope
@@ -472,15 +460,10 @@ public struct CMUXMobileRootScene: View {
                     cloudSessionController?.setVisibilityScope(nil)
                     cloudSessionController?.resetForSignOut()
                     cloudWorkspaceBridge?.resetForSignOut()
-                    cloudSystemVPNController?.setScope(nil)
                     return
                 }
                 cloudSessionController?.setVisibilityScope(cloudAccountScope)
                 cloudSessionController?.refreshMachines()
-                cloudSystemVPNController?.setScope(
-                    cloudAccountScope,
-                    teamID: auth.coordinator.resolvedTeamID
-                )
             }
             .onChange(of: cloudShellLeaseWanted, initial: true) { _, wanted in
                 // Cloud terminals open from the Workspaces tab, where no Cloud
@@ -493,8 +476,6 @@ public struct CMUXMobileRootScene: View {
                 switch phase {
                 case .active:
                     cloudSessionController?.sceneWillEnterForeground()
-                    // The VPN may have been changed from Settings meanwhile.
-                    if let vpn = cloudSystemVPNController { Task { await vpn.refresh() } }
                 case .background: cloudSessionController?.sceneDidEnterBackground()
                 default: break
                 }
@@ -599,21 +580,7 @@ public struct CMUXMobileRootScene: View {
                 // store so the next sign-in publishes without a relaunch.
                 cloudSessionController?.resetForSignOut()
                 cloudWorkspaceBridge?.resetForSignOut()
-                let cloudServerTeardown = cloudSystemVPNController?.serverTeardown()
-                let cloudLocalTeardown = cloudSystemVPNController.map { controller in
-                    { @Sendable in _ = await controller.waitForPendingOperationAndGate() }
-                }
-                cloudSystemVPNController?.setScope(nil)
-                let existingServerTeardown = signOutHook.begin()
-                return { accessToken, refreshToken in
-                    if let cloudLocalTeardown {
-                        await cloudLocalTeardown()
-                    }
-                    if let cloudServerTeardown {
-                        await cloudServerTeardown(accessToken, refreshToken)
-                    }
-                    await existingServerTeardown(accessToken, refreshToken)
-                }
+                return signOutHook.begin()
             }
         )
         #else

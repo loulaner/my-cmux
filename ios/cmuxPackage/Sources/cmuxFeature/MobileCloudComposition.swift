@@ -28,11 +28,6 @@ struct MobileCloudComposition {
     /// The Application Support subdirectory for the link client's state.
     static let stateDirectoryName = "cmux-cloud-remote"
 
-    /// The Keychain service base for the system VPN's configuration item.
-    static let systemVPNKeychainServiceBase = "com.cmuxterm.cloud.system-vpn.v1"
-    /// The Info.plist key naming the packet tunnel extension's bundle id.
-    static let systemVPNProviderInfoKey = "CMUXCloudVPNProviderBundleIdentifier"
-
     @MainActor
     func makeController() -> CloudSessionController? {
         guard let service = makeService(), let identityStore = makeIdentityStore() else { return nil }
@@ -50,47 +45,6 @@ struct MobileCloudComposition {
             stateDirectory: stateDirectory(),
             deviceName: UIDevice.current.name,
             visibilityScope: visibilityScope
-        )
-    }
-
-    /// Builds the optional system VPN, or nil when this build does not embed
-    /// the packet tunnel extension, which hides its switch.
-    @MainActor
-    func makeSystemVPNController(bundle: Bundle = .main) -> CloudSystemVPNController? {
-        guard let service = makeService(),
-              let identityStore = makeIdentityStore(),
-              let appNamespace = auth.appNamespace,
-              let providerID = bundle.object(forInfoDictionaryKey: Self.systemVPNProviderInfoKey) as? String,
-              let plugIns = bundle.builtInPlugInsURL,
-              let provider = Bundle(url: plugIns.appendingPathComponent("CloudVPN.appex")),
-              provider.bundleIdentifier == providerID else { return nil }
-        let coordinator = auth.coordinator
-        return CloudSystemVPNController(
-            service: service,
-            identityStore: identityStore,
-            manager: CloudSystemVPNPreferences(
-                providerBundleIdentifier: providerID,
-                keychainService: appNamespace.keychainService(base: Self.systemVPNKeychainServiceBase),
-                keychainAccessGroup: auth.keychainAccessGroup
-            ),
-            deviceName: UIDevice.current.name,
-            credentials: {
-                do {
-                    let context = try await coordinator.coherentTokenContext()
-                    return CloudAPITokenSource.TokenContext(
-                        accessToken: context.accessToken,
-                        refreshToken: context.refreshToken,
-                        teamID: context.teamID
-                    )
-                } catch AuthError.unauthorized {
-                    return nil
-                } catch {
-                    return nil
-                }
-            },
-            pendingRevocationStore: UserDefaultsCloudSystemVPNPendingRevocationStore(
-                defaults: .standard
-            )
         )
     }
 
@@ -135,8 +89,7 @@ struct MobileCloudComposition {
         )
     }
 
-    /// The device identity store both Cloud controllers read, so the terminal
-    /// tunnel and the system VPN are filed under one device.
+    /// The device identity store for the in-process Cloud terminal tunnel.
     private func makeIdentityStore() -> (any CloudDeviceIdentityStoring)? {
         guard let appNamespace = auth.appNamespace else { return nil }
         // Unsigned simulator apps cannot use the data-protection Keychain (no
