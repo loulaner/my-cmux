@@ -23,9 +23,6 @@ struct MobileSettingsView: View {
     @Environment(MobileConnectionMethodStore.self) private var connectionMethodStore:
         MobileConnectionMethodStore?
     @Environment(ToastCenter.self) private var toasts
-    /// Optional like the other app-root stores; without it the row falls
-    /// back to the channel-gated binary catalog (never-fetched policy).
-    @Environment(MobileWhatsNewCenter.self) private var whatsNewCenter: MobileWhatsNewCenter?
     @Environment(\.irohSettingsController) private var irohSettingsController
     @Environment(\.mobileDiagnosticLog) private var diagnosticLog
     let connectedHostName: String
@@ -67,34 +64,9 @@ struct MobileSettingsView: View {
 
     var body: some View {
         @Bindable var displaySettings = displaySettings
-        #if DEBUG
-        let whatsNewPages = whatsNewCenter?.archivePages ?? MobileWhatsNewCatalog().channelVisibleEntries()
-        let whatsNewHosts = whatsNewCenter?.allowedWebHosts ?? []
-        #endif
         return NavigationStack {
             Form {
                 MobileSettingsAccountSection(signOut: signOut)
-
-                // Directly under the account card so release notices stay
-                // discoverable after their one-time launch sheet is
-                // dismissed (HIG: keep skippable onboarding-style content
-                // findable in a settings area). Hidden entirely when the
-                // channel gate leaves nothing to list — on the official App
-                // Store app that is the default state, because What's New
-                // announces team-lane features (Guideline 2.2).
-                if hasWhatsNewArchive {
-                    Section {
-                        NavigationLink {
-                            MobileWhatsNewListView()
-                        } label: {
-                            Label(
-                                L10n.string("mobile.settings.whatsNew", defaultValue: "What's New"),
-                                systemImage: "megaphone"
-                            )
-                        }
-                        .accessibilityIdentifier("MobileSettingsWhatsNewRow")
-                    }
-                }
 
                 // Stack team switcher. Only shown when the user belongs to more than
                 // one team. Rendered as an INLINE picker — each team is a row with a
@@ -329,15 +301,6 @@ struct MobileSettingsView: View {
 
                 #if DEBUG
                 Section(L10n.string("mobile.settings.developer", defaultValue: "Developer")) {
-                    NavigationLink {
-                        MobileWhatsNewDebugView(pages: whatsNewPages, allowedWebHosts: whatsNewHosts)
-                    } label: {
-                        Label(
-                            L10n.string("mobile.whatsNew.debug.title", defaultValue: "Replay What's New"),
-                            systemImage: "rectangle.stack"
-                        )
-                    }
-                    .accessibilityIdentifier("MobileSettingsReplayWhatsNew")
                     Button {
                         showingToastGallery = true
                     } label: {
@@ -679,18 +642,6 @@ struct MobileSettingsView: View {
             guard !Task.isCancelled else { return }
             didCopySupportInformation = false
         }
-    }
-
-    /// Whether the What's New row has anything to open. The center's archive
-    /// is already channel-gated; the centerless fallback applies the same
-    /// gate to the binary catalog. Officially distributed builds default to
-    /// empty here, so the row (like the launch sheet) only appears when a
-    /// remote entry explicitly targets their channel.
-    private var hasWhatsNewArchive: Bool {
-        if let whatsNewCenter {
-            return !whatsNewCenter.archivePages.isEmpty
-        }
-        return !MobileWhatsNewCatalog().channelVisibleEntries().isEmpty
     }
 
     private func recordBooleanSetting(

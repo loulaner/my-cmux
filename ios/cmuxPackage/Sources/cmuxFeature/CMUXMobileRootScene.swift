@@ -68,22 +68,12 @@ public struct CMUXMobileRootScene: View {
     /// `@Environment(ToastCenter.self)`.
     @State private var toastCenter: ToastCenter
     #if os(iOS)
-    /// What's New state (binary catalog visibility via the remote list,
-    /// remote announcements, acknowledgement marker), hosted at this root so
-    /// the shell's one-time sheet and Settings > What's New share one fetch
-    /// and one cache through `@Environment(MobileWhatsNewCenter.self)`.
-    @State private var whatsNewCenter: MobileWhatsNewCenter
     // This state is inside the iOS-only block because the center is not
     // defined for macOS builds of the shared root scene.
     /// Minimum-Mac-version state (remote list + per-origin cache), hosted at
     /// this root so onboarding copy and the shell store's connection gate
     /// share one fetch through `@Environment(MobileMacCompatCenter.self)`.
     @State private var macCompatCenter: MobileMacCompatCenter
-    /// Exchanges the native Stack session for cmux web session cookies so
-    /// in-app webviews (What's New web pages) render as the signed-in user.
-    /// Injected as a plain environment value through
-    /// `\.mobileWebAppSession`.
-    private let webAppSession: MobileWebAppSessionBroker
     #endif
     /// Per-terminal composer drafts for the app session, so an unsent message
     /// survives keyboard dismiss and terminal switches. In-memory only for now;
@@ -177,16 +167,8 @@ public struct CMUXMobileRootScene: View {
         self.diagnosticLog = diagnosticLog
         self.appLog = appLog
         _toastCenter = State(initialValue: ToastCenter(diagnosticLog: diagnosticLog))
-        _whatsNewCenter = State(
-            initialValue: MobileWhatsNewCenter(apiBaseURL: auth.config.apiBaseURL)
-        )
         _macCompatCenter = State(
             initialValue: MobileMacCompatCenter(apiBaseURL: auth.config.apiBaseURL)
-        )
-        webAppSession = MobileWebAppSessionBroker(
-            tokens: auth.coordinator,
-            apiBaseURL: auth.config.apiBaseURL,
-            projectID: auth.config.stack.projectId
         )
     }
     #else
@@ -369,17 +351,7 @@ public struct CMUXMobileRootScene: View {
             .keyboardDockRebuildRevertEnabled(false)
             .environment(connectionMethodStore)
             .environment(autoConnectMigrationStore)
-            .environment(whatsNewCenter)
             .environment(macCompatCenter)
-            .environment(\.mobileWebAppSession, webAppSession)
-            #if DEBUG
-            .environment(
-                \.mobileWhatsNewPresentationPolicy,
-                MobileWhatsNewPresentationPolicy(
-                    suppressLaunchPresentation: UITestConfig.suppressWhatsNewLaunch
-                )
-            )
-            #endif
             #endif
     }
 
@@ -399,8 +371,6 @@ public struct CMUXMobileRootScene: View {
             TaskComposerAccessibilityPreviewView()
         } else if UITestConfig.notificationFeedPreviewEnabled {
             NotificationFeedPreviewView()
-        } else if UITestConfig.whatsNewPreviewEnabled {
-            MobileWhatsNewPreviewView()
         } else if UITestConfig.workspaceListLayoutPreviewEnabled {
             WorkspaceListLayoutPreviewView()
         } else if let recoveryStress = MobileRecoveryStressConfiguration.parse(arguments: ProcessInfo.processInfo.arguments) {

@@ -59,9 +59,6 @@ struct WorkspaceDetailDisconnectedPreviewView: View {
         .environment(browserStore)
         .environment(browserStreamStore)
         .environment(simulatorStreamStore)
-        // The one-time What's New notice would cover the layout under test;
-        // clearing the center suppresses it for this fixture only.
-        .environment(nil as MobileWhatsNewCenter?)
         .task {
             guard !didStartFixture else { return }
             didStartFixture = true
