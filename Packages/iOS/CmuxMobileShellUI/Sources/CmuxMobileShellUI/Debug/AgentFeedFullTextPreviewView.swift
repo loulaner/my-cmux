@@ -63,8 +63,6 @@ public struct AgentFeedFullTextPreviewView: View {
             }
         } notifications: {
             NavigationStack { Text(verbatim: "Notifications").toolbar { rootToolbar } }
-        } cloud: {
-            NavigationStack { Text(verbatim: "Cloud").toolbar { rootToolbar } }
         } search: {
             MobilePrimarySearchNavigationStack(path: .constant([]), selection: $selectedTab,
                                                searchCoordinator: searchCoordinator) {

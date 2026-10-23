@@ -9,8 +9,6 @@ extension WorkspaceListView {
         let scopedExternalHostID = scopedExternalHostID
         let computerTargets = newWorkspaceComputerTargets.filter { target in
             switch target.kind {
-            case .cloud:
-                createWorkspaceOnCloudMachine != nil
             case .mac:
                 switchMac != nil
             case .ssh:
@@ -24,9 +22,7 @@ extension WorkspaceListView {
                 createWorkspaceOnComputerTarget(target, kind: kind)
             }
         let createWorkspaceAction: () -> Void = {
-            if let scopedExternalHostID, let createWorkspaceOnCloudMachine {
-                createWorkspaceOnCloudMachine(scopedExternalHostID)
-            } else if let target = WorkspaceListNewWorkspaceMenuValue.soleConnectedTarget(
+            if let target = WorkspaceListNewWorkspaceMenuValue.soleConnectedTarget(
                 scopedExternalHostID: scopedExternalHostID,
                 targets: computerTargets
             ),
@@ -63,9 +59,6 @@ extension WorkspaceListView {
         kind: MobileSSHWorkspaceKind?
     ) {
         switch target.kind {
-        case .cloud(let hostID):
-            guard let createWorkspaceOnCloudMachine else { return }
-            createWorkspaceOnCloudMachine(hostID)
         case .ssh:
             if let createWorkspaceOnComputer {
                 createWorkspaceOnComputer(target, kind)

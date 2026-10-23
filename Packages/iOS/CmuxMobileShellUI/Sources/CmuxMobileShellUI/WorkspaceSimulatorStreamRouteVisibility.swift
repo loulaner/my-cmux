@@ -17,7 +17,6 @@ extension WorkspaceShellView {
         notificationSearchNavigationPath: [MobileWorkspacePreview.ID],
         feedNavigationPath: [MobileWorkspacePreview.ID] = []
     ) -> MobileWorkspacePreview.ID? {
-        guard selectedPrimaryTab != .cloud else { return nil }
         // Workspace and notification tabs show the selected split detail.
         guard usesCompactStack else {
             return selectedWorkspaceID
@@ -29,8 +28,6 @@ extension WorkspaceShellView {
             return feedNavigationPath.last
         case .notifications:
             return notificationNavigationPath.last
-        case .cloud:
-            return nil
         case .search:
             switch searchScope {
             case .feed:

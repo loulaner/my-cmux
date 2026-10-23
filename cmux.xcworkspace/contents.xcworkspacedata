@@ -84,15 +84,6 @@
          location = "group:CmuxMobileChanges">
       </FileRef>
       <FileRef
-         location = "group:CmuxMobileCloud">
-      </FileRef>
-      <FileRef
-         location = "group:CmuxMobileCloudBridge">
-      </FileRef>
-      <FileRef
-         location = "group:CmuxMobileCloudUI">
-      </FileRef>
-      <FileRef
          location = "group:CmuxMobileDiagnostics">
       </FileRef>
       <FileRef

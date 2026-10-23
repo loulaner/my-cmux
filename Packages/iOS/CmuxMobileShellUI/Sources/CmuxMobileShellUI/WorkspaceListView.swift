@@ -53,9 +53,6 @@ struct WorkspaceListView: View {
     let createWorkspace: () -> Void
     var createWorkspaceInGroup: ((MobileWorkspaceGroupPreview.ID) -> Void)? = nil
     var createWorkspaceGroup: (() -> Void)? = nil
-    /// Creates a workspace on a Cloud machine chosen from the New Workspace
-    /// menu, or by the computer scope when it names a Cloud machine.
-    var createWorkspaceOnCloudMachine: ((String) -> Void)? = nil
     /// Computers `+` offers while "All Computers" is shown; with more than
     /// one it asks which (see ``WorkspaceListNewWorkspaceMenuValue``).
     var newWorkspaceComputerTargets: [WorkspaceCreateComputerTarget] = []
@@ -603,7 +600,6 @@ struct WorkspaceListView: View {
             DeviceTreeView(
                 store: store,
                 selectWorkspace: { id in _ = selectWorkspaceFromList(id) },
-                createWorkspaceOnCloudMachine: createWorkspaceOnCloudMachine,
                 showAddDevice: showAddDevice
             )
         }

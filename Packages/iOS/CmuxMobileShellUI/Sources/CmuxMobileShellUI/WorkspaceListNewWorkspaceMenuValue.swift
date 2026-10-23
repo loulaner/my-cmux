@@ -52,7 +52,6 @@ struct WorkspaceListNewWorkspaceMenuValue: Equatable {
 struct WorkspaceCreateComputerTarget: Equatable, Identifiable {
     enum Kind: Equatable {
         case mac(macDeviceID: String, instanceTag: String?)
-        case cloud(hostID: String)
         case ssh(UUID)
     }
 

@@ -43,7 +43,6 @@ struct DisconnectedWorkspaceShellView: View {
 
     #if os(iOS)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.mobileCloudTabContent) private var cloudTabContent
     /// The computer a reconnect attempt is in flight for. Also the re-entry
     /// guard: while non-nil, row taps are ignored.
     @State private var connectingMacID: String?
@@ -280,12 +279,7 @@ struct DisconnectedWorkspaceShellView: View {
             "mobile.v2.devices.emptyDescription",
             defaultValue: "On your Mac, turn on Enable iOS pairing in cmux Settings. Select the same team on both devices and keep cmux running. Only Macs you own or have permission to connect to appear here."
         ) + " " + MobilePairingCopy().emptyWorkspaceMessage
-        guard cloudTabContent != nil else { return pairing }
-        // Cloud needs no Mac, so a user without one is not stuck here.
-        return pairing + "\n\n" + L10n.string(
-            "mobile.cloud.emptyWorkspacesHint",
-            defaultValue: "No Mac? Create a Cloud machine in the Cloud tab and its workspaces appear here."
-        )
+        return pairing
     }
 
     /// Reconnect this row's computer. `switchToMac` promotes a live secondary

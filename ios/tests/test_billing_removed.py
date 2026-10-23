@@ -3,6 +3,7 @@ import re
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from test_cloud_removed import assert_cloud_product_absent
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -24,13 +25,8 @@ class BillingRemovalTests(unittest.TestCase):
             self.assertEqual(list(ET.parse(path).iter('StoreKitConfigurationFileReference')), [])
         self.assertFalse((ROOT / 'ios/Config/cmux-dev.storekit').exists())
 
-    def test_cloud_locked_sizes_have_no_action(self):
-        # Boundary guard: a locked row must not mutate selection or launch purchasing.
-        source = (ROOT / 'Packages/iOS/CmuxMobileCloudUI/Sources/CmuxMobileCloudUI/CloudSectionView.swift').read_text()
-        locked = source.split('ForEach(lockedMemoryOptions,', 1)[1].split('} label:', 1)[0]
-        self.assertNotRegex(locked, r'\b(?:Button|NavigationLink|openPlans)\b|selectedMemoryMb\s*=')
-        self.assertNotIn('CloudCreateMachineUpgrade', source)
-        self.assertNotIn('isPlansSheetPresented', source)
+    def test_cloud_purchase_and_machine_creation_entries_are_absent(self):
+        assert_cloud_product_absent(self)
 
 
 if __name__ == '__main__':

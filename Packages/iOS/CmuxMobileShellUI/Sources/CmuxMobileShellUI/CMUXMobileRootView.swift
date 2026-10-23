@@ -18,8 +18,6 @@ struct CMUXMobileRootView: View {
 
     @Bindable var store: CMUXMobileShellStore
     @Environment(\.scenePhase) private var scenePhase
-    /// The Cloud tab's content, or nil when this build has no Cloud.
-    @Environment(\.mobileCloudTabContent) private var cloudTabContent
     @Environment(AuthCoordinator.self) private var authManager
     @Environment(ToastCenter.self) private var toasts
     @Environment(\.mobileDiagnosticLog) private var diagnosticLog
@@ -590,33 +588,7 @@ struct CMUXMobileRootView: View {
             case .disconnectedNoKnownPairedMac:
                 // ONLY when there are no saved Macs at all: the add-device flow (it
                 // auto-presents the pairing sheet since there is nothing to list).
-                if let cloudTabContent {
-                    // No computers yet, but Cloud is available: keep the same
-                    // add-device screen as the Workspaces tab and offer the
-                    // Cloud tab beside it, so an account without a Mac can
-                    // reach Cloud to create its first machine. The full shell
-                    // mounts once a Cloud machine exists.
-                    TabView {
-                        disconnectedShellContent
-                            .tabItem {
-                                Label(
-                                    L10n.string("mobile.tabs.workspaces", defaultValue: "Workspaces"),
-                                    systemImage: "rectangle.stack"
-                                )
-                                .accessibilityIdentifier("MobilePrimaryTabWorkspaces")
-                            }
-                        cloudTabContent.makeView()
-                            .tabItem {
-                                Label(
-                                    L10n.string("mobile.tabs.cloud", defaultValue: "Cloud"),
-                                    systemImage: "cloud"
-                                )
-                                .accessibilityIdentifier("MobilePrimaryTabCloud")
-                            }
-                    }
-                } else {
-                    disconnectedShellContent
-                }
+                disconnectedShellContent
             case .workspaceShell(let isRestoringStoredMac):
                 // Restoring, connected, and offline-with-saved-Macs are ONE
                 // mounted view whose inputs vary, so shell presentation state
@@ -735,19 +707,6 @@ struct CMUXMobileRootView: View {
             DeviceTreeView(
                 store: store,
                 selectWorkspace: selectWorkspaceFromComputers,
-                createWorkspaceOnCloudMachine: { hostID in
-                    Task { @MainActor in
-                        let result = await store.createExternalHostWorkspace(onHost: hostID)
-                        if case let .failure(failure) = result {
-                            toasts.present(.failure(
-                                WorkspaceShellView.workspaceActionFailureReasonText(failure),
-                                title: WorkspaceShellView.workspaceActionFailureTitle(
-                                    action: .createWorkspace
-                                )
-                            ))
-                        }
-                    }
-                },
                 showAddDevice: isAuthenticated ? addComputerAction : nil,
                 dismissAction: dismissComputers,
                 macPairingAvailable: isAuthenticated

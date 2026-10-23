@@ -205,8 +205,6 @@ struct WorkspaceShellView: View {
     #if DEBUG
     @Environment(\.releaseGateUIProbe) var releaseGateUIProbe
     #endif
-    /// The Cloud tab's content, supplied by the composition root.
-    @Environment(\.mobileCloudTabContent) private var cloudTabContent
     #endif
     @Bindable var store: CMUXMobileShellStore
     let signOut: @MainActor @Sendable () -> Void
@@ -506,9 +504,6 @@ struct WorkspaceShellView: View {
                 consumePendingPrimarySearchNavigation(for: .notifications)
             }
             }
-        } cloud: {
-            // Supplied by the composition root; the shell owns no Cloud code.
-            cloudTabContent?.makeView()
         } search: {
             primarySearchTabContent(presentation: presentation)
         }
@@ -1010,12 +1005,7 @@ struct WorkspaceShellView: View {
                     projection: notificationFeedProjection,
                     selectedMacDeviceIDs: selectedMacDeviceIDs
                 )
-            case .cloud where cloudTabContent != nil:
-                // The sidebar column already owns a navigation container and
-                // the destination bar, so Cloud renders inside it rather than
-                // bringing a stack of its own.
-                cloudTabContent?.makeEmbeddedView()
-            case .workspaces, .cloud, .search:
+            case .workspaces, .search:
                 workspaceList(
                     navigationStyle: .sidebar,
                     searchText: primarySearchCoordinator.searchDestinationText(for: .workspaces),
@@ -1026,8 +1016,7 @@ struct WorkspaceShellView: View {
         }
         .toolbar {
             if splitSidebarDestination == .notifications
-                || splitSidebarDestination == .feed
-                || (splitSidebarDestination == .cloud && cloudTabContent != nil) {
+                || splitSidebarDestination == .feed {
                 ToolbarItem(placement: .topBarTrailing) {
                     // Notifications has no WorkspaceListView toolbar, so the
                     // sidebar owns its trailing control directly in this path.
@@ -1096,10 +1085,7 @@ struct WorkspaceShellView: View {
                 workspacesTitle: L10n.string("mobile.tabs.workspaces", defaultValue: "Workspaces"),
                 feedTitle: L10n.string("mobile.tabs.feed", defaultValue: "Feed"),
                 notificationsTitle: notificationsSegmentTitle(unreadCount: unreadCount),
-                showsNotifications: !displaySettings.feedReplacesNotifications,
-                cloudTitle: cloudTabContent == nil
-                    ? nil
-                    : L10n.string("mobile.tabs.cloud", defaultValue: "Cloud")
+                showsNotifications: !displaySettings.feedReplacesNotifications
             )
         }
         if #available(iOS 26.0, *) {
@@ -1127,8 +1113,6 @@ struct WorkspaceShellView: View {
         let feedTitle: String
         let notificationsTitle: String
         let showsNotifications: Bool
-        /// Nil in a build without Cloud, which omits the destination.
-        let cloudTitle: String?
 
         var body: some View {
             HStack(spacing: 0) {
@@ -1147,13 +1131,6 @@ struct WorkspaceShellView: View {
                         .notifications,
                         title: notificationsTitle,
                         accessibilityID: "MobileSplitSidebarNotifications"
-                    )
-                }
-                if let cloudTitle {
-                    destinationButton(
-                        .cloud,
-                        title: cloudTitle,
-                        accessibilityID: "MobileSplitSidebarCloud"
                     )
                 }
             }
@@ -1343,7 +1320,6 @@ struct WorkspaceShellView: View {
             createWorkspace: resolvedCreateWorkspace,
             createWorkspaceInGroup: resolvedCreateWorkspaceInGroup,
             createWorkspaceGroup: resolvedCreateWorkspaceGroup,
-            createWorkspaceOnCloudMachine: { createWorkspaceOnExternalHost(onHost: $0) },
             newWorkspaceComputerTargets: newWorkspaceComputerTargets,
             createWorkspaceOnComputer: { target, kind in
                 createWorkspace(on: target, kind: kind, create: resolvedCreateWorkspace)
@@ -1653,8 +1629,6 @@ struct WorkspaceShellView: View {
             if notificationNavigationPath.last != workspaceID {
                 notificationNavigationPath = [workspaceID]
             }
-        case .cloud:
-            break
         case .search:
             break
         }
@@ -1726,7 +1700,6 @@ struct WorkspaceShellView: View {
         case .workspaces: .workspaces
         case .feed: .feed
         case .notifications: .notifications
-        case .cloud: .cloud
         case .search: .search
         }
     }
@@ -1905,19 +1878,11 @@ struct WorkspaceShellView: View {
         toggleSidebar: (() -> Void)? = nil,
         showsSidebarToggle: Bool = false
     ) -> some View {
-        // A Cloud machine's workspace makes its new workspace on that machine,
-        // whether or not a Mac is connected.
-        let externalHostID = workspaceID.flatMap { store.externalHostID(ofWorkspace: $0) }
         return WorkspaceDetailContainer(
             store: store,
             workspaceID: workspaceID,
-            createWorkspace: externalHostID == nil || workspaceID == nil
-                ? createWorkspace
-                : { [workspaceID] in
-                    if let workspaceID { createWorkspaceOnExternalHost(beside: workspaceID) }
-                },
-            canCreateWorkspace: externalHostID.map { store.externalHostIsConnected($0) }
-                ?? canCreateWorkspaceForSelection,
+            createWorkspace: createWorkspace,
+            canCreateWorkspace: canCreateWorkspaceForSelection,
             renameWorkspace: renameWorkspaceClosure,
             customizeWorkspace: customizeWorkspaceClosure,
             setWorkspaceUnread: setWorkspaceUnreadClosure,

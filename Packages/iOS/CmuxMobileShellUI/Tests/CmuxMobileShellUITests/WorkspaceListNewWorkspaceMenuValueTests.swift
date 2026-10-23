@@ -3,11 +3,11 @@ import SwiftUI
 @testable import CmuxMobileShellUI
 
 @Suite struct WorkspaceListNewWorkspaceMenuValueTests {
-    @Test func loneConnectedCloudTargetRemainsAValidCreationTarget() {
+    @Test func loneConnectedMacTargetRemainsAValidCreationTarget() {
         let target = WorkspaceCreateComputerTarget(
-            id: "cloud-1",
-            kind: .cloud(hostID: "cloud-1"),
-            name: "Cloud",
+            id: "mac-1",
+            kind: .mac(macDeviceID: "mac-1", instanceTag: nil),
+            name: "Mac",
             statusText: nil,
             statusColor: .green
         )
@@ -23,9 +23,9 @@ import SwiftUI
 
     @Test func disconnectedSingleTargetDoesNotEnableDirectCreation() {
         let target = WorkspaceCreateComputerTarget(
-            id: "cloud-1",
-            kind: .cloud(hostID: "cloud-1"),
-            name: "Cloud",
+            id: "mac-1",
+            kind: .mac(macDeviceID: "mac-1", instanceTag: nil),
+            name: "Mac",
             statusText: "Disconnected",
             statusColor: .secondary
         )
@@ -58,9 +58,9 @@ import SwiftUI
 
     @Test func primaryActionRoutesToTheOnlyConnectedComputer() {
         let target = WorkspaceCreateComputerTarget(
-            id: "cloud-1",
-            kind: .cloud(hostID: "cloud-1"),
-            name: "Cloud",
+            id: "mac-1",
+            kind: .mac(macDeviceID: "mac-1", instanceTag: nil),
+            name: "Mac",
             statusText: nil,
             statusColor: .green
         )

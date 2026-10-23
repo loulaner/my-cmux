@@ -9,7 +9,6 @@ struct MobilePrimaryTabScaffold<
     Workspaces: View,
     Feed: View,
     Notifications: View,
-    Cloud: View,
     Search: View
 >: View {
     @Binding var selection: MobilePrimaryTab
@@ -23,7 +22,6 @@ struct MobilePrimaryTabScaffold<
     let workspaces: Workspaces
     let feed: Feed
     let notifications: Notifications
-    let cloud: Cloud
     let search: Search
 
     init(
@@ -37,7 +35,6 @@ struct MobilePrimaryTabScaffold<
         @ViewBuilder workspaces: () -> Workspaces,
         @ViewBuilder feed: () -> Feed,
         @ViewBuilder notifications: () -> Notifications,
-        @ViewBuilder cloud: () -> Cloud,
         @ViewBuilder search: () -> Search
     ) {
         _selection = selection
@@ -50,7 +47,6 @@ struct MobilePrimaryTabScaffold<
         self.workspaces = workspaces()
         self.feed = feed()
         self.notifications = notifications()
-        self.cloud = cloud()
         self.search = search()
     }
 
@@ -112,9 +108,6 @@ struct MobilePrimaryTabScaffold<
                         .tag(MobilePrimaryTab.notifications)
                         .badge(notificationUnreadCount)
                 }
-                cloud
-                    .tabItem { cloudLabel }
-                    .tag(MobilePrimaryTab.cloud)
             }
             .accessibilityIdentifier("MobilePrimaryTabs")
         }
@@ -177,11 +170,6 @@ struct MobilePrimaryTabScaffold<
             }
             .badge(notificationUnreadCount)
         }
-        Tab(value: MobilePrimaryTab.cloud) {
-            cloud
-        } label: {
-            cloudLabel
-        }
     }
 
     private var feedLabel: some View {
@@ -208,13 +196,6 @@ struct MobilePrimaryTabScaffold<
         .accessibilityIdentifier("MobilePrimaryTabNotifications")
     }
 
-    private var cloudLabel: some View {
-        Label(
-            L10n.string("mobile.tabs.cloud", defaultValue: "Cloud"),
-            systemImage: "cloud"
-        )
-        .accessibilityIdentifier("MobilePrimaryTabCloud")
-    }
 }
 
 #endif
