@@ -404,6 +404,7 @@ jobs:
         run: |
           python3 ios/tests/test_billing_removed.py
           python3 ios/tests/test_extensions_removed.py
+          python3 ios/tests/test_push_removed.py
 
       - name: Lint iOS package conventions
         run: |

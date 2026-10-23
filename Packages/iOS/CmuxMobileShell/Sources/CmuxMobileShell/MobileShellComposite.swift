@@ -54,7 +54,7 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                     "mobile.terminal.size_state", "mobile.terminal.detached",
                     "notification.dismissed", "notification.badge", "notification.feed.changed",
                     "feed.changed",
-                    "phone_push.status.changed", "caffeine.status.changed",
+                    "caffeine.status.changed",
                     "mobile.compatible_tags.changed",
                     "browser.frame", "browser.state", "browser.closed", "browser.dialog", "browser.dialog.resolved",
                     "simulator.frame", "simulator.state", "simulator.closed",
@@ -66,7 +66,7 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                     "mobile.terminal.size_state", "mobile.terminal.detached",
                     "notification.dismissed", "notification.badge", "notification.feed.changed",
                     "feed.changed",
-                    "phone_push.status.changed", "caffeine.status.changed",
+                    "caffeine.status.changed",
                     "mobile.compatible_tags.changed",
                     "browser.frame", "browser.state", "browser.closed", "browser.dialog", "browser.dialog.resolved",
                     "simulator.frame", "simulator.state", "simulator.closed",
@@ -78,7 +78,7 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                     "mobile.terminal.size_state", "mobile.terminal.detached",
                     "notification.dismissed", "notification.badge", "notification.feed.changed",
                     "feed.changed",
-                    "phone_push.status.changed", "caffeine.status.changed",
+                    "caffeine.status.changed",
                     "mobile.compatible_tags.changed",
                     "browser.frame", "browser.state", "browser.closed", "browser.dialog", "browser.dialog.resolved",
                     "simulator.frame", "simulator.state", "simulator.closed",
@@ -648,30 +648,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
     /// Pairing ids with a caffeine mutation awaiting a secondary Mac.
     /// Internal for the same reason; UI reads ``caffeineMutatingPairingIDs``.
     var secondaryCaffeineMutationPairingIDs: Set<String> = []
-
-    /// Whether the authenticated Mac supports changing its independent phone
-    /// forwarding privacy gates from iOS.
-    public var supportsPhonePushSettings: Bool {
-        supportedHostCapabilities.contains(Self.phonePushSettingsCapability)
-    }
-
-    /// Whether the authenticated Mac can enqueue a correlated test alert.
-    public var supportsPhonePushTest: Bool {
-        supportedHostCapabilities.contains(Self.phonePushTestCapability)
-    }
-
-    /// Starts the secure push-key exchange again on the current authenticated
-    /// Mac connection. The failure flag stays visible until the exchange
-    /// succeeds, so Settings never reports readiness optimistically.
-    @discardableResult
-    public func retryPhonePushKeyExchange() -> Bool {
-        guard let client = remoteClient,
-              let status = phonePushKeyExchangeStatus else {
-            return false
-        }
-        exchangePhonePushKeyIfConfigured(client: client, status: status)
-        return true
-    }
 
     /// Whether the authenticated Mac supports the Keep Mac Awake RPC.
     public var supportsCaffeineControl: Bool {
@@ -6140,7 +6116,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
             await disconnectSecondaryClientAndDrain(client)
             return .permanentFailure
         }
-        await exchangePhonePushKeyIfConfigured(client: client, status: status)
         let capabilities = Set(status.capabilities)
         if !capabilities.contains("events.v1") {
             mobileShellLog.info(
@@ -11502,7 +11477,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                         )
                     }
                     diagnosticLog?.record(DiagnosticEvent(.pairOk))
-                    exchangePhonePushKeyIfConfigured(client: client, status: status)
                     if workspaceListRequest.isScoped {
                         scheduleFullWorkspaceListRefreshIfAvailable(
                             client: client,
@@ -14751,11 +14725,7 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                             macDeviceID: macDeviceID
                         )
                     )
-                } else if event.topic == "phone_push.status.changed" {
-                    await self.refreshPhonePushStatus(
-                        client: client,
-                        generation: self.connectionGeneration
-                    )
+
                 } else if event.topic == "caffeine.status.changed" {
                     self.handleCaffeineStatusEvent(
                         event,
@@ -14793,152 +14763,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
                 client: client,
                 recoversConnectionOnFailure: recoversEndedStream
             )
-        }
-    }
-
-    private func refreshPhonePushStatus(
-        client: MobileCoreRPCClient,
-        generation: UUID
-    ) async {
-        let exchange: (response: Data, hostStatusResponse: Data)
-        do {
-            exchange = try await client.sendRequestAndAuthenticatedHostStatus(
-                MobileCoreRPCClient.requestData(
-                    method: "phone_push.status.get",
-                    params: [:]
-                ),
-                timeoutNanoseconds: Self.terminalOutputCapabilityTimeoutNanoseconds,
-                hostStatusTimeoutNanoseconds: {
-                    Self.terminalOutputCapabilityTimeoutNanoseconds
-                }
-            )
-        } catch {
-            guard isCurrentRemoteConnection(
-                client: client,
-                generation: generation
-            ) else { return }
-            // This status probe is authenticated: a definitive authorization
-            // failure here means the session itself is revoked or mismatched,
-            // not merely that push readiness is unknown. Route it to the
-            // shared reauth disconnect instead of staying connected with a
-            // silently cleared readiness.
-            guard !disconnectForAuthorizationFailureIfNeeded(error) else {
-                return
-            }
-            phonePushMacStatus = nil
-            return
-        }
-        guard isCurrentRemoteConnection(
-            client: client,
-            generation: generation
-        ) else { return }
-        guard let status = try? MobileHostStatusResponse.decode(
-            exchange.hostStatusResponse
-        ) else {
-            phonePushMacStatus = nil
-            return
-        }
-        phonePushMacStatus = status.phonePush
-    }
-
-    /// Applies one or more Mac-owned phone-forwarding settings over the current
-    /// authenticated attach channel, then reads the authoritative status back.
-    ///
-    /// The mutation fails closed when the Mac is unavailable, predates the
-    /// capability, rejects the caller, or the connection changes mid-flight.
-    /// Local UI never writes a speculative Mac value into this store.
-    @discardableResult
-    public func updatePhonePushSettings(
-        forwardingEnabled: Bool? = nil,
-        mode: MobileHostPhonePushStatus.Mode? = nil,
-        hideContent: Bool? = nil
-    ) async -> Bool {
-        guard supportsPhonePushSettings,
-              let client = remoteClient,
-              forwardingEnabled != nil || mode != nil || hideContent != nil
-        else { return false }
-
-        var params: [String: Any] = [:]
-        if let forwardingEnabled {
-            params["forwarding_enabled"] = forwardingEnabled
-        }
-        if let mode {
-            params["mode"] = mode.rawValue
-        }
-        if let hideContent {
-            params["hide_content"] = hideContent
-        }
-
-        let generation = connectionGeneration
-        do {
-            let exchange = try await client.sendRequestAndAuthenticatedHostStatus(
-                MobileCoreRPCClient.requestData(
-                    method: "phone_push.settings.update",
-                    params: params
-                ),
-                hostStatusTimeoutNanoseconds: {
-                    Self.terminalOutputCapabilityTimeoutNanoseconds
-                }
-            )
-            let status = try MobileHostStatusResponse.decode(
-                exchange.hostStatusResponse
-            )
-            guard isCurrentRemoteConnection(
-                client: client,
-                generation: generation
-            ) else { return false }
-            phonePushMacStatus = status.phonePush
-            return true
-        } catch {
-            guard generation == connectionGeneration else { return false }
-            guard !disconnectForAuthorizationFailureIfNeeded(error) else {
-                return false
-            }
-            handleMacAvailabilityFailureIfCurrent(
-                after: error,
-                expectedClient: client,
-                expectedGeneration: generation
-            )
-            return false
-        }
-    }
-
-    /// Requests a test alert through the Mac's real durable queue and returns
-    /// only the furthest stage the synchronous RPC can prove.
-    public func sendPhonePushTest() async -> MobilePhonePushTestStage {
-        guard supportsPhonePushTest, let client = remoteClient else {
-            return .unavailable
-        }
-        let generation = connectionGeneration
-        do {
-            let data = try await client.sendRequest(
-                MobileCoreRPCClient.requestData(
-                    method: "phone_push.test",
-                    params: [:]
-                )
-            )
-            guard isCurrentRemoteConnection(
-                client: client,
-                generation: generation
-            ), let object = try JSONSerialization.jsonObject(with: data)
-                as? [String: Any],
-            let rawStage = object["stage"] as? String,
-            let stage = MobilePhonePushTestStage(rawValue: rawStage)
-            else { return .unavailable }
-            return stage
-        } catch {
-            guard generation == connectionGeneration else {
-                return .unavailable
-            }
-            guard !disconnectForAuthorizationFailureIfNeeded(error) else {
-                return .unavailable
-            }
-            handleMacAvailabilityFailureIfCurrent(
-                after: error,
-                expectedClient: client,
-                expectedGeneration: generation
-            )
-            return .unavailable
         }
     }
 

@@ -247,9 +247,6 @@
          location = "group:CmuxPanes">
       </FileRef>
       <FileRef
-         location = "group:CmuxPhonePush">
-      </FileRef>
-      <FileRef
          location = "group:CmuxProductAnalytics">
       </FileRef>
       <FileRef

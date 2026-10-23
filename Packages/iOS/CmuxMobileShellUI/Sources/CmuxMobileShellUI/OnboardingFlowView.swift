@@ -7,14 +7,12 @@ import SwiftUI
 /// A short product tour presented after sign-in, ending in same-account
 /// computer discovery with explicit Mac-side pairing opt-in.
 struct OnboardingFlowView: View {
-    private let supportsPush: Bool
     let context: OnboardingContext
     let isAuthenticated: Bool
     let connectionPhase: OnboardingConnectionPhase
     let connectionMethod: MobileConnectionMethod
     let keepAwakeOffer: OnboardingKeepAwakeOffer?
     let onSelectConnectionMethod: (MobileConnectionMethod) -> Void
-    let onEnablePush: () async -> Bool
     let onReachedConnection: () -> Void
     let onSkip: () -> Void
     let onRetryConnection: () -> Void
@@ -25,20 +23,17 @@ struct OnboardingFlowView: View {
     @State private var stage: OnboardingStage
     @State private var didReachConnection = false
     @State private var didRecordStart = false
-    @State private var isPushEnableInFlight = false
     @Environment(\.analytics) private var analytics
     @Environment(\.mobileDiagnosticLog) private var diagnosticLog
 
     init(
         initialStage: OnboardingStage,
-        capabilities: MobileDistributionCapabilities = .init(infoDictionary: Bundle.main.infoDictionary ?? [:]),
         context: OnboardingContext,
         isAuthenticated: Bool,
         connectionPhase: OnboardingConnectionPhase,
         connectionMethod: MobileConnectionMethod = .automatic,
         keepAwakeOffer: OnboardingKeepAwakeOffer? = nil,
         onSelectConnectionMethod: @escaping (MobileConnectionMethod) -> Void = { _ in },
-        onEnablePush: @escaping () async -> Bool,
         onReachedConnection: @escaping () -> Void,
         onSkip: @escaping () -> Void,
         onRetryConnection: @escaping () -> Void,
@@ -46,21 +41,19 @@ struct OnboardingFlowView: View {
         onSetKeepAwake: @escaping (Bool) async -> Bool = { _ in false },
         onComplete: @escaping () -> Void
     ) {
-        self.supportsPush = capabilities.supportsPush
         self.context = context
         self.isAuthenticated = isAuthenticated
         self.connectionPhase = connectionPhase
         self.connectionMethod = connectionMethod
         self.keepAwakeOffer = keepAwakeOffer
         self.onSelectConnectionMethod = onSelectConnectionMethod
-        self.onEnablePush = onEnablePush
         self.onReachedConnection = onReachedConnection
         self.onSkip = onSkip
         self.onRetryConnection = onRetryConnection
         self.onStartTailscalePairing = onStartTailscalePairing
         self.onSetKeepAwake = onSetKeepAwake
         self.onComplete = onComplete
-        _stage = State(initialValue: initialStage == .push && !capabilities.supportsPush ? .pairing : initialStage)
+        _stage = State(initialValue: initialStage)
     }
 
     var body: some View {
@@ -73,7 +66,7 @@ struct OnboardingFlowView: View {
             onSecondary: handleSecondary,
             pageContent: OnboardingPageViewport(
                 stage: stage,
-                stages: OnboardingStage.allCases.filter { supportsPush || $0 != .push },
+                stages: OnboardingStage.allCases,
                 onNavigate: { navigate(to: $0) }
             ) { pageStage in
                 page(for: pageStage)
@@ -117,8 +110,6 @@ struct OnboardingFlowView: View {
             OnboardingAgentsView()
         case .notifications:
             OnboardingNotificationsView()
-        case .push:
-            OnboardingPushView()
         case .pairing:
             OnboardingPairingView()
         case .connect:
@@ -133,30 +124,13 @@ struct OnboardingFlowView: View {
     }
 
     private func handleBack() {
-        switch stage {
-        case .agents:
-            break
-        case .notifications:
-            showAgents()
-        case .push:
-            showNotifications()
-        case .pairing:
-            if supportsPush { showPush() } else { showNotifications() }
-        case .connect:
-            showPairing()
-        }
+        if let previous = stage.previous { navigate(to: previous) }
     }
 
     private func handlePrimary() {
         switch stage {
-        case .agents:
-            showNotifications()
-        case .notifications:
-            showPush()
-        case .push:
-            enablePush()
-        case .pairing:
-            showConnection()
+        case .agents, .notifications, .pairing:
+            if let next = stage.next { navigate(to: next) }
         case .connect:
             if isAuthenticated {
                 finishOrRetry()
@@ -164,49 +138,6 @@ struct OnboardingFlowView: View {
                 finishBeforeAuthentication()
             }
         }
-    }
-
-    private func showAgents() {
-        navigate(to: .agents)
-    }
-
-    private func showNotifications() {
-        navigate(to: .notifications)
-    }
-
-    private func showPush() {
-        navigate(to: supportsPush ? .push : .pairing)
-    }
-
-    private func showPairing() {
-        navigate(to: .pairing)
-    }
-
-    private func showConnection() {
-        navigate(to: .connect)
-    }
-
-    /// The one place the app first asks the OS for notification permission.
-    /// Advances to Pairing after the system alert resolves either way; the
-    /// grant/deny outcome is recorded by the push coordinator.
-    private func enablePush() {
-        guard supportsPush, !isPushEnableInFlight else { return }
-        isPushEnableInFlight = true
-        analytics.capture("ios_onboarding_push_enable_tapped", eventProperties)
-        // The enable must outlive a page change: the coordinator finishes
-        // registration regardless, and re-tapping is barred by the flag.
-        Task { @MainActor in
-            _ = await onEnablePush()
-            isPushEnableInFlight = false
-            if stage == .push {
-                showPairing()
-            }
-        }
-    }
-
-    private func declinePush() {
-        analytics.capture("ios_onboarding_push_declined", eventProperties)
-        showPairing()
     }
 
     private func reachConnectionIfNeeded() {
@@ -252,17 +183,7 @@ struct OnboardingFlowView: View {
         }
     }
 
-    /// Push's secondary action declines the opt-in without touching the OS.
-    /// Once Enable is in flight the pending system alert owns the decision, so
-    /// a racing Not Now tap is ignored rather than recorded as a contradictory
-    /// intent. On Connect, Tailscale's secondary action retries discovery;
-    /// Auto-Connect has no secondary manual-pairing action.
     private func handleSecondary() {
-        if stage == .push {
-            guard !isPushEnableInFlight else { return }
-            declinePush()
-            return
-        }
         guard connectionMethod == .tailscale, connectionPhase == .fallback else { return }
         diagnosticLog?.recordAppEvent(.onboardingConnectionRetried)
         analytics.capture("ios_onboarding_connection_retried", eventProperties)

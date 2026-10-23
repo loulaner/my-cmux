@@ -39,28 +39,6 @@ import UIKit
         #expect(pairing.secondaryTitle == nil)
     }
 
-    /// The push page always offers the paired opt-in choice: Enable as the
-    /// primary action and Not Now as the secondary, with Skip still available.
-    @Test func pushPageOffersEnableAndNotNow() {
-        let push = OnboardingSceneChrome(
-            stage: .push,
-            isAuthenticated: false,
-            connectionPhase: .searching
-        )
-        let authenticatedPush = OnboardingSceneChrome(
-            stage: .push,
-            isAuthenticated: true,
-            connectionPhase: .ready
-        )
-
-        for chrome in [push, authenticatedPush] {
-            #expect(chrome.showsBack)
-            #expect(chrome.showsSkip)
-            #expect(chrome.primaryTitle != nil)
-            #expect(chrome.secondaryTitle != nil)
-        }
-    }
-
     @Test func connectionChromeFollowsAuthenticationAndDiscoveryPhase() {
         let signIn = OnboardingSceneChrome(
             stage: .connect,

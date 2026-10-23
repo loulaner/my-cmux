@@ -36,7 +36,6 @@ struct CMUXMobileRootView: View {
     private let signOutHook: MobileSignOutHook
     private let startupConnectionCoordinator: MobileStartupConnectionCoordinator
     #if os(iOS)
-    @Environment(MobilePushCoordinator.self) private var pushCoordinator
     /// Optional so previews and package hosts remain migration-free by default.
     @Environment(MobileAutoConnectMigrationStore.self) private var autoConnectMigrationStore:
         MobileAutoConnectMigrationStore?
@@ -202,14 +201,6 @@ struct CMUXMobileRootView: View {
         #endif
     }
 
-    private var shouldShowPushReadinessPreview: Bool {
-        #if os(iOS) && DEBUG
-        return UITestConfig.pushReadinessPreviewState != nil
-        #else
-        return false
-        #endif
-    }
-
     #if os(iOS)
     /// A configured launch attach route (dev/UITest auto-pair) owns startup
     /// connections outright; background onboarding discovery must not race it.
@@ -249,16 +240,6 @@ struct CMUXMobileRootView: View {
     @ViewBuilder private var changesPreview: some View {
         #if os(iOS) && DEBUG
         ChangesPreviewView()
-        #else
-        EmptyView()
-        #endif
-    }
-
-    @ViewBuilder private var pushReadinessPreview: some View {
-        #if os(iOS) && DEBUG
-        MobilePushReadinessPreviewView(
-            state: UITestConfig.pushReadinessPreviewState ?? "healthy"
-        )
         #else
         EmptyView()
         #endif
@@ -345,7 +326,6 @@ struct CMUXMobileRootView: View {
             #endif
             store.resumeForegroundRefresh()
             #if os(iOS)
-            pushCoordinator.bind(store: store)
             #endif
             // If the view mounts already authenticated (cached session, or a
             // mock/fixture launch), `onChange(of: isAuthenticated)` never fires,
@@ -387,26 +367,6 @@ struct CMUXMobileRootView: View {
             clearAttachTicketAuthenticationIfNeeded()
         }
         #if os(iOS)
-        // A notification tap can arrive before the workspace (or terminal) it
-        // targets is loaded (cold launch, or attach still in flight); re-apply
-        // the parked deep link as the lists fill in. The version counter is a
-        // cheap change signal: it bumps on any workspace or terminal list
-        // mutation without allocating ID arrays on every body evaluation.
-        .onChange(of: store.workspaceTopologyVersion) { _, _ in
-            pushCoordinator.workspacesDidChange()
-        }
-        // A tap can arrive while the Mac transport is down. Retry the parked
-        // request when the connection recovers even if the workspace list did
-        // not change in that same turn.
-        .onChange(of: store.connectionState) { _, _ in
-            pushCoordinator.workspacesDidChange()
-        }
-        // The aggregate connection can stay connected while a secondary Mac
-        // reconnects. Observe exact pairing status changes for parked pushes.
-        .onChange(of: store.macConnectionStatuses) { _, _ in
-            pushCoordinator.workspacesDidChange()
-        }
-        .mobilePushAlertPresentation(coordinator: pushCoordinator)
         #if DEBUG
         // The UI-test auto-open hook observes the same workspace-arrival
         // signal; `initial: true` covers a list already loaded at mount.
@@ -580,9 +540,7 @@ struct CMUXMobileRootView: View {
 
     @ViewBuilder
     private var standardRootContent: some View {
-        if shouldShowPushReadinessPreview {
-            pushReadinessPreview
-        } else if shouldShowChangesPreview {
+        if shouldShowChangesPreview {
             changesPreview
         } else if shouldShowHideComputersVerifier {
             hideComputersVerifier
@@ -681,10 +639,7 @@ struct CMUXMobileRootView: View {
                     taskComposerPresentation: childSheetPresentation(
                         for: .workspaceTaskComposer
                     ),
-                    reconnectStoredMac: { reconnectStoredMacIfNeeded() },
-                    workspaceListDidBecomeVisible: {
-                        await pushCoordinator.workspaceListDidBecomeVisible()
-                    }
+                    reconnectStoredMac: { reconnectStoredMacIfNeeded() }
                 )
             }
         }
@@ -1094,7 +1049,6 @@ struct CMUXMobileRootView: View {
             connectionMethod: connectionMethodStore?.method ?? .automatic,
             keepAwakeOffer: OnboardingKeepAwakeOfferSource().offer(from: store),
             onSelectConnectionMethod: { connectionMethodStore?.method = $0 },
-            onEnablePush: { await pushCoordinator.enable(trigger: "onboarding") },
             onReachedConnection: markOnboardingReadyToConnect,
             onSkip: completeOnboarding,
             onRetryConnection: retryAutomaticConnection,
@@ -1122,7 +1076,6 @@ struct CMUXMobileRootView: View {
             connectionMethod: connectionMethodStore?.method ?? .automatic,
             onSelectConnectionMethod: { connectionMethodStore?.method = $0 },
             // The deterministic preview must never raise the OS alert.
-            onEnablePush: { true },
             onReachedConnection: markOnboardingReadyToConnect,
             onSkip: completeOnboarding,
             onRetryConnection: {},

@@ -10,7 +10,6 @@ struct OnboardingScreenshot: View {
     enum Content: String, CaseIterable {
         case workspaces
         case notifications
-        case push
 
         var accessibilityIdentifier: String {
             "MobileOnboardingScreenshot-\(rawValue)"
@@ -189,13 +188,6 @@ struct OnboardingScreenshot: View {
         language: OnboardingScreenshotLanguage,
         appearance: OnboardingScreenshotAppearance
     ) -> String {
-        // The push capture is a real iPhone Lock Screen photographed once: the
-        // notification and inline reply it shows are live device output, so a
-        // single asset serves every language and appearance until per-locale
-        // captures are staged.
-        if content == .push {
-            return "Onboarding-push"
-        }
         let baseName = "Onboarding-\(content.rawValue)-\(language.rawValue)"
         switch appearance {
         case .light:

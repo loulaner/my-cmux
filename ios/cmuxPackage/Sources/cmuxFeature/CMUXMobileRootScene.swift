@@ -8,7 +8,6 @@ import CmuxMobileCloud
 import CmuxMobileCloudBridge
 import CmuxMobileCloudUI
 import CmuxMobileRPC
-import CmuxPhonePush
 import CmuxMobileShell
 import CmuxMobileShellModel
 import CmuxMobileSupport
@@ -52,7 +51,6 @@ public struct CMUXMobileRootScene: View {
     /// The same policy instance used by the process-wide Iroh discovery runtime.
     private let buildCompatibilityPolicy: MobileMacBuildCompatibilityPolicy
     #if os(iOS)
-    private let pushCoordinator: MobilePushCoordinator
     private let displaySettings: MobileDisplaySettings
     private let featureFlags: MobileFeatureFlags
     /// The legacy connection-method choice used only by onboarding and migration UI.
@@ -123,12 +121,10 @@ public struct CMUXMobileRootScene: View {
     /// Creates the root scene.
     /// - Parameters:
     ///   - runtime: The mobile runtime that backs the shell store.
-    ///   - auth: The constructed auth graph (coordinator + push registration).
+    ///   - auth: The constructed auth graph (coordinator).
     ///   - reachability: The process-wide reachability monitor, injected into
     ///     the shell store (already used to build `auth`).
     ///   - analytics: The app-root analytics emitter, injected into the store.
-    ///   - pushCoordinator: The app-root push coordinator (shared with the app
-    ///     delegate) injected into the environment.
     ///   - displaySettings: The app-root mobile display settings injected into
     ///     the environment (drives workspace-title wrapping).
     ///   - featureFlags: The live PostHog-backed mobile feature flags.
@@ -160,7 +156,6 @@ public struct CMUXMobileRootScene: View {
         analyticsClientID: String? = nil,
         terminalLatencyObserver: any MobileTerminalLatencyObserving = NoopMobileTerminalLatencyObserver(),
         feedPerformanceObserver: (any MobileFeedPerformanceObserving)? = nil,
-        pushCoordinator: MobilePushCoordinator,
         displaySettings: MobileDisplaySettings,
         featureFlags: MobileFeatureFlags,
         connectionMethodStore: MobileConnectionMethodStore,
@@ -185,7 +180,6 @@ public struct CMUXMobileRootScene: View {
         self.analyticsClientID = analyticsClientID
         self.feedPerformanceObserver = feedPerformanceObserver
         self.terminalLatencyObserver = terminalLatencyObserver
-        self.pushCoordinator = pushCoordinator
         self.displaySettings = displaySettings
         self.featureFlags = featureFlags
         self.connectionMethodStore = connectionMethodStore
@@ -408,7 +402,6 @@ public struct CMUXMobileRootScene: View {
             .environment(\.mobileAppLog, appLog)
             .tailscaleStatusMonitor(tailscaleStatusMonitor)
             #if os(iOS)
-            .environment(pushCoordinator)
             .environment(displaySettings)
             .terminalFilesChipEnabled(featureFlags.terminalFilesChipEnabled)
             .keyboardDockRebuildRevertEnabled(featureFlags.keyboardDockRebuildRevertEnabled)
@@ -530,8 +523,6 @@ public struct CMUXMobileRootScene: View {
             ComputerPickerPersistencePreviewView()
         } else if UITestConfig.taskComposerPreviewEnabled {
             TaskComposerAccessibilityPreviewView()
-        } else if UITestConfig.pushTabNavigationPreviewEnabled {
-            PushTabNavigationPreviewView()
         } else if UITestConfig.notificationFeedPreviewEnabled {
             NotificationFeedPreviewView()
         } else if UITestConfig.whatsNewPreviewEnabled {
@@ -597,42 +588,6 @@ public struct CMUXMobileRootScene: View {
     }
 
     @MainActor
-    private func makePhonePushKeyExchangeHooks() -> MobilePhonePushKeyExchangeHooks {
-        let bundleID = Bundle.main.bundleIdentifier ?? "dev.cmux.ios"
-        let accessGroup = auth.keychainAccessGroup
-        return MobilePhonePushKeyExchangeHooks(
-            makeDescriptor: {
-                let key = try PhonePushKeyMaterial.current(
-                    bundleID: bundleID,
-                    accessGroup: accessGroup
-                )
-                return MobilePhonePushPublicKeyDescriptor(
-                    installationID: key.installationID,
-                    keyID: key.keyID,
-                    publicKey: key.publicKeyData
-                )
-            },
-            iosBuildID: { bundleID },
-            pinPeerDescriptor: { descriptor, context in
-                let tuple = PhonePushDeviceTuple(
-                    accountID: context.accountID,
-                    teamID: context.teamID,
-                    iosBuildID: context.iosBuildID,
-                    iosInstallationID: context.iosInstallationID,
-                    macDeviceID: context.macDeviceID,
-                    macInstanceTag: context.macInstanceTag,
-                    macBuildID: context.macBuildID
-                )
-                PhonePushPeerKeyStore().pin(
-                    descriptor.publicKey,
-                    keyID: descriptor.keyID,
-                    for: tuple
-                )
-            }
-        )
-    }
-
-    @MainActor
     package func makeStore(
         browserStreamEvents: (any BrowserStreamEventReceiving)? = nil,
         simulatorStreamStore: MobileSimulatorStreamStore? = nil
@@ -686,7 +641,6 @@ public struct CMUXMobileRootScene: View {
             personalIrohForget: resolvedPersonalIrohForget,
             presence: nil, workspacePresenceAnnouncer: makeWorkspacePresenceAnnouncer(),
             identityProvider: identityProvider,
-            phonePushKeyExchangeHooks: makePhonePushKeyExchangeHooks(),
             teamIDProvider: { await coordinator.resolvedTeamID },
             reachability: reachability,
             hiddenMacStore: hiddenMacStore,

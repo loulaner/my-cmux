@@ -227,7 +227,6 @@ public extension MobileLocalDataEraser {
         notifications.removeAllDeliveredNotifications()
         notifications.removeAllPendingNotificationRequests()
         try? await notifications.setBadgeCount(0)
-        UIApplication.shared.unregisterForRemoteNotifications()
     }
 }
 #endif

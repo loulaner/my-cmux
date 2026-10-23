@@ -810,37 +810,10 @@ final class cmuxUITests: XCTestCase {
 
         primaryButton.tap()
 
-        // The push page shows the inline-reply preview and pairs Enable with
-        // Not Now; the footer legitimately grows for the second button, so the
-        // chrome reference frames are re-recorded on this page.
-        let pushScene = element("MobileOnboardingPushScene")
-        assertPageVisible(pushScene)
-        let pushTitle = app.staticTexts["Know the moment an agent needs you"]
-        XCTAssertTrue(pushTitle.exists)
-        let pushBody = app.staticTexts.matching(NSPredicate(
-            format: "label == %@",
-            "Get a push when an agent is waiting, and reply right from the Lock Screen."
-        )).firstMatch
-        XCTAssertTrue(pushBody.exists)
-        let pushPreview = element("MobileOnboardingScreenshot-push")
-        XCTAssertTrue(pushPreview.waitForExistence(timeout: 4))
-        XCTAssertTrue(primaryButton.label.contains("Enable Notifications"))
-        let notNowButton = app.buttons["MobileOnboardingSecondaryButton"]
-        XCTAssertTrue(notNowButton.waitForExistence(timeout: 4))
-        XCTAssertTrue(notNowButton.label.contains("Not Now"))
-        XCTAssertTrue(app.buttons["MobileOnboardingBackButton"].exists)
-        XCTAssertTrue(app.buttons["MobileOnboardingSkipButton"].exists)
-        recordChromeReferenceFrames()
-        assertPageContentFitsWithoutScrolling(
-            title: pushTitle,
-            visual: pushPreview,
-            additionalContent: [pushBody]
-        )
-        capture("onboarding-02c-push")
-
-        // Declining must not present the OS permission alert and advances the
-        // tour to the connection page.
-        notNowButton.tap()
+        let pairingScene = element("MobileOnboardingPairingScene")
+        assertPageVisible(pairingScene)
+        XCTAssertFalse(app.buttons["MobileOnboardingSecondaryButton"].exists)
+        primaryButton.tap()
 
         let connectScene = element("MobileOnboardingConnectScene")
         assertPageVisible(connectScene)
@@ -974,27 +947,9 @@ final class cmuxUITests: XCTestCase {
         capture("onboarding-08-notifications-compact-height")
 
         primaryButton.tap()
-        assertPageVisible(pushScene)
-        let secondaryAnyType = element("MobileOnboardingSecondaryButton")
-        XCTAssertTrue(
-            notNowButton.waitForExistence(timeout: 4),
-            """
-            Secondary button missing in compact height. \
-            anyTyped exists=\(secondaryAnyType.exists) \
-            type=\(secondaryAnyType.exists ? String(secondaryAnyType.elementType.rawValue) : "-") \
-            buttons=\(app.buttons.allElementsBoundByIndex.map { "\($0.identifier):\($0.label)" }) \
-            footer=\(element("MobileOnboardingFooter").debugDescription)
-            """
-        )
-        recordChromeReferenceFrames()
-        assertPageContentFitsWithoutScrolling(
-            title: pushTitle,
-            visual: pushPreview,
-            additionalContent: [pushBody]
-        )
-        capture("onboarding-08a-push-compact-height")
-
-        notNowButton.tap()
+        assertPageVisible(pairingScene)
+        XCTAssertFalse(app.buttons["MobileOnboardingSecondaryButton"].exists)
+        primaryButton.tap()
         assertPageVisible(connectScene)
         XCTAssertFalse(app.buttons["MobileOnboardingSecondaryButton"].exists)
         let compactRetryButton = app.buttons["MobileOnboardingPrimaryButton"]
@@ -1146,7 +1101,7 @@ final class cmuxUITests: XCTestCase {
         primaryButton.tap()
 
         // Decline the push opt-in; the tour continues without any OS alert.
-        XCTAssertTrue(element("MobileOnboardingPushScene").waitForExistence(timeout: 4))
+        XCTAssertTrue(element("MobileOnboardingNotificationsScene").waitForExistence(timeout: 4))
         let notNowButton = app.buttons["MobileOnboardingSecondaryButton"]
         XCTAssertTrue(notNowButton.waitForExistence(timeout: 4))
         notNowButton.tap()
@@ -4767,71 +4722,6 @@ final class cmuxUITests: XCTestCase {
         } else {
             XCTAssertLessThanOrEqual(picker.frame.width, 100)
         }
-    }
-
-    /// Drives the production push coordinator through its three user-visible
-    /// states: a parked tap while the Mac is disconnected, selection after the
-    /// connection recovers, and an alert when the target tab is gone.
-    @MainActor
-    func testPushNotificationTapOpensTabAfterReconnectAndAlertsWhenMissing() throws {
-        let app = launchApp(mockData: false, environment: [
-            "CMUX_UITEST_PUSH_TAB_NAVIGATION_PREVIEW": "1",
-        ])
-        defer { app.terminate() }
-
-        let state = app.staticTexts["PushTabNavigationState"]
-        XCTAssertTrue(state.waitForExistence(timeout: 8))
-
-        func capture(_ name: String) {
-            let screenshot = XCTAttachment(screenshot: app.screenshot())
-            screenshot.name = name
-            screenshot.lifetime = .keepAlways
-            add(screenshot)
-        }
-
-        capture("push-tab-deferred-while-disconnected")
-        app.buttons["PushTabTapButton"].tap()
-        XCTAssertTrue(app.staticTexts["Waiting for the Mac connection…"].waitForExistence(timeout: 3))
-
-        app.buttons["PushReconnectButton"].tap()
-        let selection = app.staticTexts["PushTabNavigationSelection"]
-        XCTAssertTrue(selection.waitForExistence(timeout: 5))
-        XCTAssertTrue(
-            NSPredicate(format: "label CONTAINS %@", "Notes")
-                .evaluate(with: selection),
-            "The parked notification tap must open the Notes tab after reconnect."
-        )
-        let terminalPicker = app.buttons["MobileTerminalDropdown"]
-        XCTAssertTrue(
-            terminalPicker.waitForExistence(timeout: 5),
-            "The production workspace detail must be visible after the push tap."
-        )
-        let selectedNotes = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "value == %@", "Notes"),
-            object: terminalPicker
-        )
-        XCTAssertEqual(XCTWaiter.wait(for: [selectedNotes], timeout: 5), .completed)
-        XCTAssertEqual(
-            terminalPicker.value as? String,
-            "Notes",
-            "The production terminal picker must select the pushed Notes tab."
-        )
-        capture("push-tab-opened-after-reconnect")
-
-        app.buttons["PushMissingTabButton"].tap()
-        let alert = app.alerts["Tab unavailable"]
-        XCTAssertTrue(alert.waitForExistence(timeout: 5))
-        XCTAssertTrue(alert.staticTexts["This tab is no longer available on your Mac."].exists)
-        capture("push-tab-unavailable-alert")
-        alert.buttons["OK"].tap()
-        XCTAssertTrue(alert.waitForNonExistence(timeout: 3))
-
-        app.buttons["PushMissingWorkspaceButton"].tap()
-        let workspaceAlert = app.alerts["Tab unavailable"]
-        XCTAssertTrue(workspaceAlert.waitForExistence(timeout: 5))
-        capture("push-workspace-unavailable-alert")
-        workspaceAlert.buttons["OK"].tap()
-        XCTAssertTrue(workspaceAlert.waitForNonExistence(timeout: 3))
     }
 
     @MainActor
@@ -12664,7 +12554,7 @@ final class IOSSetupRecoveryUITests: XCTestCase {
         XCTAssertTrue(primary.waitForExistence(timeout: 10))
         let referenceFrame = primary.frame
         var frames: [String] = []
-        for (index, scene) in ["Agents", "Notifications", "Push"].enumerated() {
+        for (index, scene) in ["Agents", "Notifications"].enumerated() {
             let page = app.descendants(matching: .any)["MobileOnboarding\(scene)Scene"]
             XCTAssertTrue(page.waitForExistence(timeout: 5))
             let aligned = NSPredicate { _, _ in
@@ -12676,11 +12566,9 @@ final class IOSSetupRecoveryUITests: XCTestCase {
             )], timeout: 3), .completed)
             frames.append("\(scene): \(primary.frame)")
             capture("onboarding-\(index + 1)-\(scene.lowercased())", in: app)
-            if scene != "Push" { primary.tap() }
+            primary.tap()
         }
-        XCTAssertEqual(primary.label, "Enable Notifications")
-        XCTAssertTrue(app.buttons["MobileOnboardingSecondaryButton"].isHittable)
-        primary.tap()
+        XCTAssertFalse(app.buttons["MobileOnboardingSecondaryButton"].exists)
         let pairing = app.descendants(matching: .any)["MobileOnboardingPairingScene"]
         XCTAssertTrue(pairing.waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)[
@@ -12695,7 +12583,7 @@ final class IOSSetupRecoveryUITests: XCTestCase {
         )], timeout: 3), .completed)
         frames.append("Pairing: \(primary.frame)")
         capture("onboarding-4-pairing", in: app)
-        record("onboarding-action-result", "Continue advanced Agents → Notifications → Push. Enable Notifications awaited the preview permission callback and advanced to Pairing. This preview does not request OS permission.")
+        record("onboarding-action-result", "Continue advanced Agents → Notifications → Pairing without a permission page.")
 
         primary.tap()
         let connect = app.descendants(matching: .any)["MobileOnboardingConnectScene"]
@@ -12739,7 +12627,7 @@ final class IOSSetupRecoveryUITests: XCTestCase {
         XCTAssertTrue(primary.waitForExistence(timeout: 5))
         let reference = primary.frame
         var frames: [String] = []
-        for (index, scene) in ["Agents", "Notifications", "Push"].enumerated() {
+        for (index, scene) in ["Agents", "Notifications"].enumerated() {
             XCTAssertTrue(app.descendants(matching: .any)[
                 "MobileOnboarding\(scene)Scene"
             ].waitForExistence(timeout: 5))
@@ -12747,10 +12635,9 @@ final class IOSSetupRecoveryUITests: XCTestCase {
             XCTAssertEqual(primary.frame.maxY, reference.maxY, accuracy: 0.5)
             frames.append("\(scene): \(primary.frame)")
             capture("replay-\(index + 1)-\(scene.lowercased())", in: app)
-            if scene != "Push" { primary.tap() }
+            primary.tap()
         }
         record("replay-button-frames", frames.joined(separator: "\n"))
-        app.buttons["MobileOnboardingSecondaryButton"].tap()
         let pairing = app.descendants(matching: .any)["MobileOnboardingPairingScene"]
         XCTAssertTrue(pairing.waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)[
@@ -12759,12 +12646,12 @@ final class IOSSetupRecoveryUITests: XCTestCase {
         capture("replay-4-not-now-completed", in: app)
         app.buttons["MobileOnboardingBackButton"].tap()
         XCTAssertTrue(app.descendants(matching: .any)[
-            "MobileOnboardingPushScene"
+            "MobileOnboardingNotificationsScene"
         ].waitForExistence(timeout: 5))
         primary.tap()
         XCTAssertTrue(pairing.waitForExistence(timeout: 10))
         capture("replay-5-enable-completed", in: app)
-        record("replay-action-result", "Opened Settings → View Introduction Again. Continue advanced through the first three scenes with equal primary-button frames. Not Now advanced to Pairing. Back returned to Push. Enable Notifications called the real push coordinator and advanced to Pairing after completion. Mock app authorization is denied; no OS permission grant or remote notification delivery is claimed.")
+        record("replay-action-result", "Opened Settings → View Introduction Again. Continue advanced Agents → Notifications → Pairing; Back returned to Notifications and Continue returned to Pairing. No push permission action exists.")
     }
 
     @MainActor

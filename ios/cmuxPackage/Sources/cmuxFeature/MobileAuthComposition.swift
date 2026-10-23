@@ -1,7 +1,6 @@
 import CMUXAuthCore
 import CMUXMobileCore
 import CmuxAuthRuntime
-import CmuxPhonePush
 import CmuxMobileSupport
 import CmuxMobileTransport
 import Foundation
@@ -14,7 +13,7 @@ import StackAuth
 /// `LocalConfig.plist` override table, builds the ``CmuxAuthRuntime/AuthCoordinator``
 /// (with a `StackAuthClient`, persistence caches over an injected `UserDefaults`,
 /// and an ``CmuxAuthRuntime/AuthPresentationContextProvider``), and the
-/// ``CmuxAuthRuntime/PushRegistrationService``. Replaces `AuthManager.shared`,
+/// session lifecycle. Replaces `AuthManager.shared`,
 /// `StackAuthApp.shared`, `AuthPresentationContextProvider.shared`,
 /// `AuthSessionCache.shared`, `AuthUserCache.shared`, and the `AppEnvironment`
 /// secret/URL tables.
@@ -22,10 +21,7 @@ import StackAuth
 public struct MobileAuthComposition {
     /// The shared auth orchestrator the UI binds to.
     public let coordinator: AuthCoordinator
-    /// The push registration service, activated after notification permission.
-    public let pushRegistration: PushRegistrationService
-    private let supportsPush: Bool
-    /// The resolved configuration (used for diagnostics + push API base URL).
+    /// The resolved configuration (used for diagnostics and API base URL).
     public let config: AuthConfig
     /// Which Stack project this build signs in to. DEBUG defaults to
     /// development and Release to production, but an ``authEnvironmentOverrideKey``
@@ -59,7 +55,7 @@ public struct MobileAuthComposition {
     ///   - bundle: The bundle to read `LocalConfig.plist` overrides + bundle id
     ///     from. Defaults to `.main`; injected here so the *type* never reaches
     ///     for `Bundle.main` internally.
-    ///   - defaults: Persistence for the session/user caches and push opt-in.
+    ///   - defaults: Persistence for the session/user caches.
     ///   - reachability: Connectivity probe for fail-fast sign-in.
     ///   - policy: The build-flag policy (dev-auth `42` shortcut).
     ///   - diagnosticLog: Optional privacy-safe app diagnostic recorder.
@@ -71,8 +67,6 @@ public struct MobileAuthComposition {
         policy: MobileAuthBuildPolicy = .current,
         diagnosticLog: DiagnosticLog? = nil
     ) {
-        let supportsPush = MobileDistributionCapabilities(infoDictionary: bundle.infoDictionary ?? [:]).supportsPush
-        self.supportsPush = supportsPush
         self.reachability = reachability
         let appNamespace = MobileIOSAppNamespace(
             bundleIdentifier: bundle.bundleIdentifier
@@ -159,11 +153,6 @@ public struct MobileAuthComposition {
                 environment: environment
             )
         )
-        // Break the coordinator <-> push cycle: the coordinator is built first
-        // and reaches the push service (for its post-sign-in token re-upload)
-        // through a deferred async hook that is pointed at the push service once
-        // it exists. The push service reads tokens directly from the coordinator.
-        let deferredSignIn = DeferredSignInHook()
         let monitor = reachability
         let coordinator = AuthCoordinator(
             client: client,
@@ -174,40 +163,9 @@ public struct MobileAuthComposition {
             config: resolvedConfig,
             launch: launch,
             isOnline: { await monitor.isOnline },
-            isTokenStorageAvailable: { await MainActor.run { availability.isAvailable } },
-            onSignedIn: { await deferredSignIn.run() }
+            isTokenStorageAvailable: { await MainActor.run { availability.isAvailable } }
         )
-        let pushIdentity = try? PhonePushKeyMaterial.current(
-            bundleID: bundle.bundleIdentifier ?? "",
-            accessGroup: keychainAccessGroup
-        )
-        let push = PushRegistrationService(
-            tokenProvider: coordinator,
-            apiBaseURL: resolvedConfig.apiBaseURL,
-            bundleID: bundle.bundleIdentifier ?? "",
-            apnsEnvironment: Self.apnsEnvironment,
-            pushInstallationID: pushIdentity?.installationID,
-            pushKeyID: pushIdentity?.keyID,
-            pushPublicKey: pushIdentity?.publicKeyData.base64EncodedString(),
-            pushIdentityProvider: {
-                guard let identity = try? PhonePushKeyMaterial.current(
-                    bundleID: bundle.bundleIdentifier ?? "",
-                    accessGroup: keychainAccessGroup
-                ) else { return nil }
-                return PushRegistrationIdentity(
-                    installationID: identity.installationID,
-                    keyID: identity.keyID,
-                    publicKey: identity.publicKeyData.base64EncodedString()
-                )
-            },
-            session: .shared
-        )
-        deferredSignIn.set {
-            guard supportsPush else { return }
-            await push.syncTokenIfPossible()
-        }
         self.coordinator = coordinator
-        self.pushRegistration = push
         self.protectedDataAvailability = availability
         self.taskOwner = MobileAuthTaskOwner(
             diagnosticLog: diagnosticLog,
@@ -221,17 +179,9 @@ public struct MobileAuthComposition {
     /// Begin asynchronous session restore (call once after construction).
     public func start() {
         taskOwner.recordRestoreStarted()
-        let supportsPush = self.supportsPush
-        let pushRegistration = self.pushRegistration
-        protectedDataAvailability.startObserving { [coordinator, taskOwner, pushRegistration] in
-            taskOwner.revalidateSession(using: coordinator) {
-                guard supportsPush else { return }
-                Task {
-                    await pushRegistration.syncTokenIfPossible()
-                }
-            }
+        protectedDataAvailability.startObserving { [coordinator, taskOwner] in
+            taskOwner.revalidateSession(using: coordinator)
         }
-        taskOwner.mirrorActiveAccount(from: coordinator)
         coordinator.start()
         taskOwner.observeRestore(using: coordinator)
     }
@@ -434,16 +384,6 @@ public struct MobileAuthComposition {
         return previous != resolvedProjectID
     }
 
-    /// The Simulator only ever mints sandbox device tokens, so a Release build
-    /// running there must register as sandbox or APNs rejects every push.
-    private static var apnsEnvironment: String {
-        #if DEBUG || targetEnvironment(simulator)
-        "sandbox"
-        #else
-        "production"
-        #endif
-    }
-
     /// - Parameter simulatorSupportDirectory: Where the simulator build keeps
     ///   its sandboxed token files. Injected so a test can exercise the
     ///   unresolvable-directory path; production always passes the default.
@@ -529,7 +469,6 @@ private final class MobileAuthTaskOwner {
     private let shouldObserveCachedRestore: Bool
     private var restoreTask: Task<Void, Never>?
     private var revalidationTask: Task<Void, Never>?
-    private var activeAccountMirrorTask: Task<Void, Never>?
 
     init(
         diagnosticLog: DiagnosticLog?,
@@ -542,17 +481,6 @@ private final class MobileAuthTaskOwner {
     func recordRestoreStarted() {
         guard shouldObserveCachedRestore else { return }
         diagnosticLog?.recordAppEvent(.authRestoreStarted)
-    }
-
-    /// The notification service extension reads the active account from the
-    /// shared keychain. Mirroring the auth stream covers a restored session at
-    /// launch, sign-in, account switches, and sign-out through one path.
-    func mirrorActiveAccount(from coordinator: AuthCoordinator) {
-        activeAccountMirrorTask?.cancel()
-        let identities = coordinator.authenticatedSessionIdentities()
-        activeAccountMirrorTask = Task { @MainActor in
-            await PhonePushActiveAccountStore().mirror(identities)
-        }
     }
 
     func observeRestore(using coordinator: AuthCoordinator) {
@@ -586,6 +514,5 @@ private final class MobileAuthTaskOwner {
     deinit {
         restoreTask?.cancel()
         revalidationTask?.cancel()
-        activeAccountMirrorTask?.cancel()
     }
 }

@@ -446,6 +446,13 @@ def test_lane_wide_inputs_do_not_turn_the_lane_into_a_full_sweep() -> None:
         assert module.classify_files([path]).swift_packages is False, path
 
 
+def test_removed_phone_push_package_has_no_ci_lane() -> None:
+    packages = module.swift_package_test_packages()
+    assert packages is not None
+    assert "CmuxPhonePush" not in packages
+    assert not (ROOT / "Packages/macOS/CmuxPhonePush/Package.swift").exists()
+
+
 def test_package_lane_reads_the_job_package_list_from_the_workflow() -> None:
     packages = module.swift_package_test_packages()
     assert packages is not None
@@ -456,6 +463,8 @@ def test_package_lane_reads_the_job_package_list_from_the_workflow() -> None:
     assert "CmuxSettingsUI" in packages
     # CmuxWorkspaces was missing from the list, so its tests never ran in CI.
     assert "CmuxWorkspaces" in packages
+    for removed_name in ("CmuxUpdater", "CmuxUpdaterUI", "CmuxPhonePush"):
+        assert removed_name not in packages, removed_name
     path = "Packages/macOS/CmuxWorkspaces/Tests/CmuxWorkspacesTests/Core/SurfaceRegistryModelTests.swift"
     assert module.classify_files([path]).swift_packages is True
     assert "CmuxWorkspaces" in module.swift_package_test_selection([path])
@@ -471,7 +480,6 @@ def test_package_lane_reads_the_job_package_list_from_the_workflow() -> None:
         "CmuxFeedback",
         "CmuxLiveEval",
         "CmuxPanes",
-        "CmuxPhonePush",
         "CMUXProjectModel",
         "CmuxSidebar",
         "CmuxSidebarInterpreterService",
@@ -479,7 +487,6 @@ def test_package_lane_reads_the_job_package_list_from_the_workflow() -> None:
         "CmuxSwiftRender",
         "CmuxSwiftRenderUI",
         "CmuxTestSupport",
-        "CmuxUpdaterUI",
         "CmuxWindowing",
     ):
         assert name in packages, name

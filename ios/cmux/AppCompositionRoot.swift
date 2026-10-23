@@ -6,7 +6,6 @@ import CmuxMobileShell
 import CmuxMobileShellModel
 import CmuxMobileSupport
 import CmuxMobileTransport
-import CmuxPhonePush
 import CmuxSentryReporting
 import Foundation
 import SwiftUI
@@ -14,9 +13,8 @@ import cmuxFeature
 
 /// Holds the de-singletonized graph the `cmuxApp` builds once at launch.
 ///
-/// Owns the mobile runtime, the auth composition (coordinator + push
-/// registration), the process-wide reachability monitor, the shared push
-/// coordinator, and the mobile display settings. Everything below the app shell
+/// Owns the mobile runtime, auth composition, process-wide reachability monitor,
+/// and mobile display settings. Everything below the app shell
 /// receives these by injection instead of reaching for a singleton.
 @MainActor
 final class AppCompositionRoot {
@@ -30,7 +28,6 @@ final class AppCompositionRoot {
     /// admitting different Mac app instances.
     let buildCompatibilityPolicy: MobileMacBuildCompatibilityPolicy
     let reachability: any ReachabilityProviding
-    let pushCoordinator: MobilePushCoordinator
     let signOutHook: MobileSignOutHook
     let analytics: MobileAnalyticsComposition
     let featureFlags: MobileFeatureFlags
@@ -46,7 +43,6 @@ final class AppCompositionRoot {
     let scrollInteractionReporter = MobileScrollInteractionReporter { isActive in
         MobileCrashReporter.setReplayCapturePaused(isActive)
     }
-    private var pushReachabilityTask: Task<Void, Never>? = nil
     /// The legacy connection-method choice used only by onboarding and migration UI.
     let connectionMethodStore: MobileConnectionMethodStore
     /// One-time BETA migration eligibility, snapshotted before launch writes.
@@ -197,65 +193,15 @@ final class AppCompositionRoot {
             }
         )
         #if DEBUG
-        let pushNotificationSettings:
-            (@MainActor () async -> MobilePushSystemSettings)?
-        if UITestConfig.mockDataEnabled {
-            // Full-app mock tests run on freshly erased simulators. Keep the
-            // real SpringBoard authorization alert out of unrelated UI flows.
-            pushNotificationSettings = { .authorizationOnly(.denied) }
-        } else {
-            pushNotificationSettings = nil
-        }
-        #else
-        let pushNotificationSettings:
-            (@MainActor () async -> MobilePushSystemSettings)? = nil
-        #endif
-        #if DEBUG
         // DEV: a devicectl launch with DEVICECTL_CHILD_CMUX_PRESENCE_BASE_URL
         // persists the isolated-worker override so later env-less cold
         // launches (push wakes) keep resolving it.
         PresenceClient.persistEnvironmentOverrideIfPresent()
         #endif
-        // Inline replies relay through the presence worker when the phone
-        // cannot deliver directly (a backgrounded app never dials). Same
-        // worker origin as the connectivity subscriber, so the account that
-        // subscribes is the account whose inbox the Mac sweeps.
-        let replyRelayBaseURL = PresenceClient.resolvedServiceBaseURL(
-            isDevelopmentAuthChannel: auth.authEnvironment == .development
-        ).flatMap { URL(string: $0) }
-        let replyRelayAccessToken = CMUXMobileRuntime.stackAccessTokenProvider(
-            from: auth.coordinator
-        )
-        let pushCoordinator = MobilePushCoordinator(
-            registration: auth.pushRegistration,
-            analytics: analytics.emitter,
-            diagnosticLog: diagnosticLog,
-            phoneAPIOrigin: auth.config.apiBaseURL,
-            notificationSettings: pushNotificationSettings,
-            replyRelay: SystemReplyRelayClient(
-                serviceBaseURL: replyRelayBaseURL,
-                accessToken: { try? await replyRelayAccessToken() },
-                keychainAccessGroup: auth.keychainAccessGroup,
-                diagnosticLog: diagnosticLog
-            ),
-            authenticatedAccountID: { auth.coordinator.currentUser?.id }
-        )
-        self.pushCoordinator = pushCoordinator
         self.signOutHook = MobileSignOutHook {
-            let signingOutAccountID = auth.coordinator.currentUser?.id
             let signingOutScope = auth.coordinator.authenticatedTeamScope
-            return { accessToken, refreshToken in
-                PhonePushActiveAccountStore().clear()
-                await withTaskGroup(of: Void.self) { group in
-                    group.addTask {
-                        await pushCoordinator.unregisterFromServer(
-                            accountID: signingOutAccountID,
-                            accessToken: accessToken,
-                            refreshToken: refreshToken
-                        )
-                    }
-                    group.addTask { await irx.handleSignOut(ifCurrent: signingOutScope) }
-                }
+            return { _, _ in
+                await irx.handleSignOut(ifCurrent: signingOutScope)
                 await diagnosticLog.clear()
             }
         }
@@ -345,13 +291,6 @@ final class AppCompositionRoot {
             forceComplete: bypassOnboarding
         )
         self.tailscaleStatusMonitor = TailscaleStatusMonitorAdapter(monitor: TailscaleStatusMonitor())
-        self.pushReachabilityTask = Task { @MainActor [weak pushCoordinator] in
-            for await _ in reachability.pathChanges() {
-                guard let pushCoordinator, !Task.isCancelled else { return }
-                guard await reachability.isOnline else { continue }
-                await pushCoordinator.networkDidBecomeReachable()
-            }
-        }
         // Start auth only after the diagnostic tap is durable. Session restore
         // can complete during launch, and starting earlier would leave its
         // accepted events in the in-memory ring but absent from cmux-app.log.
@@ -360,7 +299,6 @@ final class AppCompositionRoot {
     }
 
     isolated deinit {
-        pushReachabilityTask?.cancel()
         featureFlags.stop()
     }
 
@@ -415,9 +353,6 @@ final class AppCompositionRoot {
             let isFullForegroundReturn = !hasForegrounded || wasBackgrounded
             wasBackgrounded = false
             Task { await irx.didBecomeActive() }
-            // A notification-permission prompt is itself a transient inactive
-            // edge, so readiness still observes every active transition.
-            Task { await pushCoordinator.refreshReadiness() }
             guard isFullForegroundReturn else { return }
             featureFlags.refreshOnForeground()
             let now = Date()

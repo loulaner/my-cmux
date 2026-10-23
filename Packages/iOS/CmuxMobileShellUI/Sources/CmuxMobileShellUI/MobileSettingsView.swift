@@ -21,7 +21,6 @@ struct MobileSettingsView: View {
 
     @Environment(AuthCoordinator.self) private var authManager
     @Environment(\.analyticsClientID) private var analyticsClientID
-    @Environment(MobilePushCoordinator.self) private var pushCoordinator
     @Environment(MobileDisplaySettings.self) private var displaySettings
     /// Optional so previews and hosts without the app root still render; the
     /// Connection Method section is hidden when absent.
@@ -64,15 +63,7 @@ struct MobileSettingsView: View {
     @State private var pendingTeamRequestID: UUID?
     @State private var teamSelectionTask: Task<Void, Never>?
     @State private var teamSelectionFailed = false
-    /// Mirrors ``MobilePushCoordinator/isEnabled`` so the toggle's label/icon
-    /// update after the async enable/disable. The coordinator exposes
-    /// `isEnabled` as a non-observable `UserDefaults` read, so reading it
-    /// directly in `body` would not re-render when it flips.
-    @State private var notificationsEnabled = false
     @State private var didCopySupportInformation = false
-#if DEBUG
-    @State private var debugReplyScheduled: Bool?
-#endif
     @State private var showingOnboarding = false
     @State private var showingSetupHelp = false
     #if DEBUG
@@ -569,67 +560,6 @@ struct MobileSettingsView: View {
                     .accessibilityIdentifier("MobileSettingsTerminalScrollback")
                 }
 
-                // Release builds keep the section to the single agent-alerts
-                // toggle the app always had; the delivery-status diagnostics,
-                // Mac forwarding controls, and test actions are a dev surface
-                // and stay DEBUG-only.
-                if pushCoordinator.supportsPush {
-                    Section(L10n.string("mobile.settings.notifications", defaultValue: "Push Alerts")) {
-    #if DEBUG
-                        MobilePushSettingsContent(
-                            readiness: pushCoordinator.readiness(
-                                macStatus: store?.phonePushMacStatus,
-                                macAccountMismatch: store?.connectionRequiresReauth == true,
-                                securePushSetupFailed: store?.phonePushKeyExchangeFailed == true
-                            ),
-                            phoneEnabled: $notificationsEnabled,
-                            macStatus: store?.phonePushMacStatus,
-                            supportsMacSettings: store?.supportsPhonePushSettings == true,
-                            supportsMacTest: store?.supportsPhonePushTest == true,
-                            canConnectMac: startPairingScanner != nil,
-                            onPhoneEnabledChange: updatePhonePushEnabled,
-                            onRepair: repairPhonePush,
-                            onMacMutation: updateMacPhonePush,
-                            onSendTest: sendPhonePushTest
-                        )
-                        Button {
-                            Task { @MainActor in
-                                debugReplyScheduled = await pushCoordinator
-                                    .debugScheduleLocalReplyNotification()
-                            }
-                        } label: {
-                            Text(L10n.string(
-                                "mobile.settings.debugReplyTest",
-                                defaultValue: "Test Inline Reply (Local)"
-                            ))
-                        }
-                        .accessibilityIdentifier("MobileSettingsDebugReplyTestButton")
-                        if let debugReplyScheduled {
-                            Text(L10n.string(
-                                debugReplyScheduled
-                                    ? "mobile.settings.debugReplyTest.scheduled"
-                                    : "mobile.settings.debugReplyTest.failed",
-                                defaultValue: debugReplyScheduled
-                                    ? "Scheduled: lock the phone; the notification fires in 5 seconds."
-                                    : "Couldn't schedule: open a workspace and select a terminal first."
-                            ))
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        }
-    #else
-                        if store?.phonePushKeyExchangeFailed == true {
-                            MobilePushSecuritySetupFailureView(
-                                onRetry: retrySecurePushSetup
-                            )
-                        }
-                        MobilePushToggle(
-                            isEnabled: $notificationsEnabled,
-                            applyEnabledIntent: setPhonePushEnabledIntent
-                        )
-    #endif
-                    }
-                }
-
                 Section {
                     Toggle(isOn: $sendAnonymousTelemetry) {
                         Text(L10n.string(
@@ -690,13 +620,6 @@ struct MobileSettingsView: View {
                     .accessibilityIdentifier("MobileSettingsCopySupportInformation")
                 }
             }
-            .task {
-                notificationsEnabled = pushCoordinator.isEnabled
-                await pushCoordinator.refreshReadiness()
-            }
-            .onChange(of: pushCoordinator.isEnabled) { _, enabled in
-                notificationsEnabled = enabled
-            }
             .navigationTitle(L10n.string("mobile.workspaces.settings", defaultValue: "Settings"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -730,9 +653,6 @@ struct MobileSettingsView: View {
                     connectionMethod: connectionMethodStore?.method ?? .automatic,
                     keepAwakeOffer: OnboardingKeepAwakeOfferSource().offer(from: store),
                     onSelectConnectionMethod: { connectionMethodStore?.method = $0 },
-                    onEnablePush: {
-                        await pushCoordinator.enable(trigger: "onboarding_replay")
-                    },
                     onReachedConnection: {},
                     onSkip: { showingOnboarding = false },
                     onRetryConnection: retryAutomaticConnection,
@@ -881,109 +801,6 @@ struct MobileSettingsView: View {
         .accessibilityIdentifier(
             "MobileSettingsMacConnection-\(connection.id)"
         )
-    }
-
-    @MainActor
-    private func setPhonePushEnabledIntent(_ enabled: Bool) {
-        diagnosticLog?.recordAppEvent(
-            .notificationPreferenceChanged,
-            count: enabled ? 1 : 0
-        )
-        pushCoordinator.setEnabledIntent(enabled)
-    }
-
-    @MainActor
-    private func updatePhonePushEnabled(_ enabled: Bool) async -> Bool {
-        diagnosticLog?.recordAppEvent(
-            .notificationPreferenceChanged,
-            count: enabled ? 1 : 0
-        )
-        if enabled {
-            _ = await pushCoordinator.enable()
-            // A denied OS authorization still accepts the user's app-level
-            // intent. Keep the toggle on so readiness can surface the Settings
-            // recovery action instead of rolling the preference back.
-            return pushCoordinator.isEnabled
-        }
-        await pushCoordinator.disable()
-        return !pushCoordinator.isEnabled
-    }
-
-    @MainActor
-    private func repairPhonePush(
-        _ repair: MobilePushReadiness.Repair
-    ) async -> Bool {
-        switch repair {
-        case .enableOnPhone:
-            return await updatePhonePushEnabled(true)
-        case .openSystemSettings:
-            pushCoordinator.openSystemSettings()
-            return true
-        case .retryDeviceTokenRegistration:
-            pushCoordinator.retryDeviceTokenRegistration()
-            await pushCoordinator.refreshReadiness()
-            return true
-        case .retryRegistration:
-            await pushCoordinator.syncTokenIfPossible()
-            await pushCoordinator.refreshReadiness()
-            return true
-        case .signInAgain, .signIntoMatchingAccount:
-            signOut?()
-            return signOut != nil
-        case .connectMac:
-            startPairingScanner?()
-            return startPairingScanner != nil
-        case .leaveMacOrUseAlwaysMode:
-            return await store?.updatePhonePushSettings(mode: .always) == true
-        case .enableOnMac:
-            return await store?.updatePhonePushSettings(
-                forwardingEnabled: true
-            ) == true
-        case .retrySecurePushSetup:
-            return store?.retryPhonePushKeyExchange() == true
-        case .waitForDeviceToken, .finishAccountDeletion,
-             .disablePushOnAnotherDevice, .rebuildMatchingApps:
-            return false
-        }
-    }
-
-    @MainActor
-    private func updateMacPhonePush(
-        _ mutation: MobilePushMacMutation
-    ) async -> Bool {
-        guard let store else { return false }
-        switch mutation {
-        case let .forwardingEnabled(enabled):
-            return await store.updatePhonePushSettings(
-                forwardingEnabled: enabled
-            )
-        case let .mode(mode):
-            return await store.updatePhonePushSettings(mode: mode)
-        case let .hideContent(hidden):
-            return await store.updatePhonePushSettings(hideContent: hidden)
-        }
-    }
-
-    @MainActor
-    private func sendPhonePushTest() async -> MobilePhonePushTestStage {
-        diagnosticLog?.recordAppEvent(.phonePushTestStarted)
-        let stage = await store?.sendPhonePushTest() ?? .unavailable
-        if stage == .queuedOnMac {
-            diagnosticLog?.recordAppEvent(.phonePushTestSucceeded)
-        } else {
-            diagnosticLog?.recordAppEvent(
-                .phonePushTestFailed,
-                failure: stage == .authenticationUnavailable
-                    ? .authorizationFailed
-                    : .protocolViolation
-            )
-        }
-        return stage
-    }
-
-    @MainActor
-    private func retrySecurePushSetup() async -> Bool {
-        store?.retryPhonePushKeyExchange() == true
     }
 
     private static var crashReportingEnabled: Bool {

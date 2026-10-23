@@ -14,8 +14,6 @@
 		E496437F7E57E2FF221DDA7A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A10192DF5000000A66F90 /* Assets.xcassets */; };
 		5556DAA39B95C41D9F53AE97 /* cmuxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10172DF5000000A66F90 /* cmuxApp.swift */; };
 		8B8A10012DF5000000A66F90 /* cmuxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10172DF5000000A66F90 /* cmuxApp.swift */; };
-		192C7826BC3A6B15F73F89A0 /* CmuxAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10F12DF5000000A66F90 /* CmuxAppDelegate.swift */; };
-		8B8A10F02DF5000000A66F90 /* CmuxAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10F12DF5000000A66F90 /* CmuxAppDelegate.swift */; };
 		8B41F6832DEDD23B001A66F9 /* cmuxFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6822DEDD23B001A66F9 /* cmuxFeature */; };
 		8B41F6852DEDD25C001A66F9 /* cmuxFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6842DEDD25C001A66F9 /* cmuxFeature */; };
 		9B8CB2318DB77F30D403FBC7 /* cmuxFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6842DEDD25C001A66F9 /* cmuxFeature */; };
@@ -35,7 +33,6 @@
 		E3E4082CC5CF90D254D3D6BB /* MobileAppLifecycleDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10AD2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift */; };
 		8B8A10E02DF5000000A66F90 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A10E12DF5000000A66F90 /* PrivacyInfo.xcprivacy */; };
 		D725C7915FD269124C63BE63 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A10E12DF5000000A66F90 /* PrivacyInfo.xcprivacy */; };
-		8B8A10302DF5000000A66F90 /* PushReadinessUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10312DF5000000A66F90 /* PushReadinessUITests.swift */; };
 		8B8A10E22DF5000000A66F90 /* SnapshotHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10E32DF5000000A66F90 /* SnapshotHelper.swift */; };
 		8B8A10E42DF5000000A66F90 /* SnapshotUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10E52DF5000000A66F90 /* SnapshotUITests.swift */; };
 		A7EFF0012F00000000A66F90 /* TaskComposerEffortPickerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7EFF0022F00000000A66F90 /* TaskComposerEffortPickerUITests.swift */; };
@@ -76,7 +73,6 @@
 		8B41F65C2DEDD0D6001A66F9 /* cmux.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = cmux.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B8A10182DF5000000A66F90 /* cmux.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = file; path = cmux.xctestplan; sourceTree = "<group>"; };
 		8B8A10172DF5000000A66F90 /* cmuxApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = cmuxApp.swift; sourceTree = "<group>"; };
-		8B8A10F12DF5000000A66F90 /* CmuxAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CmuxAppDelegate.swift; sourceTree = "<group>"; };
 		8B8A101C2DF5000000A66F90 /* cmuxUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = cmuxUITests.swift; sourceTree = "<group>"; };
 		8B8A10112DF5000000A66F90 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		8B8A10152DF5000000A66F90 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -86,7 +82,6 @@
 		1A417E23DB6A5C8E026F845C /* PersonalInfo.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PersonalInfo.plist; sourceTree = "<group>"; };
 		D740699F3554AC1E1DEBC8FC /* PersonalRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = PersonalRelease.xcconfig; sourceTree = "<group>"; };
 		8B8A10E12DF5000000A66F90 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		8B8A10312DF5000000A66F90 /* PushReadinessUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushReadinessUITests.swift; sourceTree = "<group>"; };
 		8B8A10122DF5000000A66F90 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		8B8A10142DF5000000A66F90 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 		8B8A10E32DF5000000A66F90 /* SnapshotHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotHelper.swift; sourceTree = "<group>"; };
@@ -152,7 +147,6 @@
 				8B8A10E12DF5000000A66F90 /* PrivacyInfo.xcprivacy */,
 				8B8A10212DF5000000A66F90 /* Resources */,
 				8B8A10172DF5000000A66F90 /* cmuxApp.swift */,
-				8B8A10F12DF5000000A66F90 /* CmuxAppDelegate.swift */,
 				8B8A10AB2DF5000000A66F90 /* AppCompositionRoot.swift */,
 				8B8A10AD2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift */,
 				8B8A10182DF5000000A66F90 /* cmux.xctestplan */,
@@ -168,7 +162,6 @@
 				A17662022F00000000A66F90 /* AgentFeedQuestionUITests.swift */,
 				A7EFF0022F00000000A66F90 /* TaskComposerEffortPickerUITests.swift */,
 				8B8A10262DF5000000A66F90 /* TerminalThemeParityUITests.swift */,
-				8B8A10312DF5000000A66F90 /* PushReadinessUITests.swift */,
 				8B8A10E52DF5000000A66F90 /* SnapshotUITests.swift */,
 				8B8A10E32DF5000000A66F90 /* SnapshotHelper.swift */,
 			);
@@ -260,7 +253,6 @@
 				8B41F6842DEDD25C001A66F9 /* cmuxFeature */,
 				8B7E20032DF3A00100A66F90 /* CMUXMobileCore */,
 				8B7E20062DF3A00100A66F90 /* CmuxMobileTransport */,
-				D4E2A00A0000000000000001 /* CmuxPhonePush */,
 			);
 			productName = cmux;
 			productReference = 8B41F6452DEDD0D5001A66F9 /* MyCMUX.app */;
@@ -306,7 +298,6 @@
 				8B41F6842DEDD25C001A66F9 /* cmuxFeature */,
 				8B7E20032DF3A00100A66F90 /* CMUXMobileCore */,
 				8B7E20062DF3A00100A66F90 /* CmuxMobileTransport */,
-				D4E2A00A0000000000000001 /* CmuxPhonePush */,
 			);
 			productName = "cmux-personal";
 			productReference = 7E23A50C35E04CE64005B8AF /* cmux-personal.app */;
@@ -363,7 +354,6 @@
 			minimizedProjectReferenceProxies = 1;
 			productRefGroup = 8B41F6462DEDD0D5001A66F9 /* Products */;
 			packageReferences = (
-				D4E2A010000000000000001 /* XCLocalSwiftPackageReference "CmuxPhonePush" */,
 			);
 			projectDirPath = "";
 			projectRoot = "";
@@ -489,7 +479,6 @@
 
 				8B8A10AA2DF5000000A66F90 /* AppCompositionRoot.swift in Sources */,
 				8B8A10012DF5000000A66F90 /* cmuxApp.swift in Sources */,
-				8B8A10F02DF5000000A66F90 /* CmuxAppDelegate.swift in Sources */,
 				8B8A10AC2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -502,7 +491,6 @@
 
 				A17662012F00000000A66F90 /* AgentFeedQuestionUITests.swift in Sources */,
 				8B8A10052DF5000000A66F90 /* cmuxUITests.swift in Sources */,
-				8B8A10302DF5000000A66F90 /* PushReadinessUITests.swift in Sources */,
 				8B8A10E22DF5000000A66F90 /* SnapshotHelper.swift in Sources */,
 				8B8A10E42DF5000000A66F90 /* SnapshotUITests.swift in Sources */,
 				A7EFF0012F00000000A66F90 /* TaskComposerEffortPickerUITests.swift in Sources */,
@@ -516,7 +504,6 @@
 			files = (
 				F36F002FBF4F0A0469BF8FC6 /* AppCompositionRoot.swift in Sources */,
 				5556DAA39B95C41D9F53AE97 /* cmuxApp.swift in Sources */,
-				192C7826BC3A6B15F73F89A0 /* CmuxAppDelegate.swift in Sources */,
 				E3E4082CC5CF90D254D3D6BB /* MobileAppLifecycleDiagnostics.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -870,13 +857,8 @@
 			productName = CmuxIrohReleaseGateSupport;
 		};
 /* End XCSwiftPackageProductDependency section */
-		D4E2A00A0000000000000001 /* CmuxPhonePush */ = { isa = XCSwiftPackageProductDependency; package = D4E2A010000000000000001 /* XCLocalSwiftPackageReference "CmuxPhonePush" */; productName = CmuxPhonePush; };
 
 /* Begin XCLocalSwiftPackageReference section */
-		D4E2A010000000000000001 /* XCLocalSwiftPackageReference "CmuxPhonePush" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../Packages/macOS/CmuxPhonePush;
-		};
 /* End XCLocalSwiftPackageReference section */
 	};
 	rootObject = 8B41F63D2DEDD0D5001A66F9 /* Project object */;

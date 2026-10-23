@@ -167,7 +167,6 @@ select_packages() {
     CmuxFeedback
     CmuxLiveEval
     CmuxPanes
-    CmuxPhonePush
     CMUXProjectModel
     CmuxSidebar
     CmuxSidebarInterpreterService

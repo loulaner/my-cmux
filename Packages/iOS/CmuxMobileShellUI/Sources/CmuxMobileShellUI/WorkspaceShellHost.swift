@@ -27,7 +27,6 @@ struct WorkspaceShellHost: View {
     var showAddSSHComputer: (() -> Void)? = nil
     var taskComposerPresentation = MobileChildSheetPresentation()
     let reconnectStoredMac: () -> Void
-    let workspaceListDidBecomeVisible: @MainActor @Sendable () async -> Void
 
     @Environment(AuthCoordinator.self) private var authManager
     @State private var loadingTimedOut = false
@@ -51,9 +50,6 @@ struct WorkspaceShellHost: View {
         .modifier(TaskComposerPrefetchModifier(store: store))
         .task(id: deadlineTaskID) {
             await updateLoadingDeadline()
-        }
-        .task {
-            await workspaceListDidBecomeVisible()
         }
     }
 
