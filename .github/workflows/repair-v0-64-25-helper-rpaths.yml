@@ -59,6 +59,7 @@ jobs:
           echo "dmg_sha256=$(shasum -a 256 "$root/cmux-macos.dmg" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
   repair:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     needs: verify-shipped
     permissions:
       contents: write

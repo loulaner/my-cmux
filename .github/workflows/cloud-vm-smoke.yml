@@ -38,6 +38,7 @@ concurrency:
 
 jobs:
   smoke:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'ubuntu-24.04' || vars.LINUX_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
     environment: cloud-vm-${{ inputs.target }}
     defaults:

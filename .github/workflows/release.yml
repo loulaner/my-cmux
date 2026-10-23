@@ -91,6 +91,7 @@ jobs:
           retention-days: 3
 
   build-sign-notarize:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     permissions:
       contents: write
       attestations: write

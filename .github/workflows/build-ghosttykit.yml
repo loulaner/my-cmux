@@ -237,7 +237,7 @@ jobs:
           python3 scripts/validate-xcframework-archive.py GhosttyKit.xcframework.tar.gz
 
       - name: Upload xcframework release
-        if: steps.check-release.outputs.exists == 'false'
+        if: ${{ github.repository == 'manaflow-ai/cmux' && (steps.check-release.outputs.exists == 'false') }}
         env:
           GH_TOKEN: ${{ secrets.GHOSTTY_RELEASE_TOKEN }}
         run: |

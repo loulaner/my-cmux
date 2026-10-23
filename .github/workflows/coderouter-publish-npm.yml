@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   publish:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     runs-on: ubuntu-latest # github-hosted-required: npm provenance needs a GitHub-hosted runner
     environment:
       name: npm-coderouter

@@ -136,6 +136,7 @@ jobs:
           fi
 
   publish:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     needs: validate-version
     runs-on: ubuntu-latest # github-hosted-required: npm provenance needs a github-hosted runner
     permissions:

@@ -16,7 +16,7 @@ jobs:
     # not discard a successful exact-head Dogfood build; the trusted gate below
     # requires that job and its matching GitHub artifact explicitly. A run the
     # event lists no pull request for has nothing to publish, so it never starts.
-    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'cancelled' && toJSON(github.event.workflow_run.pull_requests) != '[]' }}
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'cancelled' && toJSON(github.event.workflow_run.pull_requests) != '[]') }}
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'ubuntu-24.04' || vars.LINUX_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
     environment: artifacts
     permissions:
@@ -247,7 +247,7 @@ jobs:
   capture:
     name: cmux-next before/after capture
     needs: publish
-    if: ${{ needs.publish.outputs.published == 'true' && needs.publish.outputs.workflow == 'cmux-next' }}
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (needs.publish.outputs.published == 'true' && needs.publish.outputs.workflow == 'cmux-next') }}
     # MACOS_RUNNER_DISPLAY must name the GUI-enabled capture mini. The cloud
     # fallback keeps workflow validation and fork checks deterministic; the
     # step below fails closed when capture tools are absent.

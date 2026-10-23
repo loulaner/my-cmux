@@ -180,7 +180,7 @@ jobs:
     needs:
       - build
       - preflight
-    if: needs.preflight.outputs.need_publish == 'true'
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (needs.preflight.outputs.need_publish == 'true') }}
     runs-on: ubuntu-latest # github-hosted-required: npm provenance publishing
     timeout-minutes: 10
     permissions:

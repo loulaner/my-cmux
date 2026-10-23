@@ -513,6 +513,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   cut-tags:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     needs:
       - validate-release
       - revalidate-tags
@@ -847,6 +848,7 @@ jobs:
       release_ref: refs/tags/${{ needs.validate-release.outputs.go_tag }}
 
   publish-crate-sdk:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     needs:
       - validate-release
       - cut-tags
@@ -944,6 +946,7 @@ jobs:
             -- cargo publish -p cmux-sdk --locked --no-verify
 
   publish-crate-sidebar:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     needs:
       - validate-release
       - cut-tags
@@ -1072,6 +1075,7 @@ jobs:
                 "patch.crates-io.cmux-sdk.path='$GITHUB_WORKSPACE/cmux-tui/bindings/rust'"
 
   publish-npm:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     needs:
       - validate-release
       - cut-tags
@@ -1179,6 +1183,7 @@ jobs:
             -- npm publish --provenance --tag latest "${packages[0]}"
 
   publish-python-wheel:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     needs:
       - validate-release
       - cut-tags
@@ -1302,6 +1307,7 @@ jobs:
             --require-match
 
   publish-python-sdist:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     needs:
       - validate-release
       - cut-tags

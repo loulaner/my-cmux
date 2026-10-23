@@ -342,7 +342,7 @@ jobs:
           retention-days: 14
 
       - name: Materialize App Store Connect API key
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.upload }}
+        if: ${{ github.repository == 'manaflow-ai/cmux' && (github.event_name == 'workflow_dispatch' && inputs.upload) }}
         env:
           ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
@@ -364,7 +364,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Upload screenshots to App Store Connect
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.upload }}
+        if: ${{ github.repository == 'manaflow-ai/cmux' && (github.event_name == 'workflow_dispatch' && inputs.upload) }}
         working-directory: ios
         env:
           FASTLANE_SKIP_UPDATE_CHECK: "1"
@@ -373,7 +373,7 @@ jobs:
 
       - name: Remove App Store Connect API key
         # The key sits in the runner user's home; a reused runner would keep it.
-        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.upload }}
+        if: ${{ github.repository == 'manaflow-ai/cmux' && (always() && github.event_name == 'workflow_dispatch' && inputs.upload) }}
         env:
           ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
         run: |

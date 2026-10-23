@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   tag:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     name: create release tag
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'ubuntu-24.04' || vars.LINUX_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
     permissions:

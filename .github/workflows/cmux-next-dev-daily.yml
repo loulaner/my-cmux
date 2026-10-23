@@ -30,13 +30,7 @@ env:
 jobs:
   sign:
     # The source run is checked again by id in the first step, for both events.
-    if: >-
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
-      (github.event.workflow_run.event == 'workflow_dispatch' &&
-       startsWith(github.event.workflow_run.display_title, 'cmux NEXT DEV daily · ') &&
-       github.event.workflow_run.head_repository.full_name == github.repository &&
-       github.event.workflow_run.head_branch == 'feat-cmux-next' &&
-       github.event.workflow_run.path == '.github/workflows/cmux-next.yml')
+    if: ${{ github.repository == 'manaflow-ai/cmux' && ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event.workflow_run.event == 'workflow_dispatch' && startsWith(github.event.workflow_run.display_title, 'cmux NEXT DEV daily · ') && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_branch == 'feat-cmux-next' && github.event.workflow_run.path == '.github/workflows/cmux-next.yml')) }}
     name: Sign cmux NEXT DEV
     # On the job, not the workflow: every cmux-next completion starts a run
     # here, and a skipped one in a workflow group would cancel a pending
@@ -287,7 +281,7 @@ jobs:
     name: Publish cmux NEXT DEV
     # No signing secrets: the job token publishes the archive verify tested.
     needs: [sign, verify]
-    if: needs.sign.outputs.signed == 'true' && needs.verify.result == 'success'
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (needs.sign.outputs.signed == 'true' && needs.verify.result == 'success') }}
     concurrency:
       group: cmux-next-dev-daily
       cancel-in-progress: false

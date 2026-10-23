@@ -94,6 +94,7 @@ jobs:
       attest_packages: true
 
   publish:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     needs:
       - version
       - build-package

@@ -200,7 +200,7 @@ jobs:
     # Only ever publish from main: the ASC secrets ship reviewed main, and a
     # dispatch against a feature branch must not upload arbitrary code.
     needs: decide
-    if: needs.decide.outputs.upload == 'true' && github.ref == 'refs/heads/main'
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (needs.decide.outputs.upload == 'true' && github.ref == 'refs/heads/main') }}
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'macos-26' || 'blacksmith-6vcpu-macos-26' }}
     timeout-minutes: 90
     # Signs with the iOS distribution certificate and the App Store Connect
@@ -623,7 +623,7 @@ jobs:
     needs: upload
     # Run alongside tester assignment and even if later steps in the upload
     # job fail. Notes timeouts must not turn an accepted upload into a failure.
-    if: ${{ !cancelled() && needs.upload.result == 'success' && needs.upload.outputs.notes_artifact_id != '' }}
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (!cancelled() && needs.upload.result == 'success' && needs.upload.outputs.notes_artifact_id != '') }}
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'ubuntu-24.04' || 'blacksmith-4vcpu-ubuntu-2404' }}
     timeout-minutes: 40
     continue-on-error: true
@@ -657,10 +657,7 @@ jobs:
     environment: release
     name: Make build available to official internal testers
     needs: [decide, upload]
-    if: >-
-      always() && needs.decide.result == 'success' &&
-      (needs.upload.result == 'success' || needs.upload.result == 'skipped') &&
-      (needs.upload.outputs.build_number != '' || needs.decide.outputs.retry_build_number != '')
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (always() && needs.decide.result == 'success' && (needs.upload.result == 'success' || needs.upload.result == 'skipped') && (needs.upload.outputs.build_number != '' || needs.decide.outputs.retry_build_number != '')) }}
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'ubuntu-24.04' || 'blacksmith-4vcpu-ubuntu-2404' }}
     timeout-minutes: 40
     env:

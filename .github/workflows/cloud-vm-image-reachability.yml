@@ -98,7 +98,7 @@ jobs:
           key: devbox-reachable-${{ hashFiles('web/scripts/check-devbox-image-reachable.ts', 'web/scripts/devbox-image-common.ts', 'web/services/vms/drivers/cmuxTuiDaemon.ts', 'web/services/vms/images/**', '.github/workflows/cloud-vm-image-reachability.yml') }}-${{ steps.pair.outputs.key }}
 
       - name: Reach the shipped image
-        if: steps.gate.outputs.run == 'true' && (steps.seen.outputs.cache-hit != 'true' || inputs.image != '')
+        if: ${{ github.repository == 'manaflow-ai/cmux' && (steps.gate.outputs.run == 'true' && (steps.seen.outputs.cache-hit != 'true' || inputs.image != '')) }}
         env:
           FREESTYLE_API_KEY: ${{ secrets.FREESTYLE_API_KEY }}
           IMAGE: ${{ inputs.image }}

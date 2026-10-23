@@ -98,7 +98,7 @@ jobs:
     name: publish to R2
     # PR runs of this workflow only validate the build; publishing is
     # main-push or manual dispatch.
-    if: github.event_name != 'pull_request'
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (github.event_name != 'pull_request') }}
     needs: build
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'ubuntu-24.04' || vars.LINUX_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
     timeout-minutes: 15

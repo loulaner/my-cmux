@@ -274,7 +274,7 @@ jobs:
       - build
       - preflight
       - decisions
-    if: needs.decisions.outputs.sdk_need_publish == 'true'
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (needs.decisions.outputs.sdk_need_publish == 'true') }}
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'ubuntu-24.04' || vars.LINUX_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
     timeout-minutes: 10
     permissions: {}
@@ -418,13 +418,7 @@ jobs:
       - preflight
       - decisions
       - publish-sdk
-    if: >-
-      always() &&
-      !cancelled() &&
-      needs.build.result == 'success' &&
-      needs.preflight.result == 'success' &&
-      needs.decisions.result == 'success' &&
-      needs.decisions.outputs.sidebar_need_publish == 'true'
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (always() && !cancelled() && needs.build.result == 'success' && needs.preflight.result == 'success' && needs.decisions.result == 'success' && needs.decisions.outputs.sidebar_need_publish == 'true') }}
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'ubuntu-24.04' || vars.LINUX_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
     timeout-minutes: 10
     permissions: {}

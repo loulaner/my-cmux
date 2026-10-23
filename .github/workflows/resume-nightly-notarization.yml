@@ -42,6 +42,7 @@ concurrency:
 
 jobs:
   resume:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     environment: release
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'macos-26' || 'blacksmith-12vcpu-macos-26' }}
     timeout-minutes: 180

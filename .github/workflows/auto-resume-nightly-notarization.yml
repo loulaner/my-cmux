@@ -288,7 +288,7 @@ jobs:
 
   wait-and-staple:
     needs: [preflight, poll]
-    if: needs.preflight.outputs.ready == 'true' && needs.poll.outputs.all_accepted == 'true'
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (needs.preflight.outputs.ready == 'true' && needs.poll.outputs.all_accepted == 'true') }}
     strategy:
       fail-fast: false
       matrix:
@@ -585,7 +585,7 @@ jobs:
     needs: [preflight, poll-outer]
     # always(): a failed variant makes the poll exit 1, but the variants it
     # decided still continue.
-    if: always() && needs.poll-outer.result != 'cancelled' && needs.poll-outer.outputs.decided == 'true'
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (always() && needs.poll-outer.result != 'cancelled' && needs.poll-outer.outputs.decided == 'true') }}
     strategy:
       fail-fast: false
       matrix:
@@ -857,7 +857,7 @@ jobs:
     needs: [preflight, poll-stapled]
     # always(): a failed variant makes the poll exit 1, but the variants it
     # decided still continue.
-    if: always() && needs.poll-stapled.result != 'cancelled' && needs.poll-stapled.outputs.decided == 'true'
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (always() && needs.poll-stapled.result != 'cancelled' && needs.poll-stapled.outputs.decided == 'true') }}
     strategy:
       fail-fast: false
       matrix:
@@ -1031,11 +1031,7 @@ jobs:
 
   publish:
     needs: [preflight, wait-and-staple, staple-outer, staple-stapled, verify-stapled]
-    if: >-
-      always() && needs.preflight.outputs.ready == 'true' &&
-      (needs.wait-and-staple.result == 'success' || needs.staple-outer.result == 'success' ||
-       needs.staple-stapled.result == 'success') &&
-      needs.verify-stapled.result == 'success'
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (always() && needs.preflight.outputs.ready == 'true' && (needs.wait-and-staple.result == 'success' || needs.staple-outer.result == 'success' || needs.staple-stapled.result == 'success') && needs.verify-stapled.result == 'success') }}
     outputs:
       published: ${{ steps.publication-result.outputs.published }}
     environment: release
@@ -1367,11 +1363,7 @@ jobs:
     # Delta generation remains downstream of the first accepted publication.
     # It can be slow without holding the signed build or the first full feed.
     needs: [preflight, wait-and-staple, staple-outer, staple-stapled, publish]
-    if: >-
-      always() && needs.preflight.outputs.ready == 'true' &&
-      (needs.wait-and-staple.result == 'success' || needs.staple-outer.result == 'success' ||
-       needs.staple-stapled.result == 'success') &&
-      needs.publish.outputs.published == 'true'
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (always() && needs.preflight.outputs.ready == 'true' && (needs.wait-and-staple.result == 'success' || needs.staple-outer.result == 'success' || needs.staple-stapled.result == 'success') && needs.publish.outputs.published == 'true') }}
     permissions:
       actions: read
       contents: read
@@ -1457,9 +1449,7 @@ jobs:
 
   republish-deltas:
     needs: [preflight, publish, generate-deltas]
-    if: >-
-      always() && needs.preflight.outputs.ready == 'true' &&
-      needs.publish.outputs.published == 'true' && needs.generate-deltas.result == 'success'
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (always() && needs.preflight.outputs.ready == 'true' && needs.publish.outputs.published == 'true' && needs.generate-deltas.result == 'success') }}
     concurrency:
       group: release-publish-${{ needs.preflight.outputs.release_tag }}
       cancel-in-progress: false

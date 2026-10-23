@@ -53,7 +53,7 @@ jobs:
         run: bun run cloud-vm:preflight -- .
 
   migrate-staging:
-    if: ${{ inputs.target == 'staging' || inputs.target == 'production' }}
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (inputs.target == 'staging' || inputs.target == 'production') }}
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'ubuntu-24.04' || vars.LINUX_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
     needs: preflight
     environment: cloud-vm-staging
@@ -95,7 +95,7 @@ jobs:
         run: bun run cloud-vm:cleanup-iroh -- staging --apply
 
   migrate-production:
-    if: ${{ inputs.target == 'production' }}
+    if: ${{ github.repository == 'manaflow-ai/cmux' && (inputs.target == 'production') }}
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'ubuntu-24.04' || vars.LINUX_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
     needs: [preflight, migrate-staging]
     environment: cloud-vm-production

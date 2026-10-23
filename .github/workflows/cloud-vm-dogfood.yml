@@ -43,6 +43,7 @@ concurrency:
 
 jobs:
   journey:
+    if: ${{ github.repository == 'manaflow-ai/cmux' }}
     runs-on: ${{ github.repository_owner != 'manaflow-ai' && 'ubuntu-24.04' || vars.LINUX_RUNNER || 'blacksmith-4vcpu-ubuntu-2404' }}
     timeout-minutes: 45
     environment: cloud-vm-${{ inputs.target || 'staging' }}
@@ -70,7 +71,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Deploy exact checkout to staging
-        if: ${{ inputs.deploy_staging == true && (inputs.target || 'staging') == 'staging' }}
+        if: ${{ github.repository == 'manaflow-ai/cmux' && (inputs.deploy_staging == true && (inputs.target || 'staging') == 'staging') }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: team_KndpHsJ15gO2OoAP2SO0thYn
