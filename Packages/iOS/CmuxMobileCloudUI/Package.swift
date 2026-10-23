@@ -21,7 +21,6 @@ let package = Package(
         .library(name: "CmuxMobileCloudUI", targets: ["CmuxMobileCloudUI"]),
     ],
     dependencies: [
-        .package(path: "../CmuxMobileBilling"),
         .package(path: "../CmuxMobileCloud"),
         .package(path: "../CmuxMobileSupport"),
         .package(path: "../CmuxMobileTerminal"),
@@ -32,8 +31,6 @@ let package = Package(
         .target(
             name: "CmuxMobileCloudUI",
             dependencies: [
-                .product(name: "CmuxMobileBilling", package: "CmuxMobileBilling"),
-                .product(name: "CmuxMobileBillingUI", package: "CmuxMobileBilling"),
                 "CmuxMobileCloud",
                 "CmuxMobileSupport",
                 "CmuxMobileTerminal",

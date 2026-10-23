@@ -2,7 +2,6 @@ import CMUXAuthCore
 import CMUXMobileCore
 import CmuxAuthRuntime
 import CmuxMobileAnalytics
-import CmuxMobileBilling
 import CmuxMobilePairedMac
 import CmuxMobileBrowserStream
 import CmuxMobileCloud
@@ -102,11 +101,6 @@ public struct CMUXMobileRootScene: View {
     /// The optional system VPN. Nil when this build does not embed the packet
     /// tunnel extension, which hides its switch.
     @State private var cloudSystemVPNController: CloudSystemVPNController?
-    /// App Store billing, built once at the app composition root (its
-    /// `Transaction.updates` listener runs for the process lifetime) and
-    /// injected so Settings and the Cloud upgrade action open the plans
-    /// screen. Nil hides both.
-    private let billing: BillingModel?
     /// Foreground state for the Cloud tunnel: the lease only holds while the
     /// scene is active, since iOS suspends the in-process tunnel's socket.
     @Environment(\.scenePhase) private var scenePhase
@@ -160,7 +154,6 @@ public struct CMUXMobileRootScene: View {
     ///   - diagnosticLog: The privacy-safe structured connection log.
     ///   - appLog: The durable app and networking log used by the unified
     ///     Diagnostics export.
-    ///   - billing: The started App Store billing model; nil hides plans.
     public init(
         runtime: CMUXMobileRuntime,
         macListAuthState: MobileMacListAuthState? = nil,
@@ -185,10 +178,8 @@ public struct CMUXMobileRootScene: View {
         diagnosticLog: DiagnosticLog,
         cloudDeviceID: @escaping @Sendable () async -> String?,
         appLog: AppLog? = nil,
-        v2Configuration: MobileIrohV2Configuration? = nil,
-        billing: BillingModel? = nil
+        v2Configuration: MobileIrohV2Configuration? = nil
     ) {
-        self.billing = billing
         self.runtime = runtime
         self.macListAuthState = macListAuthState ?? MobileMacListAuthState()
         self.auth = auth
@@ -432,7 +423,6 @@ public struct CMUXMobileRootScene: View {
             .environment(\.mobileWebAppSession, webAppSession)
             .environment(\.cloudSessionController, cloudSessionController)
             .environment(\.cloudSystemVPNController, cloudSystemVPNController)
-            .environment(billing)
             // The shell owns no Cloud code; it mounts what is supplied here.
             .environment(
                 \.mobileCloudTabContent,
@@ -459,9 +449,6 @@ public struct CMUXMobileRootScene: View {
                 // mounts once a Cloud machine is known.
                 guard !auth.coordinator.isRestoringSession else { return }
                 guard scope != nil, auth.coordinator.isAuthenticated else { return }
-                // A purchase the server has not accepted yet (signed out, or
-                // offline at purchase time) is delivered for this account now.
-                if let billing { Task { await billing.retryUndeliveredTransactions() } }
                 cloudSessionController?.refreshMachines()
                 cloudSystemVPNController?.setScope(
                     scope,
@@ -470,7 +457,6 @@ public struct CMUXMobileRootScene: View {
             }
             .onChange(of: auth.coordinator.isAuthenticated) { _, authenticated in
                 guard !authenticated, !auth.coordinator.isRestoringSession else { return }
-                billing?.resetForSignOut()
                 cloudSessionController?.setVisibilityScope(nil)
                 cloudSessionController?.resetForSignOut()
                 cloudWorkspaceBridge?.resetForSignOut()
@@ -487,10 +473,8 @@ public struct CMUXMobileRootScene: View {
                     cloudSessionController?.resetForSignOut()
                     cloudWorkspaceBridge?.resetForSignOut()
                     cloudSystemVPNController?.setScope(nil)
-                    billing?.resetForSignOut()
                     return
                 }
-                if let billing { Task { await billing.retryUndeliveredTransactions() } }
                 cloudSessionController?.setVisibilityScope(cloudAccountScope)
                 cloudSessionController?.refreshMachines()
                 cloudSystemVPNController?.setScope(
@@ -511,9 +495,6 @@ public struct CMUXMobileRootScene: View {
                     cloudSessionController?.sceneWillEnterForeground()
                     // The VPN may have been changed from Settings meanwhile.
                     if let vpn = cloudSystemVPNController { Task { await vpn.refresh() } }
-                    if let billing, auth.coordinator.isAuthenticated {
-                        Task { await billing.retryUndeliveredTransactions() }
-                    }
                 case .background: cloudSessionController?.sceneDidEnterBackground()
                 default: break
                 }

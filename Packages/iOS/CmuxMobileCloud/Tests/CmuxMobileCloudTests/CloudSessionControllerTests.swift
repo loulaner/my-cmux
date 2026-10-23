@@ -74,6 +74,23 @@ import Testing
         #expect(controller.lastCreateFailure == nil)
     }
 
+    @Test func deniedSizeDoesNotCreateOrRetryWithAnUnlockedFallback() async {
+        let service = FakeCloudVMService()
+        service.creation = .failure(CloudAPIError.httpStatus(
+            403, message: "Machine size is not available", action: nil
+        ))
+        let controller = makeController(service: service)
+        let options = CloudMachineCreateOptions(kind: .desktop, memoryMb: 65536)
+
+        #expect(await controller.createMachine(options: options) == nil)
+        #expect(service.calls.create.count == 1)
+        #expect(service.calls.create.first?.options == options)
+        #expect(service.calls.list == 0)
+        #expect(controller.lastCreateFailure != nil)
+        #expect(!controller.isCreatingMachine)
+        #expect(controller.machines == .idle)
+    }
+
     @Test func cloudScreenWithNoMachinesDoesNotEnrollATunnel() async {
         let service = FakeCloudVMService()
         service.machines = .success([])

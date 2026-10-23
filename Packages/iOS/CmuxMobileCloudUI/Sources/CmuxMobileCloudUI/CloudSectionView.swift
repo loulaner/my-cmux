@@ -1,6 +1,4 @@
 #if os(iOS)
-import CmuxMobileBilling
-import CmuxMobileBillingUI
 public import CmuxMobileCloud
 import CmuxMobileSupport
 import Foundation
@@ -181,12 +179,7 @@ struct CloudCreateMachineSheet: View {
     let availableKinds: Set<CloudMachineKind>?
     let limits: CloudMachineLimits?
     @Environment(\.dismiss) private var dismiss
-    /// App Store billing; when present, upgrade actions open the in-app plans
-    /// sheet. Without it the locked sizes stay as plain text: the App Store
-    /// build never links to a web purchase page (App Review Guideline 3.1.1).
-    @Environment(BillingModel.self) private var billing: BillingModel?
     @State private var selectedMemoryMb: Int
-    @State private var isPlansSheetPresented = false
 
     init(
         controller: CloudSessionController,
@@ -220,12 +213,7 @@ struct CloudCreateMachineSheet: View {
                             }
                         }
                         ForEach(lockedMemoryOptions, id: \.self) { memoryMb in
-                            Button {
-                                openPlans()
-                            } label: {
-                                Label(lockedSizeMenuTitle(memoryMb), systemImage: "lock.fill")
-                            }
-                            .disabled(billing == nil)
+                            Label(lockedSizeMenuTitle(memoryMb), systemImage: "lock.fill")
                             .accessibilityIdentifier("CloudCreateMachineLockedSize.\(memoryMb)")
                         }
                     } label: {
@@ -241,22 +229,10 @@ struct CloudCreateMachineSheet: View {
                     .accessibilityIdentifier("CloudCreateMachineSize")
 
                     if let lockedSizesNote {
-                        HStack(alignment: .center, spacing: 8) {
-                            Text(lockedSizesNote)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Spacer(minLength: 0)
-                            if billing != nil, let upgradeActionTitle {
-                                Button(upgradeActionTitle) {
-                                    openPlans()
-                                }
-                                .controlSize(.small)
-                                .buttonStyle(.bordered)
-                                .font(.footnote.weight(.semibold))
-                                .accessibilityIdentifier("CloudCreateMachineUpgrade")
-                            }
-                        }
+                        Text(lockedSizesNote)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 } header: {
                     VStack(alignment: .leading, spacing: 2) {
@@ -350,13 +326,6 @@ struct CloudCreateMachineSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
-        .sheet(isPresented: $isPlansSheetPresented, onDismiss: {
-            // A new plan changes the size ladder and machine limits.
-            controller.refreshMachines()
-        }) {
-            MobilePlansSheet(entryPoint: .cloudUpgrade)
-                .environment(billing)
-        }
     }
 
     private static let fallbackMemoryMb = 8192
@@ -407,20 +376,6 @@ struct CloudCreateMachineSheet: View {
         let names = lockedMemoryUpgradePlanIDs.map(planDisplayName)
         guard !names.isEmpty else { return nil }
         return ListFormatter.localizedString(byJoining: names)
-    }
-
-    private var upgradeActionTitle: String? {
-        guard let planNames = lockedMemoryUpgradePlanNames else { return nil }
-        if lockedMemoryUpgradePlanIDs == ["max"] {
-            return L10n.string("mobile.cloud.create.size.upgrade", defaultValue: "Upgrade to Max")
-        }
-        return String(
-            format: L10n.string(
-                "mobile.cloud.create.size.upgradeFormat",
-                defaultValue: "Upgrade to %@"
-            ),
-            planNames
-        )
     }
 
     private var machineUsageText: String? {
@@ -533,12 +488,6 @@ struct CloudCreateMachineSheet: View {
         }
     }
 
-    /// Opens the in-app plans sheet. Plans are sold only in app (App Review
-    /// Guideline 3.1.1), so without a billing model this does nothing.
-    private func openPlans() {
-        guard billing != nil else { return }
-        isPlansSheetPresented = true
-    }
 }
 
 /// One machine row: its name and a lowercased status line.

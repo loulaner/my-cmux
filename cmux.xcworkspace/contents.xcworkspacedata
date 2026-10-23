@@ -75,9 +75,6 @@
          location = "group:CmuxMobileAnalytics">
       </FileRef>
       <FileRef
-         location = "group:CmuxMobileBilling">
-      </FileRef>
-      <FileRef
          location = "group:CmuxMobileBrowser">
       </FileRef>
       <FileRef
