@@ -1,7 +1,6 @@
 import CMUXAuthCore
 import CMUXMobileCore
 import CmuxAuthRuntime
-import CmuxMobileAnalytics
 import CmuxMobilePairedMac
 import CmuxMobileBrowserStream
 import CmuxMobileCloud
@@ -52,7 +51,6 @@ public struct CMUXMobileRootScene: View {
     private let buildCompatibilityPolicy: MobileMacBuildCompatibilityPolicy
     #if os(iOS)
     private let displaySettings: MobileDisplaySettings
-    private let featureFlags: MobileFeatureFlags
     /// The legacy connection-method choice used only by onboarding and migration UI.
     private let connectionMethodStore: MobileConnectionMethodStore
     /// The one-time Auto-Connect migration eligibility and acknowledgement.
@@ -127,7 +125,6 @@ public struct CMUXMobileRootScene: View {
     ///   - analytics: The app-root analytics emitter, injected into the store.
     ///   - displaySettings: The app-root mobile display settings injected into
     ///     the environment (drives workspace-title wrapping).
-    ///   - featureFlags: The live PostHog-backed mobile feature flags.
     ///   - connectionMethodStore: The legacy onboarding and migration choice.
     ///   - autoConnectMigrationStore: The versioned, one-time migration
     ///     eligibility and acknowledgement injected into the root view.
@@ -152,12 +149,11 @@ public struct CMUXMobileRootScene: View {
         macListAuthState: MobileMacListAuthState? = nil,
         auth: MobileAuthComposition,
         reachability: any ReachabilityProviding,
-        analytics: any AnalyticsEmitting,
+        analytics: any AnalyticsEmitting = NoopAnalytics(),
         analyticsClientID: String? = nil,
         terminalLatencyObserver: any MobileTerminalLatencyObserving = NoopMobileTerminalLatencyObserver(),
         feedPerformanceObserver: (any MobileFeedPerformanceObserving)? = nil,
         displaySettings: MobileDisplaySettings,
-        featureFlags: MobileFeatureFlags,
         connectionMethodStore: MobileConnectionMethodStore,
         autoConnectMigrationStore: MobileAutoConnectMigrationStore,
         onboardingStore: MobileOnboardingStore,
@@ -181,7 +177,6 @@ public struct CMUXMobileRootScene: View {
         self.feedPerformanceObserver = feedPerformanceObserver
         self.terminalLatencyObserver = terminalLatencyObserver
         self.displaySettings = displaySettings
-        self.featureFlags = featureFlags
         self.connectionMethodStore = connectionMethodStore
         self.autoConnectMigrationStore = autoConnectMigrationStore
         self.onboardingStore = onboardingStore
@@ -221,7 +216,7 @@ public struct CMUXMobileRootScene: View {
         macListAuthState: MobileMacListAuthState? = nil,
         auth: MobileAuthComposition,
         reachability: any ReachabilityProviding,
-        analytics: any AnalyticsEmitting,
+        analytics: any AnalyticsEmitting = NoopAnalytics(),
         analyticsClientID: String? = nil,
         buildCompatibilityPolicy: MobileMacBuildCompatibilityPolicy,
         signOutHook: MobileSignOutHook = MobileSignOutHook()
@@ -403,8 +398,8 @@ public struct CMUXMobileRootScene: View {
             .tailscaleStatusMonitor(tailscaleStatusMonitor)
             #if os(iOS)
             .environment(displaySettings)
-            .terminalFilesChipEnabled(featureFlags.terminalFilesChipEnabled)
-            .keyboardDockRebuildRevertEnabled(featureFlags.keyboardDockRebuildRevertEnabled)
+            .terminalFilesChipEnabled(true)
+            .keyboardDockRebuildRevertEnabled(false)
             .environment(connectionMethodStore)
             .environment(autoConnectMigrationStore)
             .environment(whatsNewCenter)

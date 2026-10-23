@@ -15,10 +15,6 @@ import UIKit
 /// Mac it pairs with), plus terminal shortcuts, agent notifications, and the
 /// paired Mac. Presented as a sheet from the workspace list.
 struct MobileSettingsView: View {
-    /// Shared with `UserDefaultsAnalyticsConsentProvider`; keep the string stable
-    /// so Settings controls the same gate used by analytics and crash reporting.
-    private static let sendAnonymousTelemetryKey = "sendAnonymousTelemetry"
-
     @Environment(AuthCoordinator.self) private var authManager
     @Environment(\.analyticsClientID) private var analyticsClientID
     @Environment(MobileDisplaySettings.self) private var displaySettings
@@ -50,10 +46,6 @@ struct MobileSettingsView: View {
     var initialFocus: MobileSettingsFocus? = nil
     /// Lets the root modal coordinator advance directly to queued content.
     var dismissAction: (() -> Void)? = nil
-    // Default mirrors UserDefaultsAnalyticsConsentProvider's fallback: telemetry
-    // is on until the user opts out here.
-    @AppStorage(MobileSettingsView.sendAnonymousTelemetryKey) private var sendAnonymousTelemetry = true
-
     @Environment(\.dismiss) private var dismiss
     @State private var showingShortcuts = false
     /// Keeps the picker responsive while Stack Auth persists the selection.
@@ -560,31 +552,6 @@ struct MobileSettingsView: View {
                     .accessibilityIdentifier("MobileSettingsTerminalScrollback")
                 }
 
-                Section {
-                    Toggle(isOn: $sendAnonymousTelemetry) {
-                        Text(L10n.string(
-                            Self.crashReportingEnabled
-                                ? "mobile.settings.telemetry"
-                                : "mobile.settings.telemetryAnalyticsOnly",
-                            defaultValue: Self.crashReportingEnabled
-                                ? "Share Analytics and Crash Reports"
-                                : "Share Anonymous Analytics"
-                        ))
-                    }
-                    .accessibilityIdentifier("MobileSettingsTelemetryToggle")
-                } header: {
-                    Text(L10n.string("mobile.settings.privacy", defaultValue: "Privacy"))
-                } footer: {
-                    Text(L10n.string(
-                        Self.crashReportingEnabled
-                            ? "mobile.settings.telemetryFooter"
-                            : "mobile.settings.telemetryAnalyticsOnlyFooter",
-                        defaultValue: Self.crashReportingEnabled
-                            ? "When off, cmux does not send iPhone or iPad product analytics or crash reports."
-                            : "When off, cmux does not send iPhone or iPad product analytics."
-                    ))
-                }
-
                 MobileSettingsDiagnosticsSection()
 
                 MobileSettingsLegalSupportSection()
@@ -680,13 +647,6 @@ struct MobileSettingsView: View {
         .onDisappear {
             teamSelectionTask?.cancel()
             diagnosticLog?.recordAppEvent(.settingsClosed)
-        }
-        .onChange(of: sendAnonymousTelemetry) { _, value in
-            recordBooleanSetting(.telemetrySharingChanged, value)
-            diagnosticLog?.recordAppEvent(
-                .crashReportingConsentChanged,
-                count: value ? 1 : 0
-            )
         }
     }
 
@@ -801,17 +761,6 @@ struct MobileSettingsView: View {
         .accessibilityIdentifier(
             "MobileSettingsMacConnection-\(connection.id)"
         )
-    }
-
-    private static var crashReportingEnabled: Bool {
-        switch Bundle.main.object(forInfoDictionaryKey: "CMUXCrashReportingEnabled") {
-        case let enabled as Bool:
-            enabled
-        case let enabled as String:
-            enabled.caseInsensitiveCompare("NO") != .orderedSame
-        default:
-            true
-        }
     }
 
     private func retryAutomaticConnection() {

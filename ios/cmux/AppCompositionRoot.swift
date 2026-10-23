@@ -1,12 +1,9 @@
 import CMUXMobileCore
-import CmuxMobileAnalytics
-import CmuxMobileCrashReporting
 import CmuxMobileDiagnostics
 import CmuxMobileShell
 import CmuxMobileShellModel
 import CmuxMobileSupport
 import CmuxMobileTransport
-import CmuxSentryReporting
 import Foundation
 import SwiftUI
 import cmuxFeature
@@ -29,8 +26,7 @@ final class AppCompositionRoot {
     let buildCompatibilityPolicy: MobileMacBuildCompatibilityPolicy
     let reachability: any ReachabilityProviding
     let signOutHook: MobileSignOutHook
-    let analytics: MobileAnalyticsComposition
-    let featureFlags: MobileFeatureFlags
+    let analytics: any AnalyticsEmitting = NoopAnalytics()
     let displaySettings: MobileDisplaySettings
     /// App-lifetime keyboard frame record, injected into the view tree via
     /// `\.mobileKeyboardFrameTracker` so terminal hosts created or reattached
@@ -38,11 +34,6 @@ final class AppCompositionRoot {
     /// for. Constructed here (not lazily in a view) so its record spans every
     /// host view lifetime.
     let keyboardFrameTracker = MobileKeyboardFrameTracker()
-    /// Holds session replay capture while a list scroll is in progress, so its
-    /// main-thread screen capture cannot land mid-fling.
-    let scrollInteractionReporter = MobileScrollInteractionReporter { isActive in
-        MobileCrashReporter.setReplayCapturePaused(isActive)
-    }
     /// The legacy connection-method choice used only by onboarding and migration UI.
     let connectionMethodStore: MobileConnectionMethodStore
     /// One-time BETA migration eligibility, snapshotted before launch writes.
@@ -56,11 +47,6 @@ final class AppCompositionRoot {
     /// observing port, injected down so pairing and disconnected surfaces can
     /// explain a Tailscale-off phone.
     let tailscaleStatusMonitor: TailscaleStatusMonitorAdapter
-    /// Owns the crash reporter's consent-revocation observation for the life
-    /// of the process (closes Sentry + purges its stores if telemetry is
-    /// turned off mid-session).
-    let crashRevocationWatcher = MobileCrashReporter.RevocationWatcher()
-
     /// The bounded, structured connection log shared by the Iroh runtime and
     /// mobile shell. It is present in release builds, but its schema accepts
     /// only fixed categories and integer magnitudes, never terminal contents,
@@ -75,18 +61,6 @@ final class AppCompositionRoot {
     /// diagnostics). Fed by the diagnostic ring's event tap; always on, since
     /// structured events are privacy-safe by construction.
     let appLog: AppLog
-
-    /// Bridges the diagnostic event stream into Sentry (breadcrumbs, structured
-    /// logs, and throttled failure events with the ring export attached). Held
-    /// for the process lifetime; delivery no-ops whenever the crash SDK is off
-    /// (consent revoked or crash reporting disabled for the build).
-    private let transportSentryReporter: TransportSentryReporter
-
-    /// Sends the important subset of the same diagnostic stream through the
-    /// authenticated web bridge into Axiom. Held separately from product
-    /// analytics so network outcomes never enter PostHog.
-    private let networkOutcomeReporter: MobileNetworkOutcomeReporter
-    private let terminalTraceReporter: MobileTerminalTraceReporter
 
     init(
         runtime: CMUXMobileRuntime,
@@ -111,30 +85,6 @@ final class AppCompositionRoot {
         self.buildCompatibilityPolicy = buildCompatibilityPolicy
         self.reachability = reachability
         self.diagnosticLog = diagnosticLog
-        let telemetryConsent = UserDefaultsAnalyticsConsentProvider(defaults: .standard)
-        let crashReportingEvent: DiagnosticAppEventKind
-        if Self.crashReportingEnabled {
-            MobileCrashReporter().startIfEnabled(
-                consent: telemetryConsent,
-                revocationWatcher: crashRevocationWatcher,
-                replayMaskedViewClasses: MobileSessionReplayMasking().maskedViewClasses
-            )
-            crashReportingEvent = telemetryConsent.isTelemetryEnabled
-                ? .crashReportingStarted
-                : .crashReportingDisabled
-        } else {
-            crashReportingEvent = .crashReportingDisabled
-        }
-        // The reporter checks `SentrySDK.isEnabled` per event, so it respects
-        // both the build-level kill switch above and mid-session consent
-        // revocation (which closes the SDK) without extra plumbing.
-        let transportSentryReporter = TransportSentryReporter(
-            role: .mobileClient,
-            exportRing: { [diagnosticLog] in await diagnosticLog.export() },
-            incidentConfiguration: .init(captureIndividualFailures: false),
-            logsPerHour: 0
-        )
-        self.transportSentryReporter = transportSentryReporter
         let appLog = AppLog(
             appFileURL: AppLog.defaultAppLogFileURL,
             networkFileURL: AppLog.defaultNetworkLogFileURL,
@@ -146,32 +96,13 @@ final class AppCompositionRoot {
             }
         )
         self.appLog = appLog
-        let feedScrollSentryReporter = MobileFeedScrollSentryReporter(consent: telemetryConsent)
-        let analytics = MobileAnalyticsComposition(
-            apiBaseURL: auth.config.apiBaseURL,
-            tokenProvider: auth.coordinator,
-            consent: telemetryConsent,
-            diagnosticLog: diagnosticLog,
-            onFeedScrollAnomaly: { feedScrollSentryReporter.report($0) }
-        )
-        self.analytics = analytics
-        let networkOutcomeReporter = analytics.networkOutcomeReporter
-        self.networkOutcomeReporter = networkOutcomeReporter
-        let initialConnectionReporter = analytics.initialConnectionReporter
-        let terminalTraceReporter = analytics.terminalTraceReporter
-        self.terminalTraceReporter = terminalTraceReporter
         diagnosticLog.setEventTap { event in
             appLog.ingest(event)
-            transportSentryReporter.ingest(event)
-            networkOutcomeReporter.ingest(event)
-            initialConnectionReporter.ingest(event)
-            terminalTraceReporter.ingest(event)
         }
         self.appLifecycleDiagnostics = MobileAppLifecycleDiagnostics(
             diagnosticLog: diagnosticLog
         )
         diagnosticLog.recordAppEvent(.appLaunched)
-        diagnosticLog.recordAppEvent(crashReportingEvent)
         // Mirror the string debug log into the app log file so one file holds
         // the whole in-app story in wall-clock order. The string sink keeps
         // its own privacy gating (DEBUG always, Release behind the verbose
@@ -182,16 +113,6 @@ final class AppCompositionRoot {
                 appLog?.mirrorAppLine(line)
             }
         }
-        self.featureFlags = MobileFeatureFlags(
-            loader: analytics.clientConfig,
-            request: analytics.anonymousClientConfigRequest,
-            onTerminalLatencyChanged: { [reporter = analytics.terminalLatencyReporter] enabled in
-                reporter.setEnabled(enabled)
-            },
-            onFeedPerformanceChanged: { [reporter = analytics.feedPerformanceReporter] enabled in
-                reporter.setEnabled(enabled)
-            }
-        )
         #if DEBUG
         // DEV: a devicectl launch with DEVICECTL_CHILD_CMUX_PRESENCE_BASE_URL
         // persists the isolated-worker override so later env-less cold
@@ -295,11 +216,6 @@ final class AppCompositionRoot {
         // can complete during launch, and starting earlier would leave its
         // accepted events in the in-memory ring but absent from cmux-app.log.
         auth.start()
-        featureFlags.start()
-    }
-
-    isolated deinit {
-        featureFlags.stop()
     }
 
     /// Bundle-owned build identity used in explicit diagnostic exports.
@@ -308,117 +224,21 @@ final class AppCompositionRoot {
         DiagnosticReport.buildStamp(infoDictionary: Bundle.main.infoDictionary)
     }
 
-    private static var crashReportingEnabled: Bool {
-        switch Bundle.main.object(forInfoDictionaryKey: "CMUXCrashReportingEnabled") {
-        case let enabled as Bool:
-            enabled
-        case let enabled as String:
-            enabled.caseInsensitiveCompare("NO") != .orderedSame
-        default:
-            true
-        }
-    }
-
-    /// The most recent scene phase, so a `.active` transition is classified as a
-    /// cold first foreground vs. a warm resume.
-    private var hasForegrounded = false
-    private var wasBackgrounded = false
-    /// When the current session started, for the best-effort `ios_session_ended`
-    /// duration emitted on background.
-    private var currentSessionStartedAt: Date?
-    /// The id of the session currently in progress, echoed onto `ios_session_ended`.
-    private var currentSessionID: String?
-
-    /// Drives the app-lifecycle + sessionization analytics on scene-phase changes.
-    ///
-    /// On `.active`: resolves the session (cold start or 30-min-gap resume) via
-    /// the injected ``CmuxMobileAnalytics/AnalyticsSessionizer`` and persisted
-    /// ``CmuxMobileAnalytics/AnalyticsSessionStore``, emitting `ios_session_started`
-    /// only when a new session begins, plus an `ios_app_foregrounded` heartbeat.
-    /// On `.background`: records the timestamp for the next gap calculation,
-    /// emits `ios_app_backgrounded`, and force-flushes queued events before
-    /// suspension.
+    /// Records local lifecycle diagnostics and forwards lifecycle to Irx.
     func handleScenePhase(_ phase: ScenePhase) {
-        let emitter = analytics.emitter
         switch phase {
         case .active:
             #if DEBUG
             MobileLatencyTrace.stamp("scene.active")
             #endif
-            analytics.feedPerformanceReporter.setForeground(true)
-            analytics.terminalLatencyReporter.setForeground(true)
-            analytics.terminalTraceReporter.setForeground(true)
             diagnosticLog.recordAppEvent(.appForegrounded)
             connectionMethodStore.recordConfiguredMethodDiagnostic()
-            let isFullForegroundReturn = !hasForegrounded || wasBackgrounded
-            wasBackgrounded = false
             Task { await irx.didBecomeActive() }
-            guard isFullForegroundReturn else { return }
-            featureFlags.refreshOnForeground()
-            let now = Date()
-            let decision = analytics.sessionizer.resolveForeground(
-                now: now,
-                lastBackgroundedAt: analytics.sessionStore.lastBackgroundedAt,
-                currentSessionID: analytics.sessionStore.currentSessionID
-            )
-            analytics.sessionStore.setCurrentSessionID(decision.sessionID)
-            let launchType = hasForegrounded ? "warm" : "cold"
-            currentSessionID = decision.sessionID.uuidString
-            if decision.startedNewSession {
-                currentSessionStartedAt = now
-                emitter.capture("ios_session_started", [
-                    "session_id": .string(decision.sessionID.uuidString),
-                    "launch_type": .string(launchType),
-                ])
-            }
-            var foregroundProps: [String: AnalyticsValue] = ["launch_type": .string(launchType)]
-            if let gap = decision.secondsSinceBackgrounded {
-                foregroundProps["seconds_since_backgrounded"] = .int(Int(gap))
-            }
-            emitter.capture("ios_app_foregrounded", foregroundProps)
-            hasForegrounded = true
         case .inactive:
-            analytics.feedPerformanceReporter.setForeground(false)
-            analytics.terminalLatencyReporter.setForeground(false)
-            analytics.terminalTraceReporter.setForeground(false)
             diagnosticLog.recordAppEvent(.appBecameInactive)
-            // The switcher opened; a swipe-kill from here may skip the
-            // background transition entirely, so snapshot diagnostics now.
-            break
         case .background:
-            analytics.feedPerformanceReporter.setForeground(false)
-            analytics.terminalLatencyReporter.setForeground(false)
-            analytics.terminalTraceReporter.setForeground(false)
             diagnosticLog.recordAppEvent(.appBackgrounded)
-            wasBackgrounded = true
             Task { await irx.didEnterBackground() }
-            let now = Date()
-            analytics.sessionStore.recordBackgrounded(at: now)
-            emitter.capture("ios_app_backgrounded", [:])
-            // Best-effort session end on background. iOS may hard-kill the app
-            // without a `.background` transition, so this is not guaranteed; the
-            // 30-min gap on the next foreground still re-sessionizes correctly.
-            if let sessionID = currentSessionID {
-                var props: [String: AnalyticsValue] = ["session_id": .string(sessionID)]
-                if let startedAt = currentSessionStartedAt {
-                    props["session_duration_seconds"] = .int(max(0, Int(now.timeIntervalSince(startedAt))))
-                }
-                emitter.capture("ios_session_ended", props)
-            }
-            // Force a flush before the OS may suspend us, so queued events survive.
-            let networkOutcomeReporter = self.networkOutcomeReporter
-            let initialConnectionReporter = self.analytics.initialConnectionReporter
-            let feedPerformanceReporter = self.analytics.feedPerformanceReporter
-            let terminalLatencyReporter = self.analytics.terminalLatencyReporter
-            let terminalTraceReporter = self.terminalTraceReporter
-            Task {
-                await emitter.flush()
-                await networkOutcomeReporter.flush()
-                await initialConnectionReporter.flush()
-                await feedPerformanceReporter.flush()
-                await terminalLatencyReporter.flush()
-                await terminalTraceReporter.flush()
-            }
         @unknown default:
             break
         }

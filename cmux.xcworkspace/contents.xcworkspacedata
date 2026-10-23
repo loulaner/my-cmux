@@ -72,9 +72,6 @@
          location = "group:CmuxAgentChatUI">
       </FileRef>
       <FileRef
-         location = "group:CmuxMobileAnalytics">
-      </FileRef>
-      <FileRef
          location = "group:CmuxMobileBrowser">
       </FileRef>
       <FileRef
@@ -94,9 +91,6 @@
       </FileRef>
       <FileRef
          location = "group:CmuxMobileCloudUI">
-      </FileRef>
-      <FileRef
-         location = "group:CmuxMobileCrashReporting">
       </FileRef>
       <FileRef
          location = "group:CmuxMobileDiagnostics">
