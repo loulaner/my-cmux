@@ -26,8 +26,11 @@ class TaskCreationRemovalTests(unittest.TestCase):
         forbidden = re.compile(r'\b(?:listTemplates|composerDrafts|saveComposerDraft|setComposerPickerPreferences)\s*\(')
         for path in [*SHELL.glob('MobileShellComposite*.swift'), *UI.rglob('*.swift')]:
             self.assertIsNone(forbidden.search(path.read_text()), str(path))
-        root = (ROOT / 'ios/cmuxPackage/Sources/cmuxFeature/CMUXMobileRootScene.swift').read_text()
-        self.assertIn('UserDefaultsMobileTaskTemplateStore(', root)
+        self.assertFalse((ROOT / 'ios/cmuxPackage/Sources/cmuxFeature/CMUXMobileRootScene.swift').exists())
+        root = (ROOT / 'ios/cmux/cmuxApp.swift').read_text() + (ROOT / 'ios/cmuxPackage/Sources/cmuxFeature/MobileLocalDirectRootScene.swift').read_text()
+        self.assertNotRegex(root, r'UserDefaultsMobileTaskTemplateStore|taskTemplateStore|composerDrafts|saveComposerDraft')
+        self.assertTrue((SHELL / 'MobileTaskTemplateStore.swift').is_file())
+        self.assertTrue((SHELL / 'MobileTaskTemplateStoring.swift').is_file())
         self.assertIn('taskTemplateStore?.clearAllUserData()', (SHELL / 'MobileShellComposite.swift').read_text())
 
     def test_shared_paths_are_not_retired(self):

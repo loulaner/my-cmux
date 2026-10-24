@@ -1,35 +1,45 @@
+// The old Iroh soak is retired. These are entrypoint refusal tests, not soak passes.
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
-const gate = readFileSync(new URL('../run-iroh-release-gate.sh', import.meta.url), 'utf8');
-
-test('relay-only app gates constrain both current Iroh endpoints before launch', () => {
-  const beforeLaunch = gate.split('cmux_attach_ensure_mac "$TAG"')[0];
-  assert.match(beforeLaunch, /defaults write "\$MAC_BUNDLE_ID" cmux\.iroh\.v2\.force-relay -bool "\$FORCE_RELAY_BOOLEAN"/);
-  assert.match(beforeLaunch, /"\$IOS_BUNDLE_ID" cmux\.iroh\.v2\.config\.CMUX_IROH_V2_FORCE_RELAY -string "\$FORCE_RELAY"/);
-  assert.match(gate, /defaults delete "\$MAC_BUNDLE_ID" cmux\.iroh\.v2\.force-relay/);
-});
-
-test('path setup uses valid defaults booleans and matching simulator policy', () => {
-  const setup = gate.slice(gate.indexOf('# Both endpoints read the mode'), gate.indexOf('# The driver owns this unique tag'));
-  for (const [mode, mac, ios] of [['relayOnly', 'true', '1'], ['automatic', 'false', '0']]) {
-    const result = spawnSync('bash', ['-c', `
-      set -euo pipefail
-      defaults() {
-        if [[ "\${4:-}" == -bool && "\${5:-}" != true && "\${5:-}" != false ]]; then
-          echo 'invalid defaults boolean' >&2; return 64
-        fi
-        printf '%s\\n' "$*"
-      }
-      xcrun() { printf '%s\\n' "$*"; }
-      RAW_MODE="$1"; MAC_BUNDLE_ID=mac; IOS_BUNDLE_ID=ios
-      SIMULATOR_ID=owned-simulator; PRESENCE_BASE_URL=''
-      eval "$SETUP"
-    `, 'soak-path-test', mode], { encoding: 'utf8', env: { ...process.env, SETUP: setup } });
-    assert.equal(result.status, 0, result.stderr);
-    assert.ok(result.stdout.includes(`write mac cmux.iroh.v2.force-relay -bool ${mac}`));
-    assert.ok(result.stdout.includes(`spawn owned-simulator defaults write ios cmux.iroh.v2.config.CMUX_IROH_V2_FORCE_RELAY -string ${ios}`));
-  }
-});
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const cases = [
+  ['scripts/run-iroh-release-gate.sh', []],
+  ['scripts/run-iroh-release-gate.sh', ['--production', '--mode', 'automatic']],
+  ['scripts/mobile-dev-launch.sh', ['--iroh-release-gate', 'automatic']],
+  ['scripts/mobile-dev-launch.sh', ['--iroh-release-gate']],
+  ['scripts/mobile-dev-launch.sh', ['--restore-pairing']],
+];
+for (const [script, args] of cases) {
+  test(`retired entrypoint refuses without tools, credentials or state: ${script} ${args.join(' ')}`, (t) => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'cmux-retired-iroh-'));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const home = path.join(dir, 'home');
+    const bin = path.join(dir, 'bin');
+    mkdirSync(home); mkdirSync(bin);
+    const trace = path.join(dir, 'tool-trace');
+    for (const tool of ['dirname', 'sed', 'cat', 'stat', 'curl', 'security', 'xcrun', 'defaults', 'bun', 'python3', 'mkdir']) {
+      writeFileSync(path.join(bin, tool), '#!/bin/bash\nprintf "%s\\n" "$0" >> "$SPY_TRACE"\nexit 97\n', { mode: 0o755 });
+    }
+    const credentials = path.join(home, 'credentials.env');
+    writeFileSync(credentials, 'printf "credential-source\\n" >> "$SPY_TRACE"\n', { mode: 0o600 });
+    const content = readFileSync(credentials, 'utf8');
+    const commandArgs = script === 'scripts/run-iroh-release-gate.sh' && args.length === 0
+      ? [] : [...args, '--credentials-file', credentials];
+    const result = spawnSync('/bin/bash', [path.join(root, script), ...commandArgs], {
+      cwd: home, encoding: 'utf8', timeout: 5000,
+      env: { HOME: home, CFFIXED_USER_HOME: home, PATH: bin, SPY_TRACE: trace, TMPDIR: home },
+    });
+    assert.equal(result.status, 64, result.stderr);
+    assert.match(result.stderr, /unsupported/);
+    assert.equal(result.stdout, '');
+    assert.deepEqual(readdirSync(home), ['credentials.env']);
+    assert.equal(readFileSync(credentials, 'utf8'), content);
+    assert.deepEqual(readdirSync(dir).sort(), ['bin', 'home']);
+  });
+}

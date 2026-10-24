@@ -44,8 +44,13 @@ class BrowserRemovalTests(unittest.TestCase):
         computers = (ROOT / IOS / 'CmuxMobileShell/Sources/CmuxMobileShell/MobileSSHComputers.swift').read_text()
         for token in ('forwardsByHost', 'func startPortForward', 'func stopPortForward', 'func stopAllPortForwards', 'SFTPClient.open'):
             self.assertIn(token, computers)
-        lane = (ROOT / 'ios/cmuxPackage/Sources/cmuxFeature/IrxArtifactLane.swift').read_text()
-        self.assertIn('struct IrxArtifactLane', lane)
+        self.assertFalse((ROOT / 'ios/cmuxPackage/Sources/cmuxFeature/IrxArtifactLane.swift').exists())
+        lane = (ROOT / IOS / 'CmuxMobileRPC/Sources/CmuxMobileRPC/MobileArtifactLaneConnection.swift').read_text()
+        self.assertIn('MobileArtifactLaneConnection', lane)
+        self.assertIn('MobileArtifactLaneProvider', lane)
+        self.assertTrue((ROOT / IOS / 'CmuxMobileShell/Sources/CmuxMobileShell/MobileShellComposite+TaskAttachments.swift').is_file())
+        fetch = (ROOT / IOS / 'CmuxMobileShell/Sources/CmuxMobileShell/MobileArtifactLaneFetchLoop.swift').read_text()
+        self.assertIn('MobileArtifactLaneConnection', fetch)
 
     def test_wire_compatibility_and_non_browser_previews_remain(self):
         ssh = ROOT / IOS / 'CmuxMobileSSH/Sources/CmuxMobileSSH/CmuxTUI'

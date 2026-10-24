@@ -190,8 +190,8 @@ test("production release-gate flags fail before creating runtime state", () => {
     "--production",
     "--staging-base-url", "https://example.com",
   ]);
-  assert.equal(conflictingBase.status, 2);
-  assert.match(conflictingBase.stderr, /cannot be combined/u);
+  assert.equal(conflictingBase.status, 64);
+  assert.match(conflictingBase.stderr, /unsupported/u);
 
   const reusedBuild = run("bash", [
     "scripts/run-iroh-release-gate.sh",
@@ -200,8 +200,8 @@ test("production release-gate flags fail before creating runtime state", () => {
     "--production",
     "--skip-build",
   ]);
-  assert.equal(reusedBuild.status, 2);
-  assert.match(reusedBuild.stderr, /cannot reuse a build/u);
+  assert.equal(reusedBuild.status, 64);
+  assert.match(reusedBuild.stderr, /unsupported/u);
 
   const productionEnvironmentWithoutProduction = run("bash", [
     "scripts/run-iroh-release-gate.sh",
@@ -209,8 +209,8 @@ test("production release-gate flags fail before creating runtime state", () => {
     "--tag", "prodtest",
     "--stack-env-file", "/private/tmp/unused.env",
   ]);
-  assert.equal(productionEnvironmentWithoutProduction.status, 2);
-  assert.match(productionEnvironmentWithoutProduction.stderr, /requires --production/u);
+  assert.equal(productionEnvironmentWithoutProduction.status, 64);
+  assert.match(productionEnvironmentWithoutProduction.stderr, /unsupported/u);
 });
 
 test("release gate iOS build is isolated from the configured default iPhone", () => {
@@ -266,7 +266,7 @@ test("iOS release artifact gate rejects staged runtime origins", (t) => {
   assert.match(invalid.stderr, /CMUXIrohBrokerBaseURL/u);
 });
 
-test("production release gate gives its account helper a normalized protected state directory", (t) => {
+test("retired release gate does not invoke account helper or replace reports", (t) => {
   const directory = fixtureDirectory();
   t.after(() => rmSync(directory, { recursive: true, force: true }));
 
@@ -315,15 +315,13 @@ exit 73
     TMPDIR: `${directory}/`,
   });
 
-  assert.equal(result.status, 73, result.stderr);
-  const [stateFile, mode] = readFileSync(captureFile, "utf8").trimEnd().split("\n");
-  assert.equal(stateFile, path.resolve(stateFile));
-  assert.equal(path.dirname(stateFile).startsWith(`${directory}/`), true);
-  assert.equal(mode, "700");
-  assert.equal(existsSync(reportOutput), false);
+  assert.equal(result.status, 64, result.stderr);
+  assert.match(result.stderr, /unsupported/u);
+  assert.equal(existsSync(captureFile), false);
+  assert.equal(readFileSync(reportOutput, "utf8"), '{"passed":true,"stale":true}\n');
 });
 
-test("production release gate removes disposable tagged Iroh endpoint state", (t) => {
+test("retired release gate leaves existing endpoint state untouched", (t) => {
   const directory = fixtureDirectory();
   t.after(() => rmSync(directory, { recursive: true, force: true }));
 
@@ -363,8 +361,8 @@ test("production release gate removes disposable tagged Iroh endpoint state", (t
     TMPDIR: `${directory}/`,
   });
 
-  assert.equal(result.status, 73, result.stderr);
-  assert.equal(existsSync(endpointState), false);
+  assert.equal(result.status, 64, result.stderr);
+  assert.equal(existsSync(endpointState), true);
 });
 
 test("Mac reload documents production auth without accepting secret values", () => {

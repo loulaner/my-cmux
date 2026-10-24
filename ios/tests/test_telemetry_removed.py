@@ -21,24 +21,24 @@ class TelemetryRemovalTests(unittest.TestCase):
             self.assertFalse((ROOT / f'ios/cmuxPackage/Sources/cmuxFeature/{name}.swift').exists())
 
     def test_app_composition_only_observes_locally(self):
-        source = (ROOT / 'ios/cmux/AppCompositionRoot.swift').read_text()
-        self.assertRegex(source, r'analytics: any AnalyticsEmitting = NoopAnalytics\(\)')
+        self.assertFalse((ROOT / 'ios/cmux/AppCompositionRoot.swift').exists())
+        source = (ROOT / 'ios/cmux/cmuxApp.swift').read_text()
         self.assertNotRegex(source, r'MobileCrashReporter|SentryReporter|AnalyticsEmitter|HTTPClientConfigLoader|resolveClientID|sessionStore|featureFlags|sendAnonymousTelemetry')
-        for retained in ('appLog.ingest(event)', 'MobileAppLifecycleDiagnostics(',
-                         'MobileDebugLog.shared', '.appLaunched', '.appForegrounded',
-                         '.appBecameInactive', '.appBackgrounded',
-                         'irx.didBecomeActive()', 'irx.didEnterBackground()'):
-            self.assertIn(retained, source)
+        self.assertTrue((ROOT / 'ios/cmux/MobileAppLifecycleDiagnostics.swift').is_file())
+        self.assertTrue(any((ROOT / 'Packages/Shared').rglob('AppLog.swift')))
+        controller = (ROOT / 'Packages/iOS/CmuxMobileShell/Sources/CmuxMobileShell/MobileLocalDirectClientController.swift').read_text()
+        self.assertIn('MobileLocalDirectFailureDiagnostic', controller)
+        self.assertIn('NSLog("[direct-connection]', controller)
 
     def test_shipping_values_have_no_remote_cache_input(self):
-        source = (ROOT / 'ios/cmuxPackage/Sources/cmuxFeature/CMUXMobileRootScene.swift').read_text()
-        self.assertIn('.terminalFilesChipEnabled(true)', source)
-        self.assertIn('.keyboardDockRebuildRevertEnabled(false)', source)
-        self.assertNotRegex(source, r'MobileFeatureFlags|featureFlags|cmux\.mobile\.flags\.remote')
-        self.assertIn('analytics: any AnalyticsEmitting = NoopAnalytics()', source)
-        self.assertIn('analyticsClientID: String? = nil', source)
-        self.assertIn('terminalLatencyObserver: any MobileTerminalLatencyObserving = NoopMobileTerminalLatencyObserver()', source)
-        self.assertIn('feedPerformanceObserver: (any MobileFeedPerformanceObserving)? = nil', source)
+        self.assertFalse((ROOT / 'ios/cmuxPackage/Sources/cmuxFeature/CMUXMobileRootScene.swift').exists())
+        ui = ROOT / 'Packages/iOS/CmuxMobileShellUI/Sources/CmuxMobileShellUI'
+        for name, value in [('TerminalFilesChipEnvironment.swift', 'true'), ('KeyboardDockRebuildRevertEnvironment.swift', 'false')]:
+            source = (ui / name).read_text()
+            self.assertIn(f'static let defaultValue = {value}', source)
+            self.assertNotRegex(source, r'MobileFeatureFlags|featureFlags|cmux\.mobile\.flags\.remote')
+        shell = (ROOT / 'Packages/iOS/CmuxMobileShell/Sources/CmuxMobileShell/MobileShellComposite.swift').read_text()
+        self.assertIn('analytics: any AnalyticsEmitting = NoopAnalytics()', shell)
 
     def test_consent_and_crash_selectors_are_not_read_or_written(self):
         source = (ROOT / 'Packages/iOS/CmuxMobileShellUI/Sources/CmuxMobileShellUI/MobileSettingsView.swift').read_text()

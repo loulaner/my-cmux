@@ -46,11 +46,9 @@
 #   --detach   simulator only: launch without attaching stdio, so the app keeps
 #              running after this script exits.
 #   --iroh-release-gate <automatic|relayOnly|directOnly>
-#              simulator only: run the credential-free Iroh release-gate probe
-#              after sign-in and attach.
+#              unsupported (retired); exits 64 before credential access.
 #   --restore-pairing
-#              simulator release gate only: restore previously verified sign-in
-#              and pairing without injecting credentials or an attach URL.
+#              unsupported (retired); exits 64 before credential access.
 #   --credentials-file <absolute-path>
 #              load one 0600 credential file exclusively. Intended for an
 #              isolated temporary production release-gate account.
@@ -141,8 +139,8 @@ while [[ $# -gt 0 ]]; do
       ;;
     --check-auth-contract) CHECK_AUTH_CONTRACT=1; shift ;;
     --detach) DETACH=1; shift ;;
-    --iroh-release-gate) IROH_RELEASE_GATE_MODE="${2:-}"; shift 2 ;;
-    --restore-pairing) RESTORE_PAIRING=1; ATTACH=0; ENSURE_MAC=0; ATTACH_EXPLICIT=1; shift ;;
+    --iroh-release-gate) echo "unsupported: the iOS Iroh release gate has been retired" >&2; exit 64 ;;
+    --restore-pairing) echo "unsupported: Iroh release-gate pairing restore has been retired" >&2; exit 64 ;;
     --credentials-file)
       [[ -n "${2:-}" ]] || { echo "error: --credentials-file requires a path" >&2; exit 2; }
       AUTH_CREDENTIALS_FILE="$2"; shift 2

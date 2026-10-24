@@ -2,12 +2,7 @@
 
 import PackageDescription
 
-// `cmuxFeature` is the iOS composition-root package, not a catch-all. After the
-// 5079 refactor it holds only the runtime DI bundle (`CMUXMobileRuntime`), the
-// auth composition (`MobileAuthComposition` over `CmuxAuthRuntime`), and the
-// root scene (`CMUXMobileRootScene`). The store, RPC, persistence, terminal,
-// and view code were lifted into the focused packages it depends on below. See
-// README.md for the per-type role table.
+// Direct composition and retained platform helpers; shared business packages remain separate.
 let package = Package(
     name: "cmuxFeature",
     platforms: [
@@ -19,10 +14,7 @@ let package = Package(
             name: "cmuxFeature",
             targets: ["cmuxFeature"]
         ),
-        .library(
-            name: "CmuxIrohReleaseGateSupport",
-            targets: ["CmuxIrohReleaseGateSupport"]
-        ),
+
     ],
     dependencies: [
         .package(path: "../../Packages/Shared/CMUXAuthCore"),
@@ -49,10 +41,6 @@ let package = Package(
         .target(
             name: "cmuxFeature",
             dependencies: [
-                "CMUXAuthCore",
-                "CmuxAuthRuntime",
-                "CmuxIrohTransport",
-                "CmuxIrxTransport",
                 "CMUXMobileCore",
                 "CmuxMobileCamera",
                 "CmuxMobileDiagnostics",
@@ -67,36 +55,17 @@ let package = Package(
                 "CmuxMobileToast",
                 "CmuxMobileTransport",
                 "CmuxMobileWorkspace",
-                .product(name: "StackAuth", package: "stack-auth-swift-sdk-prerelease"),
             ],
             swiftSettings: [
                 .define("CMUX_DEV_AUTH", .when(configuration: .debug)),
                 .swiftLanguageMode(.v6),
             ]
         ),
-        .target(
-            name: "CmuxIrohReleaseGateSupport",
-            dependencies: [
-                "cmuxFeature",
-                "CMUXMobileCore",
-                "CmuxIrohTransport",
-                "CmuxMobileShell",
-                .product(
-                    name: "CmuxMobileShellReleaseGateSupport",
-                    package: "CmuxMobileShell"
-                ),
-                "CmuxMobileShellModel",
-                "CmuxMobileShellUI",
-            ],
-            swiftSettings: [
-                .swiftLanguageMode(.v6),
-            ]
-        ),
+
         .testTarget(
             name: "cmuxFeatureTests",
             dependencies: [
                 "cmuxFeature",
-                "CmuxIrohReleaseGateSupport",
                 "CMUXAuthCore",
                 "CmuxAuthRuntime",
                 "CmuxIrohTransport",

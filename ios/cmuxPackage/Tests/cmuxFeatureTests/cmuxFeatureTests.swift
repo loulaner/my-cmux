@@ -66,13 +66,7 @@ final class TerminalOutputCollector {
     #expect(store.selectedTerminalID?.rawValue == "terminal-build")
 }
 
-@Test func authBuildPolicyCompilesDevShortcutOnlyForDebug() {
-    #if CMUX_DEV_AUTH
-    #expect(MobileAuthBuildPolicy.current.includesFortyTwoShortcut)
-    #else
-    #expect(!MobileAuthBuildPolicy.current.includesFortyTwoShortcut)
-    #endif
-}
+
 
 @Test func authAutoLoginPolicyUsesRealStoredTokenState() {
     #expect(AuthLaunchOptions.shouldStartAutoLogin(hasCredentials: true, hasStoredTokens: false))
@@ -80,41 +74,15 @@ final class TerminalOutputCollector {
     #expect(!AuthLaunchOptions.shouldStartAutoLogin(hasCredentials: false, hasStoredTokens: false))
 }
 
-#if DEBUG
-@Test func mobileDevStackAuthTokenProviderUsesExplicitEnvironmentOnly() {
-    #expect(MobileShellDevStackAuthTokenProvider.token(environment: [:]) == nil)
-    #expect(MobileShellDevStackAuthTokenProvider.token(environment: [
-        MobileShellDevStackAuthTokenProvider.environmentKey: "   "
-    ]) == nil)
-    #expect(MobileShellDevStackAuthTokenProvider.token(environment: [
-        MobileShellDevStackAuthTokenProvider.environmentKey: " cmux-dev-token "
-    ]) == "cmux-dev-token")
-}
-#endif
 
 // Auth error mapping + cached-session recovery are now owned and tested by
 // CmuxAuthRuntime (AuthErrorMapperTests). The display-safe error and
 // cached-session-validation assertions moved there with the AuthCoordinator
 // lift; see Packages/Shared/CmuxAuthRuntime/Tests.
 
-@Test func mobileRuntimeDefaultsAllowSlowRelayPairingWithinOneHardDeadline() {
-    let runtime = CMUXMobileRuntime(
-        supportedRouteKinds: [.debugLoopback],
-        transportFactory: ScriptedTransportFactory(responses: ScriptedTransportResponses([])),
-        stackAccessTokenProvider: { "test-stack-token" }
-    )
 
-    #expect(runtime.rpcRequestTimeoutNanoseconds == 30 * 1_000_000_000)
-    #expect(runtime.pairingRequestTimeoutNanoseconds == 30 * 1_000_000_000)
-    #expect(runtime.pairingAttemptTimeoutNanoseconds == 30 * 1_000_000_000)
-}
 
-@Test func mobileRuntimeMapsTimedOutStackTokenToRequestTimeout() {
-    guard case .requestTimedOut = CMUXMobileRuntime.connectionError(forStackAuthError: AuthError.timedOut) else {
-        Issue.record("expected timed-out Stack token acquisition to stay retryable")
-        return
-    }
-}
+
 
 @MainActor
 @Test func activeMacReconnectRouteSkipsUnsupportedLoopbackRoute() throws {
@@ -2919,7 +2887,7 @@ struct TerminalStreamTests {
     #expect(refreshRequests.count == 1)
 }
 
-private struct MissingTestStackAccessToken: Error {}
+struct MissingTestStackAccessToken: Error {}
 
 private struct TestIdentityProvider: MobileIdentityProviding {
     let currentUserIDValue: String?
@@ -2952,19 +2920,19 @@ private final class RecordingAnalytics: AnalyticsEmitting, @unchecked Sendable {
     }
 }
 
-private func testRuntime(
+func testRuntime(
     supportedRouteKinds: [CmxAttachTransportKind] = [.tailscale, .debugLoopback, .websocket],
     transportFactory: any CmxByteTransportFactory,
     stackAccessToken: String? = "test-stack-token",
-    rpcRequestTimeoutNanoseconds: UInt64 = CMUXMobileRuntime.defaultRPCRequestTimeoutNanoseconds,
-    pairingRequestTimeoutNanoseconds: UInt64 = CMUXMobileRuntime.defaultPairingRequestTimeoutNanoseconds,
+    rpcRequestTimeoutNanoseconds: UInt64 = ScriptedTestRuntime.defaultRPCRequestTimeoutNanoseconds,
+    pairingRequestTimeoutNanoseconds: UInt64 = ScriptedTestRuntime.defaultPairingRequestTimeoutNanoseconds,
     now: @escaping @Sendable () -> Date = Date.init,
     supportsServerPushEvents: Bool = false
-) -> CMUXMobileRuntime {
+) -> ScriptedTestRuntime {
     // Tests script every response and assert on exact request order, so by
     // default they opt out of background subscribe/poll refreshes. New tests
     // that exercise the event path should pass `supportsServerPushEvents: true`.
-    CMUXMobileRuntime(
+    ScriptedTestRuntime(
         supportedRouteKinds: supportedRouteKinds,
         transportFactory: transportFactory,
         stackAccessTokenProvider: {

@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		A17662012F00000000A66F90 /* AgentFeedQuestionUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A17662022F00000000A66F90 /* AgentFeedQuestionUITests.swift */; };
-		8B8A10AA2DF5000000A66F90 /* AppCompositionRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10AB2DF5000000A66F90 /* AppCompositionRoot.swift */; };
-		F36F002FBF4F0A0469BF8FC6 /* AppCompositionRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10AB2DF5000000A66F90 /* AppCompositionRoot.swift */; };
 		8B8A10022DF5000000A66F90 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A10192DF5000000A66F90 /* Assets.xcassets */; };
 		E496437F7E57E2FF221DDA7A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8B8A10192DF5000000A66F90 /* Assets.xcassets */; };
 		5556DAA39B95C41D9F53AE97 /* cmuxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A10172DF5000000A66F90 /* cmuxApp.swift */; };
@@ -17,8 +15,6 @@
 		8B41F6832DEDD23B001A66F9 /* cmuxFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6822DEDD23B001A66F9 /* cmuxFeature */; };
 		8B41F6852DEDD25C001A66F9 /* cmuxFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6842DEDD25C001A66F9 /* cmuxFeature */; };
 		9B8CB2318DB77F30D403FBC7 /* cmuxFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 8B41F6842DEDD25C001A66F9 /* cmuxFeature */; };
-		8B7E20112DF3A00100A66F90 /* CmuxIrohReleaseGateSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20122DF3A00100A66F90 /* CmuxIrohReleaseGateSupport */; };
-		F0FFD7D4F0F6934B98C6C853 /* CmuxIrohReleaseGateSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20122DF3A00100A66F90 /* CmuxIrohReleaseGateSupport */; };
 		8B7E20012DF3A00100A66F90 /* CMUXMobileCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20032DF3A00100A66F90 /* CMUXMobileCore */; };
 		8B7E20022DF3A00100A66F90 /* CMUXMobileCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20042DF3A00100A66F90 /* CMUXMobileCore */; };
 		E17B6E195A8793CCB163E96D /* CMUXMobileCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8B7E20032DF3A00100A66F90 /* CMUXMobileCore */; };
@@ -64,7 +60,6 @@
 
 /* Begin PBXFileReference section */
 		A17662022F00000000A66F90 /* AgentFeedQuestionUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentFeedQuestionUITests.swift; sourceTree = "<group>"; };
-		8B8A10AB2DF5000000A66F90 /* AppCompositionRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCompositionRoot.swift; sourceTree = "<group>"; };
 		8B8A10192DF5000000A66F90 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7E23A50C35E04CE64005B8AF /* cmux-personal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "cmux-personal.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		9B3C84F853AA64BE63C68AA3 /* cmux-personal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = cmux-personal.entitlements; sourceTree = "<group>"; };
@@ -109,7 +104,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				8B41F6852DEDD25C001A66F9 /* cmuxFeature in Frameworks */,
-				8B7E20112DF3A00100A66F90 /* CmuxIrohReleaseGateSupport in Frameworks */,
 				8B7E20012DF3A00100A66F90 /* CMUXMobileCore in Frameworks */,
 				8B7E20052DF3A00100A66F90 /* CmuxMobileTransport in Frameworks */,
 			);
@@ -129,7 +123,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				9B8CB2318DB77F30D403FBC7 /* cmuxFeature in Frameworks */,
-				F0FFD7D4F0F6934B98C6C853 /* CmuxIrohReleaseGateSupport in Frameworks */,
 				E17B6E195A8793CCB163E96D /* CMUXMobileCore in Frameworks */,
 				B5C3B5A89A2516A9141EB825 /* CmuxMobileTransport in Frameworks */,
 			);
@@ -147,7 +140,6 @@
 				8B8A10E12DF5000000A66F90 /* PrivacyInfo.xcprivacy */,
 				8B8A10212DF5000000A66F90 /* Resources */,
 				8B8A10172DF5000000A66F90 /* cmuxApp.swift */,
-				8B8A10AB2DF5000000A66F90 /* AppCompositionRoot.swift */,
 				8B8A10AD2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift */,
 				8B8A10182DF5000000A66F90 /* cmux.xctestplan */,
 			);
@@ -249,7 +241,6 @@
 			);
 			name = cmux;
 			packageProductDependencies = (
-				8B7E20122DF3A00100A66F90 /* CmuxIrohReleaseGateSupport */,
 				8B41F6842DEDD25C001A66F9 /* cmuxFeature */,
 				8B7E20032DF3A00100A66F90 /* CMUXMobileCore */,
 				8B7E20062DF3A00100A66F90 /* CmuxMobileTransport */,
@@ -294,7 +285,6 @@
 			dependencies = ();
 			name = "cmux-personal";
 			packageProductDependencies = (
-				8B7E20122DF3A00100A66F90 /* CmuxIrohReleaseGateSupport */,
 				8B41F6842DEDD25C001A66F9 /* cmuxFeature */,
 				8B7E20032DF3A00100A66F90 /* CMUXMobileCore */,
 				8B7E20062DF3A00100A66F90 /* CmuxMobileTransport */,
@@ -477,7 +467,6 @@
                 C1AC00000000000000000042,
                 C1AC00000000000000000043,
 
-				8B8A10AA2DF5000000A66F90 /* AppCompositionRoot.swift in Sources */,
 				8B8A10012DF5000000A66F90 /* cmuxApp.swift in Sources */,
 				8B8A10AC2DF5000000A66F90 /* MobileAppLifecycleDiagnostics.swift in Sources */,
 			);
@@ -502,7 +491,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F36F002FBF4F0A0469BF8FC6 /* AppCompositionRoot.swift in Sources */,
 				5556DAA39B95C41D9F53AE97 /* cmuxApp.swift in Sources */,
 				E3E4082CC5CF90D254D3D6BB /* MobileAppLifecycleDiagnostics.swift in Sources */,
 			);
@@ -851,10 +839,6 @@
 		8B7E20062DF3A00100A66F90 /* CmuxMobileTransport */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CmuxMobileTransport;
-		};
-		8B7E20122DF3A00100A66F90 /* CmuxIrohReleaseGateSupport */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = CmuxIrohReleaseGateSupport;
 		};
 /* End XCSwiftPackageProductDependency section */
 
