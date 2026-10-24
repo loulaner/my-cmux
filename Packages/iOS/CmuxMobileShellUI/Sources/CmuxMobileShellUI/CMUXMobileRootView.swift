@@ -535,7 +535,7 @@ struct CMUXMobileRootView: View {
         } else if shouldShowOnboardingPreview {
             onboardingPreview
         } else if shouldShowOnboarding {
-            // Sign-in hands directly into onboarding, so the swap reads as a
+            // Entering onboarding uses a
             // forward push in the tour's paging direction rather than a cut.
             onboardingFlow
                 .transition(reduceMotion ? .opacity : .asymmetric(
@@ -548,7 +548,7 @@ struct CMUXMobileRootView: View {
             isRestoringSession: authManager.isRestoringSession,
             onboardingPending: isOnboardingPending
         ) {
-            SignInView()
+            MobileAccountSignInUnavailableView()
                 .transition(reduceMotion ? .opacity : .asymmetric(
                     insertion: .opacity,
                     removal: .move(edge: .leading).combined(with: .opacity)
