@@ -366,8 +366,6 @@ public struct CMUXMobileRootScene: View {
             )
         } else if ProcessInfo.processInfo.environment["CMUX_UITEST_COMPUTER_PICKER_PERSISTENCE"] == "1" {
             ComputerPickerPersistencePreviewView()
-        } else if UITestConfig.taskComposerPreviewEnabled {
-            TaskComposerAccessibilityPreviewView()
         } else if UITestConfig.notificationFeedPreviewEnabled {
             NotificationFeedPreviewView()
         } else if UITestConfig.workspaceListLayoutPreviewEnabled {

@@ -25,7 +25,6 @@ struct WorkspaceShellHost: View {
     var showComputers: () -> Void = {}
     /// Present the SSH computer form (PRD D6). `nil` hides SSH add actions.
     var showAddSSHComputer: (() -> Void)? = nil
-    var taskComposerPresentation = MobileChildSheetPresentation()
     let reconnectStoredMac: () -> Void
 
     @Environment(AuthCoordinator.self) private var authManager
@@ -44,10 +43,8 @@ struct WorkspaceShellHost: View {
             tailscalePairingRequired: tailscalePairingRequired,
             showSettings: showSettings,
             showComputers: showComputers,
-            showAddSSHComputer: showAddSSHComputer,
-            taskComposerPresentation: taskComposerPresentation
+            showAddSSHComputer: showAddSSHComputer
         )
-        .modifier(TaskComposerPrefetchModifier(store: store))
         .task(id: deadlineTaskID) {
             await updateLoadingDeadline()
         }

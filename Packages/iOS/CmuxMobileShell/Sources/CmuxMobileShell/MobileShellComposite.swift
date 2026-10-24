@@ -124,9 +124,7 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
     static let workspaceMutationAccountAuthCapability = "workspace.mutations.account_auth.v1"
     static let workspaceGroupActionsCapability = "workspace.group_actions.v1"
     static let workspaceCreateInGroupCapability = "workspace.create_in_group.v1", workspaceGroupCreateCapability = "workspace.group_create.v1"
-    static let taskCreateCapability = "workspace.task_create.v1"
     static let taskAttachmentCapability = "task.attachments.v1"
-    static let taskModelsCapability = "task.models.v1"
     static let chatArtifactCapability = "chat.artifact.v1"
     static let chatArtifactGalleryCapability = "chat.artifact.gallery.v1"
     static let terminalArtifactCapability = "terminal.artifact.v1"
@@ -552,21 +550,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
     public internal(set) var workspaceComputerPriority: [String] = []
     /// Device-local task templates used by the iOS task composer.
     @ObservationIgnored public let taskTemplateStore: (any MobileTaskTemplateStoring)?
-    /// Over-the-air fallback used when the selected Mac's agent cannot list models.
-    @ObservationIgnored let taskModelCatalogClient: MobileTaskModelCatalogClient
-    /// Mac/provider model responses observed by the task composer.
-    var taskModelCache: [MobileTaskModelCacheKey: MobileTaskModelCacheEntry] = [:]
-    @ObservationIgnored var taskModelRefreshRequests: [MobileTaskModelCacheKey: MobileTaskModelRefreshRequest] = [:]
-    @ObservationIgnored var taskModelSuccessfulConnections: [MobileTaskModelCacheKey: String] = [:]
-    @ObservationIgnored var taskModelPrefetchTasks:
-        [MobileTaskModelPrefetchKey: Task<MobileTaskModelRefreshOutcome, Never>] = [:]
-    @ObservationIgnored var taskModelPrefetchTaskTokens: [MobileTaskModelPrefetchKey: UUID] = [:]
-    @ObservationIgnored var taskModelPrefetchWorkers: [UUID: Task<Void, Never>] = [:]
-    @ObservationIgnored var taskModelPrefetchDesiredTargets:
-        [MobileTaskModelPrefetchKey: MobileTaskModelPrefetchTarget] = [:]
-    @ObservationIgnored var taskModelPrefetchCompletedKeys: Set<MobileTaskModelPrefetchKey> = []
-    @ObservationIgnored var taskModelPrefetchFailedKeys: Set<MobileTaskModelPrefetchKey> = []
-    @ObservationIgnored var taskModelPrefetchCatalog: MobileTaskModelPrefetchCatalog?
     /// The connected Mac's `mobile.host.status` capabilities. Feature gates are
     /// computed from this set so version-skew checks cannot drift from the raw
     /// host payload.
@@ -1928,7 +1911,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         connectionHandoffDrainTimeoutNanoseconds: UInt64 = 3_000_000_000,
         terminalInputAckResubscribeClock: any Clock<Duration> = ContinuousClock(),
         taskTemplateStore: (any MobileTaskTemplateStoring)? = nil,
-        taskModelCatalogClient: MobileTaskModelCatalogClient = .live(),
         storedMacReconnectRestoringDeadlineSeconds: Double = 15,
         sshComputers: MobileSSHComputers? = nil,
         workspaceSnapshotStore: MobileWorkspaceSnapshotStore? = nil
@@ -1955,7 +1937,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
             connectionHandoffDrainTimeoutNanoseconds
         self.terminalInputAckResubscribeClock = terminalInputAckResubscribeClock
         self.taskTemplateStore = taskTemplateStore
-        self.taskModelCatalogClient = taskModelCatalogClient
         self.storedMacReconnectRestoringDeadlineSeconds = storedMacReconnectRestoringDeadlineSeconds
         self.pairedMacStore = pairedMacStore
         self.buildCompatibilityPolicy = buildCompatibilityPolicy
@@ -2164,10 +2145,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
         notificationFeedOpenTask?.cancel()
         teamScopeCleanupTask?.cancel()
         cancelAllTerminalReplayTasks()
-        for request in taskModelRefreshRequests.values { request.cancel() }
-        for task in taskModelPrefetchTasks.values { task.cancel() }
-        for worker in taskModelPrefetchWorkers.values { worker.cancel() }
-        taskModelPrefetchCatalog?.cancel()
         teardownSecondaryMacSubscriptions()
         let terminalLaneCoordinator = terminalLaneCoordinator
         Task { await terminalLaneCoordinator?.deactivateAll() }
@@ -2267,20 +2244,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
             enqueueDraftOperation { await draftStore.clearAllDrafts() }
         }
         taskTemplateStore?.clearAllUserData()
-        for request in taskModelRefreshRequests.values { request.cancel() }
-        taskModelRefreshRequests.removeAll()
-        for task in taskModelPrefetchTasks.values { task.cancel() }
-        taskModelPrefetchTasks.removeAll()
-        taskModelPrefetchTaskTokens.removeAll()
-        for worker in taskModelPrefetchWorkers.values { worker.cancel() }
-        taskModelPrefetchWorkers.removeAll()
-        taskModelPrefetchDesiredTargets.removeAll()
-        taskModelPrefetchCompletedKeys.removeAll()
-        taskModelPrefetchFailedKeys.removeAll()
-        taskModelPrefetchCatalog?.cancel()
-        taskModelPrefetchCatalog = nil
-        taskModelSuccessfulConnections.removeAll()
-        taskModelCache.removeAll()
         // Drop unflushed keystroke snapshots too: an armed flush that runs
         // before the wipe would only write text the wipe then deletes, but the
         // buffer itself must not carry one account's text into the next.
@@ -3742,7 +3705,6 @@ public final class MobileShellComposite: MobileTerminalOutputSinking {
             // workspace event.
             if oldValue != pairedMacs {
                 recomputeDerivedWorkspaceState()
-                pruneTaskModelStateToPairedMacs()
             }
             guard oldValue.count != pairedMacs.count else { return }
             analytics.setSuperProperties(["paired_mac_count": .int(pairedMacs.count)])

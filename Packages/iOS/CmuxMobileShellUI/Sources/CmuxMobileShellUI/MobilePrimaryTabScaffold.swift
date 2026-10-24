@@ -18,7 +18,6 @@ struct MobilePrimaryTabScaffold<
     let feedNeedsInputCountProvider: (@MainActor () -> Int)?
     /// False when the Feed replaces the Notifications tab (CMUX Labs).
     let showsNotificationsTab: Bool
-    let taskComposerAction: (() -> Void)?
     let workspaces: Workspaces
     let feed: Feed
     let notifications: Notifications
@@ -31,7 +30,6 @@ struct MobilePrimaryTabScaffold<
         feedNeedsInputCount: Int = 0,
         feedNeedsInputCountProvider: (@MainActor () -> Int)? = nil,
         showsNotificationsTab: Bool = true,
-        taskComposerAction: (() -> Void)? = nil,
         @ViewBuilder workspaces: () -> Workspaces,
         @ViewBuilder feed: () -> Feed,
         @ViewBuilder notifications: () -> Notifications,
@@ -43,7 +41,6 @@ struct MobilePrimaryTabScaffold<
         self.feedNeedsInputCount = feedNeedsInputCount
         self.feedNeedsInputCountProvider = feedNeedsInputCountProvider
         self.showsNotificationsTab = showsNotificationsTab
-        self.taskComposerAction = taskComposerAction
         self.workspaces = workspaces()
         self.feed = feed()
         self.notifications = notifications()
@@ -70,22 +67,6 @@ struct MobilePrimaryTabScaffold<
                     searchCoordinator.synchronizeSelection(selection)
                 }
 
-                if selection == .workspaces, let taskComposerAction {
-                    TaskComposerButton(
-                        action: taskComposerAction,
-                        diameter: iOS26BottomControlDiameter
-                    )
-                    .padding(.trailing, iOS26BottomControlInset)
-                    .padding(.bottom, iOS26TaskComposerBottomPadding)
-                    // Compose anchors to the screen, not the keyboard. The
-                    // only keyboard that can appear while it is visible
-                    // belongs to an overlaying sheet (the composer's
-                    // auto-focused prompt), whose inset dragged the button
-                    // toward mid-screen and stranded it there whenever the
-                    // hide update was missed.
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                    .ignoresSafeArea(.keyboard, edges: .bottom)
-                }
             }
             .ignoresSafeArea(.container, edges: .bottom)
         } else if #available(iOS 18.0, *) {
@@ -115,16 +96,6 @@ struct MobilePrimaryTabScaffold<
 
     private var resolvedFeedNeedsInputCount: Int {
         feedNeedsInputCountProvider?() ?? feedNeedsInputCount
-    }
-
-    /// A tab-view bottom accessory always adds a full-width plate, which is
-    /// intended for mini-player content. Compose remains a standalone action
-    /// aligned with the detached Search control instead.
-    private var iOS26BottomControlDiameter: CGFloat { 62 }
-    private var iOS26BottomControlInset: CGFloat { 21 }
-    private var iOS26BottomControlSpacing: CGFloat { 12 }
-    private var iOS26TaskComposerBottomPadding: CGFloat {
-        iOS26BottomControlInset + iOS26BottomControlDiameter + iOS26BottomControlSpacing
     }
 
     private var tabSelection: Binding<MobilePrimaryTab> {

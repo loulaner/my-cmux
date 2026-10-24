@@ -37,8 +37,6 @@ public final class MobileDisplaySettings {
     private static let feedBubbleQuotesKey = "cmux.mobile.feedBubbleQuotes.v1"
     private static let legacyFeedBubbleQuotesKey = "cmux.mobile.debug.feedBubbleQuotes.v1"
     #if DEBUG
-    private static let taskComposerShellIconVariantKey = "cmux.mobile.debug.taskComposerShellIconVariant.v1"
-    private static let taskComposerFullLiquidGlassKey = "cmux.mobile.debug.taskComposerFullLiquidGlass.v1"
     #endif
 
     /// The preview line counts the "Preview Lines" setting offers.
@@ -186,27 +184,6 @@ public final class MobileDisplaySettings {
     }
 
     #if DEBUG
-    /// Persisted selection for the debug-only Shell icon lab.
-    var taskComposerShellIconVariant: TaskComposerShellIconVariant {
-        didSet {
-            defaults.set(
-                taskComposerShellIconVariant.rawValue,
-                forKey: Self.taskComposerShellIconVariantKey
-            )
-        }
-    }
-
-    /// Persisted CMUX Labs switch for comparing the task composer bar with the
-    /// terminal composer’s full Liquid Glass treatment.
-    var taskComposerFullLiquidGlass: Bool {
-        didSet {
-            defaults.set(
-                taskComposerFullLiquidGlass,
-                forKey: Self.taskComposerFullLiquidGlassKey
-            )
-        }
-    }
-
     /// DEBUG-only override forcing the rebuilt keyboard dock path on this
     /// device (iOS ≤26; legacy is the shipping default), exposed in
     /// Settings > Developer for keyboard-pinning A/B dogfood. Terminal hosts
@@ -224,9 +201,7 @@ public final class MobileDisplaySettings {
     }
     #else
     /// Production builds expose only the shipping Shell icon treatment.
-    var taskComposerShellIconVariant: TaskComposerShellIconVariant { .current }
     /// The Labs-only treatment is unavailable in production builds.
-    var taskComposerFullLiquidGlass: Bool { false }
     #endif
 
     /// Creates the display settings, seeding stored values from `defaults`.
@@ -271,12 +246,6 @@ public final class MobileDisplaySettings {
             to: Self.unreadBadgeDiameterRange
         )
         #if DEBUG
-        self.taskComposerShellIconVariant = defaults.string(
-            forKey: Self.taskComposerShellIconVariantKey
-        ).flatMap(TaskComposerShellIconVariant.init(rawValue:)) ?? .current
-        self.taskComposerFullLiquidGlass = defaults.object(
-            forKey: Self.taskComposerFullLiquidGlassKey
-        ) as? Bool ?? false
         self.forceRebuildKeyboardDock = defaults.cmuxForceRebuildKeyboardDock
         #endif
     }

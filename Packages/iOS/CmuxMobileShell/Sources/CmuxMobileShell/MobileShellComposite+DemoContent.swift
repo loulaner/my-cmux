@@ -271,13 +271,6 @@ extension MobileShellComposite {
 
     // MARK: Task composer exclusion
 
-    /// The task composer's target machines: every paired Mac EXCEPT the
-    /// demonstration computer. A fake Mac cannot run real tasks, while real
-    /// Macs on the same account (even offline ones) stay composable.
-    public var taskComposerPairedMacs: [MobilePairedMac] {
-        displayPairedMacs.filter { !isDemonstrationPairedMac($0) }
-    }
-
     /// Whether the paired-Mac list currently holds ONLY the demonstration
     /// computer, so composer availability can drop its offline benefit of
     /// the doubt (there is provably nothing that could run a task).
