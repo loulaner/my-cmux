@@ -438,7 +438,7 @@ extension MobileShellComposite {
 
     /// Resume foreground-only refresh loops after the app becomes active.
     public func resumeForegroundRefresh() {
-        guard foregroundRefreshLifecycleState != .active else { return }; workspacePresenceAnnouncer?.setWorkspaceViewing(true)
+        guard foregroundRefreshLifecycleState != .active else { return }
         foregroundRefreshLifecycleState = .active
         foregroundRefreshIsActive = true
         foregroundResumeEpoch &+= 1
@@ -479,7 +479,7 @@ extension MobileShellComposite {
     /// must not call this: they do not suspend the process and canceling a
     /// useful recovery there makes wake latency depend on interruption churn.
     public func suspendForegroundRefresh() {
-        guard foregroundRefreshLifecycleState != .background else { return }; workspacePresenceAnnouncer?.setWorkspaceViewing(false)
+        guard foregroundRefreshLifecycleState != .background else { return }
         foregroundRefreshLifecycleState = .background
         foregroundRefreshIsActive = false
         if connectionRecoveryOwner.cancelProbing() {
