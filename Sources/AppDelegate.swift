@@ -2560,10 +2560,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             devicesRegistry.configure(auth: auth.coordinator, catalog: .shared, authorization: computersService)
         }
         configureWorkspacePresence(auth: auth.coordinator)
-        // DEV-only: auto-publish this Mac's attach route to the signed-in user's
-        // pairedMacs backup so a fresh dev iOS build restores it (no manual host
-        // entry). No-op on Release / when the flag is off.
-        MacPairedMacBackupPublisher.shared.configure(auth: auth.coordinator)
         TerminalController.shared.attachAuth(coordinator: auth.coordinator, accountFlow: auth.accountFlow)
         TerminalController.shared.attachBrowserDataImportCoordinator(browserDataImportCoordinator)
         TerminalController.shared.attachCaffeineController(caffeineController)

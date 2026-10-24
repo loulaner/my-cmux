@@ -665,7 +665,7 @@
   "LiveAgentIndexRelevantChurnTests": 2,
   "LocalSurfaceProviderTests": 65,
   "MacAuthCompositionDogfoodAutoSignInTests": 4,
-  "MacPairedMacBackupPublisherScopeTests": 5,
+  "MacPairedMacBackupRecordWireTests": 5,
   "MacSentryStartupPolicyTests": 9,
   "MachineCreateCoordinatorTests": 23,
   "MachineCreateOptimisticProjectionTests": 9,

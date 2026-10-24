@@ -2516,8 +2516,7 @@
 		F9ADD9F062DEA2BC5924BC38 /* MachinesPanelViewModel+Refresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8DCA0BDC648E6CDCFD3E228 /* MachinesPanelViewModel+Refresh.swift */; };
 		D7E6477A2FC01DCCF353840D /* MachinesPanelViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68672B3C63D4E348AFA4DEF7 /* MachinesPanelViewModel.swift */; };
 		D5464676EB1404471FDE98BC /* MachinesPanelZeroCapPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBA44492C11EA6B5FBBB74F /* MachinesPanelZeroCapPlanTests.swift */; };
-		D1F0A00100000000000000C1 /* MacPairedMacBackupPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F0A00100000000000000C2 /* MacPairedMacBackupPublisher.swift */; };
-		A7C0F0010000000000000002 /* MacPairedMacBackupPublisherScopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C0F0010000000000000001 /* MacPairedMacBackupPublisherScopeTests.swift */; };
+		1DC2BE0005E10D2DD37C5178 /* MacPairedMacBackupRecordWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D4BD5979B9ED49CA1A0EBC4 /* MacPairedMacBackupRecordWireTests.swift */; };
 		A78C41010000000000000001 /* MacSentryStartupPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A78C41010000000000000002 /* MacSentryStartupPolicy.swift */; };
 		5E2701030000000000000001 /* MacSentryStartupPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2701030000000000000002 /* MacSentryStartupPolicyTests.swift */; };
 		7A0CE1000000000000000202 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0CE1000000000000000201 /* main.swift */; };
@@ -7085,8 +7084,7 @@
 		E8DCA0BDC648E6CDCFD3E228 /* MachinesPanelViewModel+Refresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MachinesPanelViewModel+Refresh.swift"; sourceTree = "<group>"; };
 		68672B3C63D4E348AFA4DEF7 /* MachinesPanelViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MachinesPanelViewModel.swift; sourceTree = "<group>"; };
 		FDBA44492C11EA6B5FBBB74F /* MachinesPanelZeroCapPlanTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MachinesPanelZeroCapPlanTests.swift"; sourceTree = "<group>"; };
-		D1F0A00100000000000000C2 /* MacPairedMacBackupPublisher.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MacPairedMacBackupPublisher.swift; sourceTree = "<group>"; };
-		A7C0F0010000000000000001 /* MacPairedMacBackupPublisherScopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacPairedMacBackupPublisherScopeTests.swift; sourceTree = "<group>"; };
+		1D4BD5979B9ED49CA1A0EBC4 /* MacPairedMacBackupRecordWireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MacPairedMacBackupRecordWireTests.swift"; sourceTree = "<group>"; };
 		A78C41010000000000000002 /* MacSentryStartupPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/MacSentryStartupPolicy.swift; sourceTree = "<group>"; };
 		5E2701030000000000000002 /* MacSentryStartupPolicyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MacSentryStartupPolicyTests.swift; sourceTree = "<group>"; };
 		7A0CE1000000000000000201 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -9894,7 +9892,6 @@
 				A13296000000000000000201 /* WorkspacePresenceController.swift */,
 				A13296000000000000000202 /* WorkspacePresencePolicy.swift */,
 				A13296000000000000000203 /* WorkspacePresenceScope+App.swift */,
-				D1F0A00100000000000000C2 /* MacPairedMacBackupPublisher.swift */,
 				D1F0A00100000000000000B4 /* PresenceSettings.swift */,
 				9CEC6F0035B71AE59FA45BA7 /* VMClientSocketCommands.swift */,
 				7A0CE1000000000000000018 /* VMClientSocketCommands+Tunnel.swift */,
@@ -13632,7 +13629,6 @@
 				B8B056D80000000000000002 /* MobileHostIdentityTests.swift */,
 				B8B056D80000000000000004 /* MobileHostIdentityConcurrencyTests.swift */,
 				C1B1810000000000000015 /* MobileHostIrxSettingsMappingTests.swift */,
-				A7C0F0010000000000000001 /* MacPairedMacBackupPublisherScopeTests.swift */,
 				5E2701030000000000000002 /* MacSentryStartupPolicyTests.swift */,
 				900759686B8F971DD0790E18 /* CloudMachineNotificationDeliveryTests.swift */,
 				E107EF903AAF714086F52BC4 /* SurfaceSocketCommandTests.swift */,
@@ -13926,6 +13922,7 @@
 				F152960A3E2799807D8DD3EE /* VaultClaudeCustomTitleTests.swift */,
 				745FF9094E4E0023E0EFB065 /* SidebarWorkspaceSnapshotTests.swift */,
 				774F5FF7D4460618C69AC7D7 /* CMUXCLISocketFailureRegressionTests.swift */,
+				1D4BD5979B9ED49CA1A0EBC4 /* MacPairedMacBackupRecordWireTests.swift */,
 			);
 			path = cmuxTests;
 			sourceTree = "<group>";
@@ -15997,7 +15994,6 @@
 				C1257500000000000000001A /* MachinesPanelViewModel+MachinePins.swift in Sources */,
 				F9ADD9F062DEA2BC5924BC38 /* MachinesPanelViewModel+Refresh.swift in Sources */,
 				D7E6477A2FC01DCCF353840D /* MachinesPanelViewModel.swift in Sources */,
-				D1F0A00100000000000000C1 /* MacPairedMacBackupPublisher.swift in Sources */,
 				A78C41010000000000000001 /* MacSentryStartupPolicy.swift in Sources */,
 				875900000000000000000009 /* MainThreadHangCaptureStore.swift in Sources */,
 				87590000000000000000000B /* MainThreadHangSampleRunner.swift in Sources */,
@@ -18580,7 +18576,7 @@
 				7690848956F4C55873F767F6 /* MachinesPanelModelTests.swift in Sources */,
 				98E6802001D61AC24F2ABB09 /* MachinesPanelUncappedPlanTests.swift in Sources */,
 				D5464676EB1404471FDE98BC /* MachinesPanelZeroCapPlanTests.swift in Sources */,
-				A7C0F0010000000000000002 /* MacPairedMacBackupPublisherScopeTests.swift in Sources */,
+				1DC2BE0005E10D2DD37C5178 /* MacPairedMacBackupRecordWireTests.swift in Sources */,
 				5E2701030000000000000001 /* MacSentryStartupPolicyTests.swift in Sources */,
 				A7314E252E13AB1820A921AF /* MainWindowCloseConfirmationTests.swift in Sources */,
 				C8349001C8349001C8349001 /* MainWindowCloseTerminationRoutingTests.swift in Sources */,

@@ -188,9 +188,6 @@ final class MobilePairingModel {
             return
         }
         selectedIOSAppTarget = target
-        MacPairedMacBackupPublisher.shared.pairingTargetDidChange(
-            routes: host.statusSnapshot().routes
-        )
         await refresh()
     }
 
