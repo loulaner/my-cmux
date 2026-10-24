@@ -49,8 +49,9 @@ class MacSentryStartupRemovedTests(unittest.TestCase):
         self.assertIn('role: .macHost', ring)
 
     def test_shared_policy_and_host_isolation_tests_remain(self):
+        self.assertFalse((ROOT / 'Sources/SentryHelper.swift').exists())
         for path in ('Sources/App/MacSentryStartupPolicy.swift', 'Sources/AppDelegate+TestRuntime.swift',
-                     'Sources/SentryHelper.swift', 'Sources/GhosttyCrashBreadcrumb.swift',
+                     'Sources/GhosttyCrashBreadcrumb.swift',
                      'Sources/AppDelegate+CrashSessionSnapshotRemoval.swift',
                      'Packages/Shared/CmuxSentryTelemetry/Package.swift'):
             self.assertTrue((ROOT / path).is_file(), path)

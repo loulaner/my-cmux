@@ -45,19 +45,19 @@ private final class AcceptRearmRecorder: Sendable {
         state.withLock { $0.rearms }
     }
 
-    func makeEvents() -> SocketControlServerEvents {
-        SocketControlServerEvents(
-            breadcrumb: { message, data in
-                let breadcrumb = RecordedRearmBreadcrumb(
-                    message: message,
-                    listenerState: data["listenerState"] as? String,
-                    errnoCode: data["errno"] as? Int,
-                    pendingRearmGeneration: data["pendingRearmGeneration"] as? UInt64,
-                    delayMs: data["rearmDelayMs"] as? Int
-                )
-                self.state.withLock { $0.breadcrumbs.append(breadcrumb) }
-            },
-            failure: { _, _, _, _ in },
+    func makeEvents(observes: Bool = true) -> SocketControlServerEvents {
+        let breadcrumb: @Sendable (String, [String: any Sendable]) -> Void = { message, data in
+            let breadcrumb = RecordedRearmBreadcrumb(
+                message: message,
+                listenerState: data["listenerState"] as? String,
+                errnoCode: data["errno"] as? Int,
+                pendingRearmGeneration: data["pendingRearmGeneration"] as? UInt64,
+                delayMs: data["rearmDelayMs"] as? Int
+            )
+            self.state.withLock { $0.breadcrumbs.append(breadcrumb) }
+        }
+        return SocketControlServerEvents(
+            breadcrumb: observes ? breadcrumb : nil,
             listenerDidStart: { _, _ in },
             recordLastSocketPath: { _ in },
             pathMissingDetected: { _, _ in },
@@ -82,7 +82,7 @@ private struct AcceptRearmHarness: ~Copyable {
     let recorder: AcceptRearmRecorder
     let server: SocketControlServer
 
-    init(clock: TestSocketRecoveryClock, policy: SocketListenerPolicy) throws {
+    init(clock: TestSocketRecoveryClock, policy: SocketListenerPolicy, observes: Bool = true) throws {
         directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("accept-rearm-\(UUID().uuidString.prefix(8))", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -93,7 +93,7 @@ private struct AcceptRearmHarness: ~Copyable {
             listenerPolicy: policy,
             recoveryClock: clock,
             notificationCenter: NotificationCenter(),
-            events: recorder.makeEvents()
+            events: recorder.makeEvents(observes: observes)
         )
     }
 
@@ -196,7 +196,8 @@ private func driveBackoffFailure(
 @MainActor
 @Suite("SocketControlServer accept rearm stress")
 struct SocketControlServerAcceptRearmStressTests {
-    @Test func exactPathReportsRefusedDuringBoundedRearmAndRecoversAfterConcurrentHookBurst() async throws {
+    @Test(arguments: [false, true])
+    func exactPathReportsRefusedDuringBoundedRearmAndRecoversAfterConcurrentHookBurst(observes: Bool) async throws {
         let clock = TestSocketRecoveryClock()
         let policy = SocketListenerPolicy(
             acceptFailureBaseBackoffMs: 1,
@@ -204,7 +205,7 @@ struct SocketControlServerAcceptRearmStressTests {
             acceptFailureMinimumRearmDelayMs: 8,
             acceptFailureRearmThreshold: 3
         )
-        let harness = try AcceptRearmHarness(clock: clock, policy: policy)
+        let harness = try AcceptRearmHarness(clock: clock, policy: policy, observes: observes)
         defer { harness.shutdown() }
         let server = harness.server
         let recorder = harness.recorder
@@ -268,10 +269,12 @@ struct SocketControlServerAcceptRearmStressTests {
         #expect(rearm.delayMs == 8)
         #expect(FileManager.default.fileExists(atPath: harness.socketPath))
 
-        let didCloseListener = await waitForRearmCondition {
-            recorder.breadcrumbs.contains { $0.message == "socket.listener.rearm.socket_closed" }
+        if observes {
+            let didCloseListener = await waitForRearmCondition {
+                recorder.breadcrumbs.contains { $0.message == "socket.listener.rearm.socket_closed" }
+            }
+            #expect(didCloseListener)
         }
-        #expect(didCloseListener)
 
         // Model the issue's 100 concurrent Codex hook connections against the
         // exact pinned path while the listener is parked for rearm.
@@ -283,25 +286,31 @@ struct SocketControlServerAcceptRearmStressTests {
         #expect(!exactProbe.connected)
         #expect(exactProbe.errnoCode == ECONNREFUSED)
 
-        let started = try #require(
-            recorder.breadcrumbs.first { $0.message == "socket.listener.rearm.started" }
-        )
-        #expect(started.listenerState == "rearming")
-        #expect(started.errnoCode == Int(EMFILE))
-        #expect(started.pendingRearmGeneration == initial.activeGeneration)
-        #expect(started.delayMs == 8)
+        if observes {
+            let started = try #require(
+                recorder.breadcrumbs.first { $0.message == "socket.listener.rearm.started" }
+            )
+            #expect(started.listenerState == "rearming")
+            #expect(started.errnoCode == Int(EMFILE))
+            #expect(started.pendingRearmGeneration == initial.activeGeneration)
+            #expect(started.delayMs == 8)
+        }
 
         clock.advance()
         #expect(await hostRecovery.value)
         #expect(server.isRunning)
         #expect(connectAttempt(to: harness.socketPath).connected)
 
-        let messages = recorder.breadcrumbs.map(\.message)
-        let startedIndex = try #require(messages.firstIndex(of: "socket.listener.rearm.started"))
-        let readyIndex = try #require(messages.firstIndex(of: "socket.listener.rearm.ready"))
-        let completedIndex = try #require(messages.firstIndex(of: "socket.listener.rearm.completed"))
-        #expect(startedIndex < readyIndex)
-        #expect(readyIndex < completedIndex)
-        #expect(!messages.contains("socket.listener.rearm.failed"))
+        if observes {
+            let messages = recorder.breadcrumbs.map(\.message)
+            let startedIndex = try #require(messages.firstIndex(of: "socket.listener.rearm.started"))
+            let readyIndex = try #require(messages.firstIndex(of: "socket.listener.rearm.ready"))
+            let completedIndex = try #require(messages.firstIndex(of: "socket.listener.rearm.completed"))
+            #expect(startedIndex < readyIndex)
+            #expect(readyIndex < completedIndex)
+            #expect(!messages.contains("socket.listener.rearm.failed"))
+        } else {
+            #expect(recorder.breadcrumbs.isEmpty)
+        }
     }
 }

@@ -160,7 +160,7 @@ extension SocketControlServer {
         defer {
             if !listenerActivated {
                 if preserveAcceptFailureStreak {
-                    events.breadcrumb(
+                    events.breadcrumb?(
                         "socket.listener.rearm.failed",
                         socketListenerEventData(
                             stage: "rearm_start",
@@ -234,7 +234,7 @@ extension SocketControlServer {
                 guard case .failure(let failedPath, let failure) = attempt else {
                     break
                 }
-                events.breadcrumb(
+                events.breadcrumb?(
                     "socket.listener.bind.retry",
                     [
                         "path": failedPath,
@@ -259,7 +259,7 @@ extension SocketControlServer {
                errnoCode: bindFailure.errnoCode
            ),
            fallbackPath != failedPath {
-            events.breadcrumb(
+            events.breadcrumb?(
                 "socket.listener.path.fallback",
                 [
                     "requestedPath": failedPath,
@@ -372,7 +372,7 @@ extension SocketControlServer {
         listenerActivated = true
         let listenerSocket = newServerSocket
         print("SocketControlServer: Listening on \(activeSocketPath)")
-        events.breadcrumb(
+        events.breadcrumb?(
             "socket.listener.listening",
             [
                 "path": activeSocketPath,
@@ -382,7 +382,7 @@ extension SocketControlServer {
             ]
         )
         if preserveAcceptFailureStreak {
-            events.breadcrumb(
+            events.breadcrumb?(
                 "socket.listener.rearm.completed",
                 socketListenerEventData(
                     stage: "accept_rearm_complete",
@@ -422,7 +422,7 @@ extension SocketControlServer {
             print(
                 "TerminalController: Failed to set socket permissions to \(String(permissions, radix: 8)) for \(currentSocketPath)"
             )
-            events.breadcrumb(
+            events.breadcrumb?(
                 "socket.listener.permissions.failed",
                 socketListenerEventData(
                     stage: "chmod",

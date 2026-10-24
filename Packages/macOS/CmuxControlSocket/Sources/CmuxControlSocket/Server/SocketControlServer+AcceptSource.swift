@@ -19,7 +19,7 @@ extension SocketControlServer {
             guard let self else { return }
             let snapshot = self.listenerStateSnapshot()
             if snapshot.pendingRearmGeneration == generation {
-                self.events.breadcrumb(
+                self.events.breadcrumb?(
                     "socket.listener.rearm.socket_closed",
                     self.socketListenerEventData(
                         stage: "accept_rearm_socket_closed",
@@ -50,7 +50,7 @@ extension SocketControlServer {
             return
         }
 
-        events.breadcrumb(
+        events.breadcrumb?(
             "socket.listener.accept_source.started",
             socketListenerEventData(
                 stage: "accept_source_start",
@@ -105,7 +105,7 @@ extension SocketControlServer {
 
             if let failure = transport.configureAcceptedClientSocket(clientSocket) {
                 if transport.shouldReportAcceptedClientConfigFailure(stage: failure.stage, errnoCode: failure.errnoCode) {
-                    events.breadcrumb(
+                    events.breadcrumb?(
                         "socket.listener.client_config.failed",
                         socketListenerEventData(
                             stage: failure.stage,
@@ -166,7 +166,7 @@ extension SocketControlServer {
                 // it so a saturated consumer is visible in Release telemetry,
                 // then hand the descriptor to the host so the client gets a
                 // real error instead of EPIPE (#13369).
-                events.breadcrumb(
+                events.breadcrumb?(
                     "socket.listener.connection.dropped",
                     socketListenerEventData(
                         stage: "accept_buffer_full",
@@ -225,7 +225,7 @@ extension SocketControlServer {
             consecutiveFailures: consecutiveFailures
         )
 
-        events.breadcrumb(
+        events.breadcrumb?(
             "socket.listener.accept.failed",
             socketListenerEventData(
                 stage: "accept_source",
@@ -316,7 +316,7 @@ extension SocketControlServer {
             }
             cleanup.sourceToCancel?.cancel()
 
-            events.breadcrumb(
+            events.breadcrumb?(
                 "socket.listener.rearm.started",
                 socketListenerEventData(
                     stage: "accept_rearm",
@@ -356,7 +356,7 @@ extension SocketControlServer {
             return
         }
 
-        events.breadcrumb(
+        events.breadcrumb?(
             "socket.listener.accept.resume_scheduled",
             socketListenerEventData(
                 stage: "accept_source_resume",
@@ -432,7 +432,7 @@ extension SocketControlServer {
         }
         guard let restartPath else { return nil }
 
-        events.breadcrumb(
+        events.breadcrumb?(
             "socket.listener.rearm.requested",
             socketListenerEventData(
                 stage: "accept_rearm",
@@ -444,7 +444,7 @@ extension SocketControlServer {
                 ]
             )
         )
-        events.breadcrumb(
+        events.breadcrumb?(
             "socket.listener.rearm.ready",
             socketListenerEventData(
                 stage: "accept_rearm_ready",

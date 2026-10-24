@@ -16,7 +16,7 @@ extension SocketControlServer {
         let directoryPath = URL(fileURLWithPath: path).deletingLastPathComponent().path
         let fd = open(directoryPath, O_EVTONLY)
         guard fd >= 0 else {
-            events.breadcrumb(
+            events.breadcrumb?(
                 "socket.listener.path_monitor.failed",
                 socketListenerEventData(
                     stage: "path_monitor_open",

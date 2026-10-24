@@ -663,16 +663,8 @@ class GhosttyApp {
             self.logBackground(message)
         })
 
-    // Scroll lag tracking
+    // Scroll session tracking
     private(set) var isScrolling = false
-    private var scrollLagSampleCount = 0
-    private var scrollLagTotalMs: Double = 0
-    private var scrollLagMaxMs: Double = 0
-    private let scrollLagThresholdMs: Double = 40
-    private let scrollLagMinimumSamples = 8
-    private let scrollLagMinimumAverageMs: Double = 12
-    private let scrollLagReportCooldownSeconds: TimeInterval = 300
-    private var lastScrollLagReportUptime: TimeInterval?
     @MainActor private lazy var scrollEndTimer = MainActorCoalescingDeadlineTimer(owner: self) { owner in
         owner.endScrollSession()
     }
@@ -698,42 +690,6 @@ class GhosttyApp {
     private func endScrollSession() {
         guard isScrolling else { return }
         isScrolling = false
-
-        // Report accumulated lag stats if any exceeded threshold
-        if scrollLagSampleCount > 0 {
-            let avgLag = scrollLagTotalMs / Double(scrollLagSampleCount)
-            let maxLag = scrollLagMaxMs
-            let samples = scrollLagSampleCount
-            let threshold = scrollLagThresholdMs
-            let nowUptime = ProcessInfo.processInfo.systemUptime
-            if Self.shouldCaptureScrollLagEvent(
-                samples: samples,
-                averageMs: avgLag,
-                maxMs: maxLag,
-                thresholdMs: threshold,
-                minimumSamples: scrollLagMinimumSamples,
-                minimumAverageMs: scrollLagMinimumAverageMs,
-                nowUptime: nowUptime,
-                lastReportedUptime: lastScrollLagReportUptime,
-                cooldown: scrollLagReportCooldownSeconds
-            ) {
-                sentryCaptureWarning(
-                    "Scroll lag detected",
-                    category: "scroll_lag",
-                    data: [
-                        "samples": samples,
-                        "avg_ms": String(format: "%.2f", avgLag),
-                        "max_ms": String(format: "%.2f", maxLag),
-                        "threshold_ms": threshold
-                    ]
-                )
-                lastScrollLagReportUptime = nowUptime
-            }
-            // Reset stats
-            scrollLagSampleCount = 0
-            scrollLagTotalMs = 0
-            scrollLagMaxMs = 0
-        }
     }
 
     private init() {
@@ -775,12 +731,6 @@ class GhosttyApp {
         } else {
             initializationLogger.error("\(message, privacy: .public) \(String(describing: data), privacy: .public)")
         }
-        sentryCaptureError(
-            message,
-            category: "terminal",
-            data: data,
-            contextKey: "ghostty.initialization"
-        )
     }
 
     private func initializeGhostty() {
@@ -1745,29 +1695,6 @@ class GhosttyApp {
         return effectiveTerminalColorScheme
     }
 
-    static func shouldCaptureScrollLagEvent(
-        samples: Int,
-        averageMs: Double,
-        maxMs: Double,
-        thresholdMs: Double,
-        minimumSamples: Int = 8,
-        minimumAverageMs: Double = 12,
-        nowUptime: TimeInterval,
-        lastReportedUptime: TimeInterval?,
-        cooldown: TimeInterval = 300
-    ) -> Bool {
-        guard samples >= minimumSamples else { return false }
-        guard averageMs.isFinite, maxMs.isFinite, thresholdMs.isFinite, nowUptime.isFinite, cooldown.isFinite else {
-            return false
-        }
-        guard averageMs >= minimumAverageMs else { return false }
-        guard maxMs > thresholdMs else { return false }
-        if let lastReportedUptime, nowUptime - lastReportedUptime < cooldown {
-            return false
-        }
-        return true
-    }
-
     private func loadCmuxAppSupportGhosttyConfigIfNeeded(_ config: ghostty_config_t) {
         #if os(macOS)
         let fm = FileManager.default
@@ -1871,18 +1798,9 @@ class GhosttyApp {
 
         guard let app = app else { return }
 
-        let start = CACurrentMediaTime()
         ghostty_app_tick(app)
-        let elapsedMs = (CACurrentMediaTime() - start) * 1000
         if Self.tickNotificationDemand.isActive {
             NotificationCenter.default.post(name: .ghosttyDidTick, object: self)
-        }
-
-        // Track lag during scrolling
-        if isScrolling {
-            scrollLagSampleCount += 1
-            scrollLagTotalMs += elapsedMs
-            scrollLagMaxMs = max(scrollLagMaxMs, elapsedMs)
         }
     }
 

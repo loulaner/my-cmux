@@ -647,11 +647,6 @@ final class CmuxTuiSurfaceProvider: SurfaceProvider {
         // against the budget later event-feed barriers rely on.
         stateRecoveryCount = 0
         retirePendingRemoteRenames(observed: incoming)
-        sentryBreadcrumb(
-            "cloud.state.equalCursorConflictAdopted",
-            category: "cloud",
-            data: ["machine": machineID, "revision": String(cursor.revision)]
-        )
         return true
     }
 

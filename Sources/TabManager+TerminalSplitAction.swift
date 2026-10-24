@@ -27,7 +27,6 @@ extension TabManager {
         // container's currently active pane.
         if let remotePane = workspace.remoteTmuxControlPane(surfaceID: surfaceId) {
             workspace.clearSplitZoom()
-            sentryBreadcrumb("split.create", data: ["direction": String(describing: direction)])
             let accepted = remotePane.owner.requestSplit(
                 fromPane: remotePane.pane.tmuxPaneID,
                 vertical: direction.orientation == .vertical,
@@ -41,7 +40,6 @@ extension TabManager {
         }
         guard workspace.panels[surfaceId] != nil else { return .failed }
         workspace.clearSplitZoom()
-        sentryBreadcrumb("split.create", data: ["direction": String(describing: direction)])
         let outcome = workspace.newTerminalSplitOutcome(
             from: surfaceId,
             orientation: direction.orientation,
@@ -74,7 +72,6 @@ extension TabManager {
     ) -> TerminalPanelCreationOutcome {
         guard let workspace = tabs.first(where: { $0.id == tabId }),
               workspace.panels[surfaceId] != nil else { return .failed }
-        sentryBreadcrumb("split.create", data: ["direction": "autoLayout"])
         return workspace.newTerminalSplitOutcome(
             from: surfaceId,
             orientation: .horizontal,

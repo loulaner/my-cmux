@@ -13,21 +13,22 @@
 /// recovery paths) or the listener queue (accept drain and path monitor);
 /// they must be safe to call from any thread and must not block.
 public struct SocketControlServerEvents: Sendable {
-    /// Emits a non-fatal telemetry breadcrumb (`sentryBreadcrumb` in the app).
-    public let breadcrumb: @Sendable (_ message: String, _ data: [String: any Sendable]) -> Void
+    /// Observes a non-fatal listener event. `nil` means there is no observer;
+    /// listener state transitions and authorization are unchanged.
+    public let breadcrumb: (@Sendable (_ message: String, _ data: [String: any Sendable]) -> Void)?
 
-    /// Reports a listener failure. The host decides whether to escalate the
-    /// breadcrumb to a captured error (the app dedupes through
-    /// ``SocketListenerFailureCaptureGate``).
+    /// Observes a listener failure. `nil` does not suppress recovery or retries.
+    /// An observing host may deduplicate captures through
+    /// ``SocketListenerFailureCaptureGate``.
     /// `data` already contains the listener-state snapshot fields plus
     /// `stage`/`errno` entries; `stage` and `errnoCode` are passed discretely
     /// so the host can build its dedupe key without re-parsing the dictionary.
-    public let failure: @Sendable (
+    public let failure: (@Sendable (
         _ message: String,
         _ stage: String,
         _ errnoCode: Int32?,
         _ data: [String: any Sendable]
-    ) -> Void
+    ) -> Void)?
 
     /// The listener committed to running state and is about to arm the path
     /// monitor and accept source. Invoked synchronously inside `start()` on
@@ -77,8 +78,8 @@ public struct SocketControlServerEvents: Sendable {
 
     /// Creates the event seam.
     /// - Parameters:
-    ///   - breadcrumb: Non-fatal telemetry sink.
-    ///   - failure: Listener-failure sink (breadcrumb + optional capture).
+    ///   - breadcrumb: Optional non-fatal observer; defaults to `nil`.
+    ///   - failure: Optional listener-failure observer; defaults to `nil`.
     ///   - listenerDidStart: Listener-started notification hook (main actor).
     ///   - recordLastSocketPath: Bound-path marker writer.
     ///   - cleanupDiscoveryState: Lock-owned marker/pointer cleanup hook.
@@ -87,8 +88,8 @@ public struct SocketControlServerEvents: Sendable {
     ///   - connectionDropped: Owner of connections the accept buffer could not
     ///     hold; `nil` closes them in the server.
     public init(
-        breadcrumb: @escaping @Sendable (String, [String: any Sendable]) -> Void,
-        failure: @escaping @Sendable (String, String, Int32?, [String: any Sendable]) -> Void,
+        breadcrumb: (@Sendable (String, [String: any Sendable]) -> Void)? = nil,
+        failure: (@Sendable (String, String, Int32?, [String: any Sendable]) -> Void)? = nil,
         listenerDidStart: @escaping @MainActor @Sendable (String, UInt64) -> Void,
         recordLastSocketPath: @escaping @Sendable (String) -> Void,
         cleanupDiscoveryState: @escaping @MainActor @Sendable (String) -> Void = { _ in },

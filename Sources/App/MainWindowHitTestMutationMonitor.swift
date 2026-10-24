@@ -10,8 +10,8 @@ import AppKit
 /// 133 subviews, during cursor-update routing). The walk calls each child's
 /// `hitTest(_:)`, so the code that removes subviews is still on the stack
 /// when `willRemoveSubview(_:)` runs. The first such removal per process is
-/// captured with that stack, which names the re-entrant path even when the
-/// removal does not shrink the array far enough to crash.
+/// recorded in the local debug log, even when it does not shrink the array
+/// far enough to crash.
 @MainActor
 final class MainWindowHitTestMutationMonitor {
     struct Mutation: Equatable {
@@ -22,7 +22,7 @@ final class MainWindowHitTestMutationMonitor {
 
     /// One report per process across all main windows; tests inject a
     /// reporter, which gets its own flag.
-    private static var hasReportedToSentry = false
+    private static var hasReportedLocally = false
 
     private var walkDepth = 0
     private var hasReported = false
@@ -30,7 +30,7 @@ final class MainWindowHitTestMutationMonitor {
 
     var isWalking: Bool { walkDepth > 0 }
 
-    init(report: @escaping @MainActor (Mutation) -> Void = MainWindowHitTestMutationMonitor.reportToSentry) {
+    init(report: @escaping @MainActor (Mutation) -> Void = MainWindowHitTestMutationMonitor.reportLocally) {
         self.report = report
     }
 
@@ -51,24 +51,14 @@ final class MainWindowHitTestMutationMonitor {
         ))
     }
 
-    private static func reportToSentry(_ mutation: Mutation) {
-        guard !hasReportedToSentry else { return }
-        hasReportedToSentry = true
-        let data: [String: Any] = [
-            "removedSubviewType": mutation.removedSubviewType,
-            "subviewCountBeforeRemoval": mutation.subviewCountBeforeRemoval,
-            "eventType": mutation.eventType.map { Int($0) } ?? -1,
-        ]
+    private static func reportLocally(_ mutation: Mutation) {
+        guard !hasReportedLocally else { return }
+        hasReportedLocally = true
 #if DEBUG
         cmuxDebugLog(
             "mainWindow.hitTestMutation removed=\(mutation.removedSubviewType) " +
             "count=\(mutation.subviewCountBeforeRemoval) event=\(mutation.eventType.map(String.init) ?? "nil")"
         )
 #endif
-        sentryCaptureWarning(
-            "Main window root view lost a subview during hit testing",
-            category: "mainWindow.hitTestMutation",
-            data: data
-        )
     }
 }

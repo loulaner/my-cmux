@@ -99,14 +99,6 @@ final class MainWindowFrameReconciler {
                     "from={\(Self.rectDescription(originalFrame))} to={\(Self.rectDescription(targetFrame))}"
             )
 #endif
-            sentryBreadcrumb(
-                "mainWindow.frameRepair.clamp",
-                category: "window",
-                data: [
-                    "from": Self.rectDescription(originalFrame),
-                    "to": Self.rectDescription(targetFrame),
-                ]
-            )
             window.setFrameForManagedPlacement(targetFrame, display: true)
             if window.frame != targetFrame {
                 fitCompleted = false

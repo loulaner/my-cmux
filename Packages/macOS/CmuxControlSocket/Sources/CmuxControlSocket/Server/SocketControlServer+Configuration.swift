@@ -53,7 +53,7 @@ extension SocketControlServer {
             stop()
         } else if isRunning, !ownsConfiguredSocketPath() || !applySocketPermissions() {
             stop()
-            events.breadcrumb(
+            events.breadcrumb?(
                 "socket.listener.configuration.failed_closed",
                 socketListenerEventData(
                     stage: "configuration",
@@ -66,7 +66,7 @@ extension SocketControlServer {
             return false
         }
 
-        events.breadcrumb(
+        events.breadcrumb?(
             "socket.listener.configuration.applied",
             socketListenerEventData(
                 stage: "configuration",

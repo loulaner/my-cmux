@@ -14,6 +14,8 @@ private final class ServerEventRecorder: Sendable {
 
     private struct State {
         var breadcrumbs: [String] = []
+        var order: [String] = []
+        var observedPaths: [String] = []
         var failures: [FailureEvent] = []
         var started: [(path: String, generation: UInt64)] = []
         var recordedPaths: [String] = []
@@ -25,6 +27,8 @@ private final class ServerEventRecorder: Sendable {
     private let state = OSAllocatedUnfairLock(initialState: State())
 
     var breadcrumbs: [String] { state.withLock { $0.breadcrumbs } }
+    var order: [String] { state.withLock { $0.order } }
+    var observedPaths: [String] { state.withLock { $0.observedPaths } }
     var failures: [FailureEvent] { state.withLock { $0.failures } }
     var started: [(path: String, generation: UInt64)] { state.withLock { $0.started } }
     var recordedPaths: [String] { state.withLock { $0.recordedPaths } }
@@ -38,23 +42,36 @@ private final class ServerEventRecorder: Sendable {
 
     /// Builds callbacks that record listener lifecycle events for assertions.
     func makeEvents(
+        observes: Bool = true,
         onStart: @escaping @MainActor @Sendable (String) -> Void = { _ in }
     ) -> SocketControlServerEvents {
-        SocketControlServerEvents(
-            breadcrumb: { message, _ in
-                self.state.withLock { $0.breadcrumbs.append(message) }
-            },
-            failure: { message, stage, errnoCode, _ in
-                self.state.withLock {
-                    $0.failures.append(FailureEvent(message: message, stage: stage, errnoCode: errnoCode))
-                }
-            },
+        let breadcrumb: @Sendable (String, [String: any Sendable]) -> Void = { message, data in
+            self.state.withLock {
+                $0.breadcrumbs.append(message)
+                $0.order.append(message)
+                if let path = data["path"] as? String { $0.observedPaths.append(path) }
+            }
+        }
+        let failure: @Sendable (String, String, Int32?, [String: any Sendable]) -> Void = { message, stage, errnoCode, _ in
+            self.state.withLock {
+                $0.failures.append(FailureEvent(message: message, stage: stage, errnoCode: errnoCode))
+            }
+        }
+        return SocketControlServerEvents(
+            breadcrumb: observes ? breadcrumb : nil,
+            failure: observes ? failure : nil,
             listenerDidStart: { path, generation in
-                self.state.withLock { $0.started.append((path: path, generation: generation)) }
+                self.state.withLock {
+                    $0.started.append((path: path, generation: generation))
+                    $0.order.append("didStart")
+                }
                 onStart(path)
             },
             recordLastSocketPath: { path in
-                self.state.withLock { $0.recordedPaths.append(path) }
+                self.state.withLock {
+                    $0.recordedPaths.append(path)
+                    $0.order.append("marker")
+                }
             },
             cleanupDiscoveryState: { path in
                 let transport = SocketTransport()
@@ -96,7 +113,7 @@ private struct ServerHarness: ~Copyable {
     let server: SocketControlServer
 
     /// Creates an isolated temporary socket server for path-monitor tests.
-    init(onStart: @escaping @MainActor @Sendable (String) -> Void = { _ in }) throws {
+    init(observes: Bool = true, onStart: @escaping @MainActor @Sendable (String) -> Void = { _ in }) throws {
         directory = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("scs-\(UUID().uuidString.prefix(8))", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -105,7 +122,7 @@ private struct ServerHarness: ~Copyable {
         server = SocketControlServer(
             initialSocketPath: socketPath,
             notificationCenter: NotificationCenter(),
-            events: recorder.makeEvents(onStart: onStart)
+            events: recorder.makeEvents(observes: observes, onStart: onStart)
         )
     }
 
@@ -625,5 +642,95 @@ struct SocketControlServerRearmTests {
             consecutiveFailures: 3,
             delayMs: 100
         ) == nil)
+    }
+}
+
+
+@MainActor
+@Suite("SocketControlServer optional observation")
+struct SocketControlServerOptionalObservationTests {
+    @Test func requestedPrivateHomeIsUsedByTestProcess() throws {
+        guard let expected = ProcessInfo.processInfo.environment["CMUX_TEST_PRIVATE_HOME"] else {
+            print("Private HOME assertion not requested")
+            return
+        }
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let support = try #require(FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first).path
+        print("Test-process Foundation home=\(home) support=\(support)")
+        #expect(home == expected)
+        #expect(support.hasPrefix(expected + "/"))
+        #expect(ProcessInfo.processInfo.environment["CFFIXED_USER_HOME"] == expected)
+    }
+
+    @Test(arguments: [false, true])
+    func lifecycleAndPayloadDoNotDependOnObservers(observes: Bool) throws {
+        let harness = try ServerHarness(observes: observes)
+        defer { harness.shutdown() }
+        #expect(harness.server.start(socketPath: harness.socketPath, accessMode: .cmuxOnly))
+        #expect(harness.server.listenerHealth(expectedSocketPath: harness.socketPath).isHealthy)
+        #expect(harness.recorder.recordedPaths == [harness.socketPath])
+        #expect(harness.recorder.started.count == 1)
+        let order = harness.recorder.order
+        let marker = try #require(order.firstIndex(of: "marker"))
+        let started = try #require(order.firstIndex(of: "didStart"))
+        #expect(marker < started)
+        if observes {
+            #expect(harness.recorder.observedPaths.contains(harness.socketPath))
+            #expect(order.contains("socket.listener.listening"))
+        } else {
+            #expect(harness.recorder.breadcrumbs.isEmpty)
+            #expect(harness.recorder.failures.isEmpty)
+        }
+        harness.server.stop()
+        #expect(!harness.server.isRunning)
+        #expect(!FileManager.default.fileExists(atPath: harness.socketPath))
+        #expect(harness.recorder.cleanedPaths.map(\.path) == [harness.socketPath])
+        #expect(harness.recorder.cleanedPaths.map(\.lockWasHeld) == [true])
+    }
+
+    @Test(arguments: [false, true])
+    func realStartupFailureIsNotSuccessWithoutObserver(observes: Bool) throws {
+        let harness = try ServerHarness(observes: observes)
+        defer { harness.shutdown() }
+        try Data("owned regular file".utf8).write(to: URL(fileURLWithPath: harness.socketPath))
+        #expect(!harness.server.start(socketPath: harness.socketPath, accessMode: .cmuxOnly))
+        #expect(!harness.server.isRunning)
+        #expect(harness.recorder.started.isEmpty)
+        #expect(harness.recorder.recordedPaths.isEmpty)
+        #expect(try String(contentsOfFile: harness.socketPath, encoding: .utf8) == "owned regular file")
+        #expect(harness.recorder.failures.isEmpty == !observes)
+        if observes {
+            #expect(harness.recorder.failures.contains { $0.message == "socket.listener.start.failed" })
+        }
+    }
+
+    @Test(arguments: [false, true])
+    func missingPathStillNotifiesAndRestarts(observes: Bool) async throws {
+        let harness = try ServerHarness(observes: observes)
+        defer { harness.shutdown() }
+        #expect(harness.server.start(socketPath: harness.socketPath, accessMode: .cmuxOnly))
+        let generation = try #require(harness.recorder.started.last?.generation)
+        #expect(unlink(harness.socketPath) == 0)
+        let recorder = harness.recorder
+        let event = await withTaskGroup(of: String?.self) { group in
+            group.addTask {
+                for await event in recorder.missingEvents.stream { return event.path }
+                return nil
+            }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(5))
+                return nil
+            }
+            let result = await group.next() ?? nil
+            group.cancelAll()
+            return result
+        }
+        #expect(event == harness.socketPath)
+        #expect(harness.server.shouldRestartForMissingPath(path: harness.socketPath, generation: generation))
+        harness.server.stop()
+        #expect(harness.server.start(socketPath: harness.socketPath, accessMode: .cmuxOnly))
+        #expect(!harness.server.shouldRestartForMissingPath(path: harness.socketPath, generation: generation))
+        #expect(harness.recorder.started.count == 2)
+        #expect(harness.recorder.failures.isEmpty == !observes)
     }
 }

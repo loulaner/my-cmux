@@ -2687,11 +2687,6 @@ struct ContentView: View {
 #if DEBUG
                     cmuxDebugLog("startup.recovery tabCount=\(tabManager.tabs.count) selected=\(tabManager.selectedTabId?.uuidString.prefix(8) ?? "nil") mounted=\(mountedWorkspaceIds.count)")
 #endif
-                    sentryBreadcrumb("startup.recovery", data: [
-                        "tabCount": tabManager.tabs.count,
-                        "selectedTabId": tabManager.selectedTabId?.uuidString ?? "nil",
-                        "mountedCount": mountedWorkspaceIds.count
-                    ])
                 }
             }
         })

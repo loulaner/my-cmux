@@ -1557,8 +1557,6 @@
 		A9F200000000000000000006 /* CmuxRuntimeDebugCaptureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F100000000000000000006 /* CmuxRuntimeDebugCaptureConfiguration.swift */; };
 		A9F20000000000000000001A /* CmuxRuntimeDebugCaptureSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F10000000000000000001A /* CmuxRuntimeDebugCaptureSender.swift */; };
 		A9F200000000000000000007 /* CmuxRuntimeDebugCaptureSequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F100000000000000000007 /* CmuxRuntimeDebugCaptureSequence.swift */; };
-		CE57E10000000000000000B3 /* CmuxSentryReporting in Frameworks */ = {isa = PBXBuildFile; productRef = CE57E10000000000000000B2 /* CmuxSentryReporting */; };
-		CE57E10000000000000000A3 /* CmuxSentryScrubbing in Frameworks */ = {isa = PBXBuildFile; productRef = CE57E10000000000000000A2 /* CmuxSentryScrubbing */; };
 		C5A7E0A1 /* CmuxSettingActionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5A7E0A2 /* CmuxSettingActionRunner.swift */; };
 		C11757000000000000000050 /* CmuxSettings in Frameworks */ = {isa = PBXBuildFile; productRef = 5E27010400000000000000A3 /* CmuxSettings */; };
 		CD0CFE5300000000CD0CFE53 /* CmuxSettings in Frameworks */ = {isa = PBXBuildFile; productRef = CD0CFE5200000000CD0CFE52 /* CmuxSettings */; };
@@ -3218,7 +3216,6 @@
 		65F4FF838519F141D95CF7F3 /* SearchIndexModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96F5C2E8168AB230514B8A01 /* SearchIndexModels.swift */; };
 		3865A0043865A0043865A004 /* SearchIndexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3865B0043865B0043865B004 /* SearchIndexTests.swift */; };
 		C0DEF0C20000000000000001 /* SemanticVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEF0C20000000000000002 /* SemanticVersion.swift */; };
-		A5001601 /* SentryHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5001600 /* SentryHelper.swift */; };
 		FE003106 /* SessionAgentPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE003006 /* SessionAgentPresentation.swift */; };
 		A9F200000000000000000008 /* SessionAgentSessionPanelSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F100000000000000000008 /* SessionAgentSessionPanelSnapshot.swift */; };
 		E7E300000000000000000001 /* SessionAutosaveCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7E300000000000000000002 /* SessionAutosaveCoordinator.swift */; };
@@ -7793,7 +7790,6 @@
 		96F5C2E8168AB230514B8A01 /* SearchIndexModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Search/SearchIndexModels.swift; sourceTree = "<group>"; };
 		3865B0043865B0043865B004 /* SearchIndexTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchIndexTests.swift; sourceTree = "<group>"; };
 		C0DEF0C20000000000000002 /* SemanticVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SemanticVersion.swift; sourceTree = "<group>"; };
-		A5001600 /* SentryHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentryHelper.swift; sourceTree = "<group>"; };
 		FE003006 /* SessionAgentPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAgentPresentation.swift; sourceTree = "<group>"; };
 		A9F100000000000000000008 /* SessionAgentSessionPanelSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAgentSessionPanelSnapshot.swift; sourceTree = "<group>"; };
 		E7E300000000000000000002 /* SessionAutosaveCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAutosaveCoordinator.swift; sourceTree = "<group>"; };
@@ -9284,8 +9280,6 @@
 				CC0DE10000000000000000A3 /* CmuxRemoteDaemon in Frameworks */,
 				CC0DE30000000000000000A3 /* CmuxRemoteSession in Frameworks */,
 				CC0DE20000000000000000A3 /* CmuxRemoteWorkspace in Frameworks */,
-				CE57E10000000000000000B3 /* CmuxSentryReporting in Frameworks */,
-				CE57E10000000000000000A3 /* CmuxSentryScrubbing in Frameworks */,
 				CD0CFE5300000000CD0CFE53 /* CmuxSettings in Frameworks */,
 				CD0CFE5600000000CD0CFE56 /* CmuxSettingsUI in Frameworks */,
 				E3B7A30000000000000000B3 /* CmuxSidebar in Frameworks */,
@@ -11344,7 +11338,6 @@
 				EC7F0102 /* TerminalUploadFailureNotification.swift */,
 				E4321000E4321000E4321002 /* RemoteShellSessionParsing.swift */,
 				A5001225 /* SocketControlMode+Display.swift */,
-				A5001600 /* SentryHelper.swift */,
 				A5001620 /* AppleScriptSupport.swift */,
 				F4350A130000000000000001 /* AppBundleIconPersistencePolicy.swift */,
 				D1320AA0D1320AA0D1320AA4 /* AppIconDockTilePlugin.swift */,
@@ -14164,8 +14157,6 @@
 				D0F2A0000000000000000002 /* CmuxCloudBannerCore */,
 				CA9A10000000000000000002 /* CmuxProductAnalytics */,
 				A5FB1A12 /* CmuxTextActions */,
-				CE57E10000000000000000B2 /* CmuxSentryReporting */,
-				CE57E10000000000000000A2 /* CmuxSentryScrubbing */,
 				CC0DE00000000000000000A2 /* CmuxCore */,
 				CC0DE10000000000000000A2 /* CmuxRemoteDaemon */,
 				CC0DE20000000000000000A2 /* CmuxRemoteWorkspace */,
@@ -16478,7 +16469,6 @@
 				3865A0013865A0013865A001 /* SearchIndex.swift in Sources */,
 				65F4FF838519F141D95CF7F3 /* SearchIndexModels.swift in Sources */,
 				C0DEF0C20000000000000001 /* SemanticVersion.swift in Sources */,
-				A5001601 /* SentryHelper.swift in Sources */,
 				FE003106 /* SessionAgentPresentation.swift in Sources */,
 				A9F200000000000000000008 /* SessionAgentSessionPanelSnapshot.swift in Sources */,
 				E7E300000000000000000001 /* SessionAutosaveCoordinator.swift in Sources */,
@@ -20437,11 +20427,6 @@
 			package = A5FB1A11 /* XCLocalSwiftPackageReference "CmuxTextActions" */;
 			productName = CmuxTextActions;
 		};
-		CE57E10000000000000000A2 /* CmuxSentryScrubbing */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CE57E10000000000000000A1 /* XCLocalSwiftPackageReference "CmuxSentryTelemetry" */;
-			productName = CmuxSentryScrubbing;
-		};
 		D0F3A0000000000000000002 /* CmuxCloudImagePaste */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D0F3A0000000000000000001 /* XCLocalSwiftPackageReference "CmuxCloudImagePaste" */;
@@ -20451,11 +20436,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C4B1E0000000000000000001 /* XCLocalSwiftPackageReference "CmuxMobileHost" */;
 			productName = CmuxMobileHost;
-		};
-		CE57E10000000000000000B2 /* CmuxSentryReporting */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CE57E10000000000000000A1 /* XCLocalSwiftPackageReference "CmuxSentryTelemetry" */;
-			productName = CmuxSentryReporting;
 		};
 		5E2701040000000000000002 /* CmuxFoundation */ = {
 			isa = XCSwiftPackageProductDependency;

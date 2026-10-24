@@ -48,7 +48,6 @@ extension TerminalController {
         if tabManager == nil, let routingFallbackTabManager {
             tabManager = routingFallbackTabManager
         }
-        let previousMode = socketServer.accessMode
         let wasRunning = socketServer.isRunning
         let hadPendingRearm = socketServer.hasPendingAcceptLoopRearm
         let pathChanged = socketServer.updateConfiguredPreferredSocketPath(
@@ -86,18 +85,6 @@ extension TerminalController {
             )
         }
 
-        sentryBreadcrumb(
-            "socket.listener.configuration.reconciled",
-            category: "socket",
-            data: [
-                "previousMode": previousMode.rawValue,
-                "mode": configuration.accessMode.rawValue,
-                "path": configuration.preferredSocketPath,
-                "wasRunning": wasRunning ? 1 : 0,
-                "isRunning": socketServer.isRunning ? 1 : 0,
-                "source": source,
-            ]
-        )
     }
 
     /// Starts listener transport now and attaches window routing only when one exists.

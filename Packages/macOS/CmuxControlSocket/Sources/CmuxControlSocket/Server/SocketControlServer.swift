@@ -250,7 +250,7 @@ public final class SocketControlServer {
         guard let generation = connectionAuthorizationState.refreshEffectivePassword(
             effectivePasswordProvider()
         ) else { return }
-        events.breadcrumb(
+        events.breadcrumb?(
             "socket.listener.authorization.invalidated",
             socketListenerEventData(
                 stage: "authorization",
@@ -503,6 +503,6 @@ public final class SocketControlServer {
         extra: [String: any Sendable] = [:]
     ) {
         let data = socketListenerEventData(stage: stage, errnoCode: errnoCode, extra: extra)
-        events.failure(message, stage, errnoCode, data)
+        events.failure?(message, stage, errnoCode, data)
     }
 }

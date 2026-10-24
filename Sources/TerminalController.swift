@@ -224,8 +224,6 @@ class TerminalController {
     /// Answers connections the pool cannot serve with a real `overloaded`
     /// error instead of a closed descriptor (#13369).
     nonisolated let socketOverloadResponder = TerminalController.makeSocketOverloadResponder()
-    /// Deduplicates the once-per-episode Sentry captures for socket-lane stalls.
-    nonisolated let socketLaneHealth = SocketLaneHealth()
     /// Latest main-actor-published read results. Socket workers consult this
     /// mirror synchronously before falling back to a live command path.
     nonisolated let socketReadSnapshotStore = ControlReadSnapshotStore()
@@ -665,15 +663,7 @@ class TerminalController {
             authorizationChangeSignals: socketPasswordFileWatcher?.events,
             events: Self.makeSocketServerEvents(
                 target: serverEventTarget,
-                markerStore: socketPathMarkerStore,
-                failureCaptureGate: SocketListenerFailureCaptureGate(
-                    // Deleted /tmp dev sockets are routine on dev machines
-                    // (cleanup scripts) and the path monitor self-heals, so
-                    // debug builds keep path.missing as breadcrumbs only.
-                    capturesPathMissingFailures: !SocketControlSettings.isDebugLikeBundleIdentifier(
-                        socketMarkerBundleIdentifier
-                    )
-                )
+                markerStore: socketPathMarkerStore
             )
         )
         self.socketServer = socketServer
@@ -1222,16 +1212,6 @@ class TerminalController {
         let restartMode = socketServer.accessMode
         guard socketServer.shouldRestartForMissingPath(path: path, generation: generation) else { return }
 
-        sentryBreadcrumb(
-            "socket.listener.restart",
-            category: "socket",
-            data: [
-                "mode": restartMode.rawValue,
-                "path": path,
-                "source": "path_monitor",
-                "generation": generation
-            ]
-        )
         if let appDelegate = AppDelegate.shared {
             appDelegate.reconcileSocketListenerConfiguration(source: "path_monitor")
             return
@@ -2382,7 +2362,7 @@ class TerminalController {
             return
         }
         let overloadResponder = socketOverloadResponder
-        let submission = await socketClientWorkerPool.submit { [weak self] in
+        _ = await socketClientWorkerPool.submit { [weak self] in
             guard let self else {
                 close(clientSocket)
                 if claimedPreauthorizationSlot {
@@ -2406,8 +2386,6 @@ class TerminalController {
             }
             overloadResponder.reject(socket: clientSocket, reason: Self.socketOverloadReason(for: dropReason))
         }
-        guard submission == .rejected else { return socketLaneHealth.recordPoolAdmission() }
-        await reportSocketPoolSaturation()
     }
 
     /// Owns the accepted socket until the command loop and source teardown finish.

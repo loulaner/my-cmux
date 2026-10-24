@@ -69,11 +69,6 @@ final class FilePreviewQuickLookContainerView: NSView {
         // Invalidate the slot before any AppKit call. `close()` and
         // `removeFromSuperview()` can synchronously trigger SwiftUI/responder
         // updates while the old Quick Look view is already deactivated.
-        sentryBreadcrumb(
-            "quickLook.preview.retire",
-            category: "filePreview",
-            data: ["reason": reason]
-        )
         previewView.previewItem = nil
         // `shouldCloseWithWindow` transfers closure ownership to this host even
         // when the preview has never entered a window.

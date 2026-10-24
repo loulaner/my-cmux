@@ -1849,3 +1849,7 @@ lane = "macos-shell"
 [[test]]
 path = "tests/test_cli_sentry_removed.py"
 lane = "macos-shell"
+
+[[test]]
+path = "tests/test_mac_sentry_helper_removed.py"
+lane = "macos-shell"

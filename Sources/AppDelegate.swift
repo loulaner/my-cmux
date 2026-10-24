@@ -1876,7 +1876,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         installShortcutDefaultsObserver()
         if !isRunningUnderXCTest {
             GlobalSearchCoordinator.shared.start()
-            sentryStartMemoryContextRefresh()
         }
         SystemWideHotkeyController.shared.start()
         AgentHibernationController.shared.start()
@@ -2047,9 +2046,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             windows: activationWindows,
             trigger: .applicationActivation
         )
-        sentryBreadcrumb("app.didBecomeActive", category: "lifecycle", data: [
-            "tabCount": tabManager?.tabs.count ?? 0
-        ])
         if TelemetrySettings.enabledForCurrentLaunch && !isRunningUnderXCTestCached {
             refreshProductAnalyticsActivityContext()
             PostHogAnalytics.shared.trackActive(reason: "didBecomeActive")
@@ -2457,7 +2453,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
         ClosedItemHistoryStore.shared.flushPendingSaves()
         terminationWatchdog.arm()
-        sentryStopMemoryContextRefresh()
         // Plain quit detaches local ssh clients; explicit close already killed marked sessions.
         remoteTmuxController.detachAll()
         // Best-effort presence goodbye; unclean exits are covered by the
@@ -18336,26 +18331,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         scheduler: @escaping (@escaping @Sendable () -> Void) -> Void = AppDelegate.enqueueLaunchServicesRegistrationWork,
         register: @escaping (CFURL) -> OSStatus = { url in
             LSRegisterURL(url, true)
-        },
-        breadcrumb: @escaping (_ message: String, _ data: [String: Any]) -> Void = { message, data in
-            sentryBreadcrumb(message, category: "startup", data: data)
         }
     ) {
         let normalizedURL = bundleURL.standardizedFileURL
-        breadcrumb("launchservices.register.schedule", [
-            "bundlePath": normalizedURL.path
-        ])
 
         scheduler {
-            let startedAt = CFAbsoluteTimeGetCurrent()
             let registerStatus = register(normalizedURL as CFURL)
-            let durationMs = Int(((CFAbsoluteTimeGetCurrent() - startedAt) * 1000).rounded())
-
-            breadcrumb("launchservices.register.complete", [
-                "bundlePath": normalizedURL.path,
-                "status": Int(registerStatus),
-                "durationMs": durationMs
-            ])
 
             if registerStatus != noErr {
                 NSLog("LaunchServices registration failed (status: \(registerStatus)) for \(normalizedURL.path)")
@@ -18367,14 +18348,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     func scheduleLaunchServicesBundleRegistrationForTesting(
         bundleURL: URL,
         scheduler: @escaping (@escaping @Sendable () -> Void) -> Void,
-        register: @escaping (CFURL) -> OSStatus,
-        breadcrumb: @escaping (_ message: String, _ data: [String: Any]) -> Void = { _, _ in }
+        register: @escaping (CFURL) -> OSStatus
     ) {
         scheduleLaunchServicesBundleRegistration(
             bundleURL: bundleURL,
             scheduler: scheduler,
-            register: register,
-            breadcrumb: breadcrumb
+            register: register
         )
     }
 #endif
