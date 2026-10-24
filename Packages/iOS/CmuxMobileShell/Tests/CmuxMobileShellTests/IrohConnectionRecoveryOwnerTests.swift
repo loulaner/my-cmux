@@ -4,14 +4,11 @@ import CmuxMobileRPC
 import Foundation
 import Testing
 @testable import CmuxMobileShell
-#if DEBUG
-import CmuxMobileShellReleaseGateSupport
-#endif
 
 @MainActor
 extension ReconnectRouteSelectionTests {
     #if DEBUG
-    @Test func soakReconnectReplacesAnAlreadyHealthyConnection() async throws {
+    @Test func explicitDisconnectThenRetryReplacesAnAlreadyHealthyConnection() async throws {
         let fixture = try await makeRecoveryOwnerFixture()
         defer { fixture.release() }
         await fixture.router.setCapabilities([
@@ -23,14 +20,8 @@ extension ReconnectRouteSelectionTests {
         _ = try #require(fixture.store.irohReleaseGateForegroundTarget())
         let originalClient = try #require(fixture.store.remoteClient)
 
-        do {
-            _ = try await fixture.store.runIrohSoakUsageStep(cycle: 119, marker: "SOAK_RECONNECT")
-        } catch let failure as MobileIrohReleaseGateProbeFailure {
-            // This fixture has no native Iroh observation. The observable
-            // regression is whether the stress action actually replaces its
-            // live client before inspecting native connection evidence.
-            #expect(failure == .unauthenticatedIrohSession || failure == .continuityEvidenceUnavailable)
-        }
+        fixture.store.disconnectLiveConnection()
+        #expect(await fixture.store.retryActiveMacReconnect(stackUserID: nil, force: true))
 
         let replacement = try #require(fixture.store.remoteClient)
         #expect(replacement !== originalClient)

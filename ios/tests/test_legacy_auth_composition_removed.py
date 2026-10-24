@@ -28,7 +28,9 @@ class LegacyAuthCompositionRemovalTests(unittest.TestCase):
         rpc = ROOT / 'Packages/iOS/CmuxMobileRPC/Sources/CmuxMobileRPC'
         self.assertIn('MobileArtifactLaneProvider', (rpc / 'MobileArtifactLaneConnection.swift').read_text())
         self.assertIn('terminalLaneProvider', (rpc / 'MobileSyncRuntime.swift').read_text())
-        self.assertTrue((ROOT / 'Packages/iOS/CmuxMobileShell/Sources/CmuxMobileShellReleaseGateSupport').is_dir())
+        self.assertFalse((ROOT / 'Packages/iOS/CmuxMobileShell/Sources/CmuxMobileShellReleaseGateSupport').is_dir())
+        self.assertTrue((ROOT / 'Packages/iOS/CmuxMobileShell/Sources/CmuxMobileShell/MobileShellComposite+IrohReleaseGate.swift').is_file())
+        self.assertTrue((ROOT / 'Packages/iOS/CmuxMobileShell/Tests/CmuxMobileShellTests/MobileIrohReleaseGateTargetTests.swift').is_file())
 
     def test_only_simulator_gate_lane_is_retired(self):
         workflow = (ROOT / '.github/workflows/iroh-release-gate.yml').read_text()
