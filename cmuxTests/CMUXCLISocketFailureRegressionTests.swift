@@ -2,16 +2,16 @@ import Darwin
 import Foundation
 import Testing
 
-private final class CMUXCLISentryTelemetryBundleToken {}
+private final class CMUXCLISocketFailureBundleToken {}
 
-@Suite struct CMUXCLISentryTelemetryRegressionTests {
+@Suite struct CMUXCLISocketFailureRegressionTests {
     private struct ProcessRunResult {
         let status: Int32
         let stdout: String
         let timedOut: Bool
     }
 
-    @Test func staleSocketConnectRefusalDoesNotCaptureSentryTelemetry() throws {
+    @Test func staleSocketConnectRefusalKeepsOrdinaryError() throws {
         let cliPath = try bundledCLIPath()
         let root = URL(
             fileURLWithPath: "/tmp/cmux-sr-\(UUID().uuidString.prefix(8))",
@@ -24,60 +24,47 @@ private final class CMUXCLISentryTelemetryBundleToken {}
         try createStaleSocketFile(at: socketPath)
         defer { unlink(socketPath) }
 
-        let probePath = root.appendingPathComponent("sentry-probe.txt", isDirectory: false).path
         let result = runProcess(
             executablePath: cliPath,
             arguments: ["ping"],
-            environment: sentryProbeEnvironment(socketPath: socketPath, probePath: probePath),
+            environment: isolatedEnvironment(socketPath: socketPath, root: root),
             timeout: 5
         )
 
         #expect(!result.timedOut, Comment(rawValue: result.stdout))
         #expect(result.status != 0, Comment(rawValue: result.stdout))
         #expect(result.stdout.lowercased().contains("connection refused"), Comment(rawValue: result.stdout))
-        #expect(
-            !FileManager.default.fileExists(atPath: probePath),
-            Comment(rawValue: (try? String(contentsOfFile: probePath, encoding: .utf8)) ?? result.stdout)
-        )
     }
 
-    @Test func missingSocketDoesNotCaptureSentryTelemetry() throws {
+    @Test func missingSocketKeepsOrdinaryError() throws {
         let cliPath = try bundledCLIPath()
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("cmux-cli-sentry-missing-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("cmux-cli-failure-missing-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
 
         let socketPath = root.appendingPathComponent("missing.sock", isDirectory: false).path
-        let probePath = root.appendingPathComponent("sentry-probe.txt", isDirectory: false).path
         let result = runProcess(
             executablePath: cliPath,
             arguments: ["ping"],
-            environment: sentryProbeEnvironment(socketPath: socketPath, probePath: probePath),
+            environment: isolatedEnvironment(socketPath: socketPath, root: root),
             timeout: 5
         )
 
         #expect(!result.timedOut, Comment(rawValue: result.stdout))
         #expect(result.status != 0, Comment(rawValue: result.stdout))
         #expect(result.stdout.lowercased().contains("socket not found"), Comment(rawValue: result.stdout))
-        #expect(
-            !FileManager.default.fileExists(atPath: probePath),
-            Comment(rawValue: (try? String(contentsOfFile: probePath, encoding: .utf8)) ?? result.stdout)
-        )
     }
 
-    @Test func unexpectedSocketTelemetryStoresWithoutBlockingForSentryFlush() throws {
+    @Test func missingRelayMetadataFailsWithoutBlocking() throws {
         let cliPath = try bundledCLIPath()
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("cmux-cli-sentry-flush-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("cmux-cli-failure-flush-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
 
         let socketPath = "127.0.0.1:\(try unusedRelayPort())"
-        let captureProbePath = root.appendingPathComponent("sentry-capture-probe.txt", isDirectory: false).path
-        let storeProbePath = root.appendingPathComponent("sentry-store-probe.txt", isDirectory: false).path
-        var environment = sentryProbeEnvironment(socketPath: socketPath, probePath: captureProbePath)
-        environment["CMUX_CLI_SENTRY_STORE_PROBE_PATH"] = storeProbePath
+        let environment = isolatedEnvironment(socketPath: socketPath, root: root)
 
         let result = runProcess(
             executablePath: cliPath,
@@ -89,37 +76,26 @@ private final class CMUXCLISentryTelemetryBundleToken {}
         #expect(!result.timedOut, Comment(rawValue: result.stdout))
         #expect(result.status != 0, Comment(rawValue: result.stdout))
         #expect(result.stdout.contains("Missing relay auth metadata"), Comment(rawValue: result.stdout))
-        #expect(
-            FileManager.default.fileExists(atPath: captureProbePath),
-            Comment(rawValue: "Unexpected relay auth failures should still be captured as telemetry-worthy errors. Output: \(result.stdout)")
-        )
-        #expect(
-            FileManager.default.fileExists(atPath: storeProbePath),
-            Comment(rawValue: "Unexpected relay auth failures should be stored durably without synchronously flushing Sentry. Output: \(result.stdout)")
-        )
     }
 
-    @Test func structuredProtocolCodeControlsSentryCapture() throws {
+    @Test func structuredProtocolCodeControlsOrdinaryError() throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("cmux-cli-sentry-structured-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("cmux-cli-failure-structured-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
 
-        let unavailableProbe = root.appendingPathComponent("unavailable-probe.txt").path
-        let unavailableResult = try runStructuredErrorProbe(
+        let unavailableResult = try runStructuredError(
             code: "unavailable",
-            probePath: unavailableProbe,
+
             root: root
         )
         #expect(!unavailableResult.timedOut, Comment(rawValue: unavailableResult.stdout))
         #expect(unavailableResult.status != 0, Comment(rawValue: unavailableResult.stdout))
         #expect(unavailableResult.stdout.lowercased().contains("unavailable"), Comment(rawValue: unavailableResult.stdout))
-        #expect(!FileManager.default.fileExists(atPath: unavailableProbe))
 
-        let actionableProbe = root.appendingPathComponent("actionable-probe.txt").path
-        let actionableResult = try runStructuredErrorProbe(
+        let actionableResult = try runStructuredError(
             code: "internal_error",
-            probePath: actionableProbe,
+
             root: root
         )
         #expect(!actionableResult.timedOut, Comment(rawValue: actionableResult.stdout))
@@ -128,127 +104,92 @@ private final class CMUXCLISentryTelemetryBundleToken {}
             actionableResult.stdout.contains("internal_error: TabManager not available"),
             Comment(rawValue: actionableResult.stdout)
         )
-        #expect(FileManager.default.fileExists(atPath: actionableProbe))
     }
 
-    @Test func routineProtocolOutcomesDoNotCaptureSentryTelemetry() throws {
+    @Test func routineProtocolOutcomesKeepOrdinaryErrors() throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("cmux-cli-sentry-routine-outcomes-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("cmux-cli-failure-routine-outcomes-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
 
         for code in ["invalid_params", "not_found", "protected", "tab_manager_unavailable"] {
-            let probePath = root.appendingPathComponent("\(code)-probe.txt").path
-            let result = try runStructuredErrorProbe(
+            let result = try runStructuredError(
                 code: code,
-                probePath: probePath,
+
                 root: root
             )
             #expect(!result.timedOut, Comment(rawValue: result.stdout))
             #expect(result.status != 0, Comment(rawValue: result.stdout))
             #expect(result.stdout.lowercased().contains(code), Comment(rawValue: result.stdout))
-            #expect(
-                !FileManager.default.fileExists(atPath: probePath),
-                Comment(rawValue: "Routine protocol outcome \(code) must not create Sentry telemetry. Output: \(result.stdout)")
-            )
         }
     }
 
-    @Test func localPiSurfaceUnavailableSentinelDoesNotCaptureSentryTelemetry() throws {
+    @Test func localPiSurfaceUnavailableSentinelKeepsExit69() throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("cmux-cli-sentry-pi-unavailable-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("cmux-cli-failure-pi-unavailable-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
 
         let surfaceID = "33333333-3333-3333-3333-333333333333"
-        let probePath = root.appendingPathComponent("pi-unavailable-probe.txt").path
-        let result = try runPiSurfaceUnavailableProbe(
+        let result = try runPiSurfaceUnavailable(
             surfaceID: surfaceID,
-            probePath: probePath,
+
             root: root
         )
 
         #expect(!result.timedOut, Comment(rawValue: result.stdout))
         #expect(result.status == 69, Comment(rawValue: result.stdout))
         #expect(result.stdout.lowercased().contains("surface not found"), Comment(rawValue: result.stdout))
-        #expect(
-            !FileManager.default.fileExists(atPath: probePath),
-            Comment(rawValue: "Pi's local surface-unavailable sentinel must not create Sentry telemetry. Output: \(result.stdout)")
-        )
     }
 
     @Test func expectedAgentHookFailureDoesNotConsumeActionableThrottleSlot() throws {
-        let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("cmux-cli-sentry-agent-hook-throttle-\(UUID().uuidString)", isDirectory: true)
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("cmux-local-slot-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
-
-        let sessionID = "sentry-hook-shared-\(UUID().uuidString)"
-        let expectedProbe = root.appendingPathComponent("expected.txt").path
-        let expectedResult = try runAgentHookErrorProbe(
-            message: "TabManager not available",
-            probePath: expectedProbe,
-            root: root,
-            sessionID: sessionID
-        )
-        #expect(!expectedResult.timedOut, Comment(rawValue: expectedResult.stdout))
-        #expect(!FileManager.default.fileExists(atPath: expectedProbe))
-
-        let actionableProbe = root.appendingPathComponent("actionable.txt").path
-        let actionableResult = try runAgentHookErrorProbe(
-            message: "remote proxy failed: TabManager not available",
-            probePath: actionableProbe,
-            root: root,
-            sessionID: sessionID
-        )
-        #expect(!actionableResult.timedOut, Comment(rawValue: actionableResult.stdout))
-        #expect(
-            FileManager.default.fileExists(atPath: actionableProbe),
-            Comment(rawValue: "An actionable failure after expected noise must remain reportable. Output: \(actionableResult.stdout)")
-        )
+        let sessionID = "local-hook-shared"
+        let expected = try runAgentHookError(message: "TabManager not available", root: root, sessionID: sessionID)
+        #expect(!expected.timedOut, Comment(rawValue: expected.stdout))
+        #expect(!hasLocalFailureSlot(root: root, sessionID: sessionID))
+        let actionable = try runAgentHookError(message: "remote proxy failed: TabManager not available", root: root, sessionID: sessionID)
+        #expect(!actionable.timedOut, Comment(rawValue: actionable.stdout))
+        #expect(hasLocalFailureSlot(root: root, sessionID: sessionID))
     }
 
-    @Test func agentHookLifecycleClassificationKeepsActionableFailures() throws {
-        let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("cmux-cli-sentry-agent-hook-\(UUID().uuidString)", isDirectory: true)
+    @Test(arguments: [
+        [String: String](),
+        ["CMUX_CLI_SENTRY_DISABLED": "1"],
+        ["CMUX_CLAUDE_HOOK_SENTRY_DISABLED": "1"],
+        ["CMUX_BUNDLE_ID": "foreign.fixture"],
+    ])
+    func agentHookLifecycleClassificationKeepsActionableFailures(overrides: [String: String]) throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("cmux-local-matrix-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
-
-        let expectedProbe = root.appendingPathComponent("expected-agent-hook.txt").path
-        let expectedResult = try runAgentHookErrorProbe(
-            message: "TabManager not available",
-            probePath: expectedProbe,
-            root: root
-        )
-        #expect(!expectedResult.timedOut, Comment(rawValue: expectedResult.stdout))
-        #expect(!FileManager.default.fileExists(atPath: expectedProbe))
-
-        let actionableProbe = root.appendingPathComponent("actionable-agent-hook.txt").path
-        let actionableResult = try runAgentHookErrorProbe(
-            message: "remote proxy failed: TabManager not available",
-            probePath: actionableProbe,
-            root: root
-        )
-        #expect(!actionableResult.timedOut, Comment(rawValue: actionableResult.stdout))
-        #expect(FileManager.default.fileExists(atPath: actionableProbe))
+        let expected = try runAgentHookError(message: "TabManager not available", root: root, sessionID: "expected", overrides: overrides)
+        #expect(!expected.timedOut, Comment(rawValue: expected.stdout))
+        #expect(hasLocalFailureSlot(root: root, sessionID: "expected") == !overrides.isEmpty)
+        let actionable = try runAgentHookError(message: "remote proxy failed: TabManager not available", root: root, sessionID: "actionable", overrides: overrides)
+        #expect(!actionable.timedOut, Comment(rawValue: actionable.stdout))
+        #expect(hasLocalFailureSlot(root: root, sessionID: "actionable"))
     }
 
-    @Test func foreignBundleIdentityDoesNotCaptureSentryTelemetry() throws {
-        // The cmux repo is public and rebranded forks have shipped with the
-        // cmux CLI DSN intact (Sentry issue CMUXTERM-MACOS-1RZF: ~11k
-        // "mosaic_cli" events). A build whose identity is not a cmux bundle
-        // must not emit CLI Sentry telemetry, even for capture-worthy errors.
+    private func hasLocalFailureSlot(root: URL, sessionID: String) -> Bool {
+        let path = root.appendingPathComponent("codex-hook-sessions.json")
+        guard let data = try? Data(contentsOf: path),
+              let state = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let slots = state["agentHookFailureReportTimestamps"] as? [String: Any] else { return false }
+        return slots["codex:notification-delivery:\(sessionID)"] != nil
+    }
+
+    @Test func foreignBundleIdentityKeepsRelayAuthenticationError() throws {
         let cliPath = try bundledCLIPath()
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("cmux-cli-sentry-foreign-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("cmux-cli-failure-foreign-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
 
         let socketPath = "127.0.0.1:\(try unusedRelayPort())"
-        let captureProbePath = root.appendingPathComponent("sentry-capture-probe.txt", isDirectory: false).path
-        let storeProbePath = root.appendingPathComponent("sentry-store-probe.txt", isDirectory: false).path
-        var environment = sentryProbeEnvironment(socketPath: socketPath, probePath: captureProbePath)
-        environment["CMUX_CLI_SENTRY_STORE_PROBE_PATH"] = storeProbePath
+        var environment = isolatedEnvironment(socketPath: socketPath, root: root)
         environment["CMUX_BUNDLE_ID"] = "mosaic.com.emergent.app"
 
         let result = runProcess(
@@ -261,17 +202,9 @@ private final class CMUXCLISentryTelemetryBundleToken {}
         #expect(!result.timedOut, Comment(rawValue: result.stdout))
         #expect(result.status != 0, Comment(rawValue: result.stdout))
         #expect(result.stdout.contains("Missing relay auth metadata"), Comment(rawValue: result.stdout))
-        #expect(
-            !FileManager.default.fileExists(atPath: captureProbePath),
-            Comment(rawValue: "A non-cmux build identity must not capture CLI Sentry telemetry. Output: \(result.stdout)")
-        )
-        #expect(
-            !FileManager.default.fileExists(atPath: storeProbePath),
-            Comment(rawValue: "A non-cmux build identity must not store CLI Sentry envelopes. Output: \(result.stdout)")
-        )
     }
 
-    @Test func commandTimeoutTelemetryIsFingerprintedAndThrottledPerStage() throws {
+    @Test func repeatedCommandTimeoutsKeepOrdinaryErrors() throws {
         let cliPath = try bundledCLIPath()
         let root = URL(
             fileURLWithPath: "/tmp/cmux-st-\(UUID().uuidString.prefix(8))",
@@ -289,13 +222,9 @@ private final class CMUXCLISentryTelemetryBundleToken {}
             unlink(socketPath)
         }
 
-        func runPing(captureProbePath: String, storeProbePath: String) -> ProcessRunResult {
-            var environment = sentryProbeEnvironment(socketPath: socketPath, probePath: captureProbePath)
-            environment["CMUX_CLI_SENTRY_STORE_PROBE_PATH"] = storeProbePath
-            // The throttle claim state defaults to the real user home
-            // (expandingTildeInPath ignores the HOME override), so pin it
-            // inside the test root: both runs must share one state file
-            // without touching or depending on the machine's own state.
+        func runPing() -> ProcessRunResult {
+            var environment = isolatedEnvironment(socketPath: socketPath, root: root)
+            // Keep any incidental hook state inside the shared fixture root.
             environment["CMUX_CLAUDE_HOOK_STATE_PATH"] = root
                 .appendingPathComponent("claude-hook-sessions.json", isDirectory: false).path
             return runProcess(
@@ -306,52 +235,31 @@ private final class CMUXCLISentryTelemetryBundleToken {}
             )
         }
 
-        let firstCaptureProbe = root.appendingPathComponent("capture-1.txt", isDirectory: false).path
-        let firstStoreProbe = root.appendingPathComponent("store-1.txt", isDirectory: false).path
-        let first = runPing(captureProbePath: firstCaptureProbe, storeProbePath: firstStoreProbe)
+        let first = runPing()
 
         #expect(!first.timedOut, Comment(rawValue: first.stdout))
         #expect(first.status != 0, Comment(rawValue: first.stdout))
         #expect(first.stdout.contains("Command timed out"), Comment(rawValue: first.stdout))
-        #expect(
-            FileManager.default.fileExists(atPath: firstCaptureProbe),
-            Comment(rawValue: "The first timed-out command per stage must stay reportable. Output: \(first.stdout)")
-        )
-        let firstStorePayload = (try? String(contentsOfFile: firstStoreProbe, encoding: .utf8)) ?? "<missing>"
-        #expect(
-            firstStorePayload.contains("fingerprint=cmux-cli|socket_command|command-timed-out"),
-            Comment(rawValue: "Timed-out commands need their own stage-scoped Sentry fingerprint. Store probe: \(firstStorePayload)")
-        )
 
-        let secondCaptureProbe = root.appendingPathComponent("capture-2.txt", isDirectory: false).path
-        let secondStoreProbe = root.appendingPathComponent("store-2.txt", isDirectory: false).path
-        let second = runPing(captureProbePath: secondCaptureProbe, storeProbePath: secondStoreProbe)
+        let second = runPing()
 
         #expect(!second.timedOut, Comment(rawValue: second.stdout))
         #expect(second.status != 0, Comment(rawValue: second.stdout))
         #expect(second.stdout.contains("Command timed out"), Comment(rawValue: second.stdout))
-        #expect(
-            !FileManager.default.fileExists(atPath: secondCaptureProbe),
-            Comment(rawValue: "A repeat timed-out command inside the throttle window must be deduplicated, not re-captured. Output: \(second.stdout)")
-        )
-        #expect(
-            !FileManager.default.fileExists(atPath: secondStoreProbe),
-            Comment(rawValue: "A throttled timed-out command must not store a Sentry envelope. Output: \(second.stdout)")
-        )
     }
 
     private func bundledCLIPath() throws -> String {
-        try BundledCLITestSupport.bundledCLIPath(for: CMUXCLISentryTelemetryBundleToken.self)
+        try BundledCLITestSupport.bundledCLIPath(for: CMUXCLISocketFailureBundleToken.self)
     }
 
-    private func runStructuredErrorProbe(
+    private func runStructuredError(
         code: String,
-        probePath: String,
+
         root: URL
     ) throws -> ProcessRunResult {
         try runMockSocketProcess(
             arguments: ["capabilities"],
-            probePath: probePath,
+
             root: root
         ) { line in
             guard let requestData = line.data(using: .utf8),
@@ -374,29 +282,27 @@ private final class CMUXCLISentryTelemetryBundleToken {}
         }
     }
 
-    private func runPiSurfaceUnavailableProbe(
+    private func runPiSurfaceUnavailable(
         surfaceID: String,
-        probePath: String,
+
         root: URL
     ) throws -> ProcessRunResult {
         let inputData = try JSONSerialization.data(withJSONObject: [
-            "session_id": "pi-sentry-\(UUID().uuidString)",
+            "session_id": "pi-failure-\(UUID().uuidString)",
             "hook_event_name": "PostToolUse",
             "cwd": root.path,
         ])
-        var environmentOverrides = [
+        let environmentOverrides = [
             "CMUX_SURFACE_ID": surfaceID,
             "CMUX_AGENT_HOOK_STATE_DIR": root.path,
             "CMUX_CLI_SENTRY_DISABLED": "0",
         ]
-        environmentOverrides["CMUX_CLI_SENTRY_CAPTURE_PROBE_PATH"] = probePath
 
         return try runMockSocketProcess(
             arguments: [
                 "hooks", "pi", "post-tool-use",
                 "--surface", surfaceID,
             ],
-            probePath: probePath,
             root: root,
             stdinText: String(decoding: inputData, as: UTF8.self),
             environmentOverrides: environmentOverrides
@@ -423,15 +329,16 @@ private final class CMUXCLISentryTelemetryBundleToken {}
         }
     }
 
-    private func runAgentHookErrorProbe(
+    private func runAgentHookError(
         message: String,
-        probePath: String,
+
         root: URL,
-        sessionID: String? = nil
+        sessionID: String? = nil,
+        overrides: [String: String] = [:]
     ) throws -> ProcessRunResult {
         let workspaceID = "11111111-1111-1111-1111-111111111111"
         let surfaceID = "22222222-2222-2222-2222-222222222222"
-        let resolvedSessionID = sessionID ?? "sentry-hook-\(UUID().uuidString)"
+        let resolvedSessionID = sessionID ?? "local-hook-\(UUID().uuidString)"
         let transcriptURL = root.appendingPathComponent("rollout-\(resolvedSessionID).jsonl")
         try #"{"type":"session_meta","payload":{"id":"\#(resolvedSessionID)","source":"cli","originator":"codex-tui"}}"#
             .write(to: transcriptURL, atomically: true, encoding: .utf8)
@@ -451,15 +358,14 @@ private final class CMUXCLISentryTelemetryBundleToken {}
             "CMUX_AGENT_HOOK_STATE_DIR": root.path,
             "CMUX_CLI_SENTRY_DISABLED": "0",
         ]
-        environmentOverrides["CMUX_CLI_SENTRY_CAPTURE_PROBE_PATH"] = probePath
 
+        environmentOverrides.merge(overrides, uniquingKeysWith: { _, new in new })
         return try runMockSocketProcess(
             arguments: [
                 "hooks", "codex", "stop",
                 "--workspace", workspaceID,
                 "--surface", surfaceID,
             ],
-            probePath: probePath,
             root: root,
             stdinText: input,
             environmentOverrides: environmentOverrides
@@ -515,7 +421,7 @@ private final class CMUXCLISentryTelemetryBundleToken {}
 
     private func runMockSocketProcess(
         arguments: [String],
-        probePath: String,
+
         root: URL,
         stdinText: String? = nil,
         environmentOverrides: [String: String] = [:],
@@ -537,15 +443,11 @@ private final class CMUXCLISentryTelemetryBundleToken {}
             unlink(socketPath)
         }
 
-        var environment = ProcessInfo.processInfo.environment
-        for key in Array(environment.keys) where key.hasPrefix("CMUX_") {
-            environment.removeValue(forKey: key)
-        }
+        var environment = BundledCLITestSupport.hermeticCLIEnvironment(home: root)
         environment["CMUX_SOCKET_PATH"] = socketPath
-        environment["CMUX_CLI_SENTRY_CAPTURE_PROBE_PATH"] = probePath
+        environment["CMUX_BUNDLE_ID"] = "com.loulaner.mycmux.debug.cli-failure-fixture"
+        environment["CMUX_CLI_SENTRY_DISABLED"] = "0"
         environment["CMUXTERM_CLI_RESPONSE_TIMEOUT_SEC"] = "1"
-        environment["HOME"] = root.path
-        environment["CFFIXED_USER_HOME"] = root.path
         environment.merge(environmentOverrides, uniquingKeysWith: { _, new in new })
         return runProcess(
             executablePath: try bundledCLIPath(),
@@ -589,17 +491,10 @@ private final class CMUXCLISentryTelemetryBundleToken {}
         return fd
     }
 
-    private func sentryProbeEnvironment(socketPath: String, probePath: String) -> [String: String] {
-        var environment = ProcessInfo.processInfo.environment
-        for key in Array(environment.keys) where key.hasPrefix("CMUX_") {
-            environment.removeValue(forKey: key)
-        }
+    private func isolatedEnvironment(socketPath: String, root: URL) -> [String: String] {
+        var environment = BundledCLITestSupport.hermeticCLIEnvironment(home: root)
         environment["CMUX_SOCKET_PATH"] = socketPath
-        environment["CMUX_CLI_SENTRY_CAPTURE_PROBE_PATH"] = probePath
         environment["CMUXTERM_CLI_RESPONSE_TIMEOUT_SEC"] = "0.1"
-        let home = URL(fileURLWithPath: probePath).deletingLastPathComponent().path
-        environment["HOME"] = home
-        environment["CFFIXED_USER_HOME"] = home
         return environment
     }
 

@@ -1,3 +1,4 @@
+import CmuxFoundation
 import Foundation
 import OSLog
 
@@ -31,7 +32,7 @@ extension CMUXCLI {
         error: Error? = nil,
         failureKind: String? = nil,
         store: ClaudeHookSessionStore,
-        telemetry: CLISocketSentryTelemetry,
+        classificationContext: AgentHookFailureClassificationContext,
         deadline: Date? = nil
     ) {
         let shortSessionId = String(sessionId.prefix(12))
@@ -88,11 +89,12 @@ extension CMUXCLI {
         ]
         // Classify before claiming the durable slot. Expected lifecycle noise
         // must not suppress a later actionable failure for the same session.
-        guard !telemetry.isExpectedFailure(
+        guard !isExpectedAgentHookFailure(
             stage: telemetryStage,
             error: reportableError,
             data: telemetryData,
-            classificationError: error
+            classificationError: error,
+            context: classificationContext
         ) else {
             return
         }
@@ -107,11 +109,96 @@ extension CMUXCLI {
         agentHookDeliveryLogger.error(
             "Agent hook failed stage=\(stage.rawValue, privacy: .public) event=\(event, privacy: .public) agent=\(agentName, privacy: .public) session=\(shortSessionId, privacy: .private(mask: .hash)) errorType=\(errorType, privacy: .private(mask: .hash)) description=\(failureDescription, privacy: .public)"
         )
-        telemetry.captureError(
-            stage: telemetryStage,
-            error: reportableError,
-            data: telemetryData,
-            classificationError: error
+    }
+
+    /// Preserves original provenance and eligibility before claiming a local log slot.
+    private func isExpectedAgentHookFailure(
+        stage: String,
+        error: Error,
+        data: [String: Any],
+        classificationError: Error?,
+        context: AgentHookFailureClassificationContext
+    ) -> Bool {
+        guard context.filtersExpectedFailures else { return false }
+        let noiseFilter = SentryNoiseFilter()
+        let errorDescription = String(describing: error)
+        let classificationCandidate = classificationError ?? error
+        let cliErrorMetadata = agentHookCLIErrorMetadata(for: classificationCandidate)
+        let classificationMessage = cliErrorMetadata.legacyMessage
+            ?? String(describing: classificationCandidate)
+        let dataKeys = Set(data.keys)
+        let isAgentHookStage = stage.hasPrefix("agent-hook-")
+        let hasStructuredCLIErrorCode = cliErrorMetadata.code?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        let isExpectedAgentHookCLIError =
+            isAgentHookStage &&
+            (noiseFilter.isExpectedCLIAppLifecycleError(
+                code: cliErrorMetadata.code,
+                message: classificationMessage
+            ) ||
+                cliErrorMetadata.socketPathMissing)
+        let isExpectedLegacyCLIError: Bool
+        if !hasStructuredCLIErrorCode {
+            isExpectedLegacyCLIError =
+                noiseFilter.isExpectedCLISocketTransportFailure(
+                    stage: stage,
+                    message: classificationMessage,
+                    dataKeys: dataKeys,
+                    allowSandboxPolicyDenial: context.allowsSandboxPolicyDenial
+                ) ||
+                (isAgentHookStage &&
+                    noiseFilter.isExpectedLegacyCLIAppLifecycleMessage(classificationMessage))
+        } else {
+            isExpectedLegacyCLIError = false
+        }
+        let isExpectedTransportFailure = noiseFilter.isExpectedCLISocketTransportFailure(
+            stage: stage,
+            message: errorDescription,
+            dataKeys: dataKeys,
+            allowSandboxPolicyDenial: context.allowsSandboxPolicyDenial,
+            cliErrorCode: cliErrorMetadata.code,
+            socketPathMissing: cliErrorMetadata.socketPathMissing
+        )
+        let isExpectedProtocolOutcome =
+            cliErrorMetadata.isStructuredProtocolResponse &&
+            noiseFilter.isExpectedCLIProtocolOutcomeCode(cliErrorMetadata.code)
+        return isExpectedAgentHookCLIError ||
+                isExpectedLegacyCLIError ||
+                isExpectedTransportFailure ||
+                isExpectedProtocolOutcome
+    }
+
+    private func agentHookCLIErrorMetadata(for error: Error) -> (code: String?, socketPathMissing: Bool, legacyMessage: String?, isStructuredProtocolResponse: Bool) {
+        if let cliError = error as? CLIError {
+            return (
+                code: cliError.v2Code,
+                socketPathMissing: cliError.socketFailureKind == .pathMissing,
+                legacyMessage: String(describing: cliError),
+                isStructuredProtocolResponse: cliError.isStructuredProtocolResponse
+            )
+        }
+
+        // A few command helpers wrap failures in NSError. Walk the standard
+        // underlying-error chain so the same policy applies after wrapping,
+        // while keeping a hard bound against malformed cycles.
+        var current: NSError? = error as NSError
+        var remaining = 8
+        while let candidate = current, remaining > 0 {
+            if let underlying = candidate.userInfo[NSUnderlyingErrorKey] as? CLIError {
+                return (
+                    code: underlying.v2Code,
+                    socketPathMissing: underlying.socketFailureKind == .pathMissing,
+                    legacyMessage: String(describing: underlying),
+                    isStructuredProtocolResponse: underlying.isStructuredProtocolResponse
+                )
+            }
+            current = candidate.userInfo[NSUnderlyingErrorKey] as? NSError
+            remaining -= 1
+        }
+        return (
+            code: nil,
+            socketPathMissing: false,
+            legacyMessage: nil,
+            isStructuredProtocolResponse: false
         )
     }
 }

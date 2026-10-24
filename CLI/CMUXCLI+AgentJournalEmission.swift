@@ -12,7 +12,7 @@ extension CMUXCLI {
     /// so the app surfaces it as a diagnostic instead of guessing a pane.
     ///
     /// Delivery failures are never silent: they land in the dead-letter file
-    /// and, when a session store and telemetry are provided, in the throttled
+    /// and, when a session store and classification context are provided, in the throttled
     /// hook-failure report channel.
     func emitAgentJournalEvent(
         client: SocketClient,
@@ -33,7 +33,7 @@ extension CMUXCLI {
         responseTimeout: TimeInterval? = nil,
         deadline: Date? = nil,
         store: ClaudeHookSessionStore? = nil,
-        telemetry: CLISocketSentryTelemetry? = nil
+        classificationContext: AgentHookFailureClassificationContext? = nil
     ) {
         // A malformed or partial target (empty string, non-UUID, missing
         // half) is never trusted: the event is journaled as an explicit
@@ -71,7 +71,7 @@ extension CMUXCLI {
                 message: "invalid draft: \(problem)",
                 failureKind: "invalid-draft",
                 store: store,
-                telemetry: telemetry,
+                classificationContext: classificationContext,
                 deadline: deadline
             )
             return
@@ -85,7 +85,7 @@ extension CMUXCLI {
                 message: "encode failed",
                 failureKind: "encode-failed",
                 store: store,
-                telemetry: telemetry,
+                classificationContext: classificationContext,
                 deadline: deadline
             )
             return
@@ -108,7 +108,7 @@ extension CMUXCLI {
                     failureKind: Self.agentJournalReplyFailureKind(response),
                     error: CLIError(message: response),
                     store: store,
-                    telemetry: telemetry,
+                    classificationContext: classificationContext,
                     deadline: deadline
                 )
                 return
@@ -119,7 +119,7 @@ extension CMUXCLI {
                 message: String(describing: error),
                 error: error,
                 store: store,
-                telemetry: telemetry,
+                classificationContext: classificationContext,
                 deadline: deadline
             )
         }
@@ -180,12 +180,12 @@ extension CMUXCLI {
         failureKind: String? = nil,
         error: Error? = nil,
         store: ClaudeHookSessionStore?,
-        telemetry: CLISocketSentryTelemetry?,
+        classificationContext: AgentHookFailureClassificationContext?,
         deadline: Date? = nil
     ) {
         appendAgentJournalDeadLetter(draft: draft, message: message)
         cliWriteStderr("Warning: agent journal append failed (\(draft.kind.rawValue)): \(message)\n")
-        if let store, let telemetry {
+        if let store, let classificationContext {
             reportAgentHookFailure(
                 stage: .journalAppend,
                 agentName: draft.source,
@@ -194,7 +194,7 @@ extension CMUXCLI {
                 error: error,
                 failureKind: failureKind,
                 store: store,
-                telemetry: telemetry,
+                classificationContext: classificationContext,
                 deadline: deadline
             )
         }

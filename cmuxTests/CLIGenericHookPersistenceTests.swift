@@ -3455,17 +3455,23 @@ extension CLINotifyProcessIntegrationRegressionTests {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
 
-        func environment(socketPath: String, probePath: String? = nil) -> [String: String] {
-            var values: [String: String] = [
+        func environment(socketPath: String) -> [String: String] {
+            let values: [String: String] = [
                 "HOME": root.path,
+                "CFFIXED_USER_HOME": root.path,
+                "XDG_CONFIG_HOME": root.appendingPathComponent("config").path,
+                "XDG_DATA_HOME": root.appendingPathComponent("data").path,
+                "XDG_STATE_HOME": root.appendingPathComponent("state").path,
+                "XDG_CACHE_HOME": root.appendingPathComponent("cache").path,
+                "TMPDIR": root.path,
+                "CMUX_TEST_ISOLATED_SOCKET_DISCOVERY": "1",
                 "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
                 "PWD": root.path,
                 "CMUX_SOCKET_PATH": socketPath,
                 "CMUX_AGENT_HOOK_STATE_DIR": root.path,
-                "CMUX_CLI_SENTRY_DISABLED": probePath == nil ? "1" : "0",
+                "CMUX_CLI_SENTRY_DISABLED": "1",
                 "GROK_HOME": root.appendingPathComponent("grok-home", isDirectory: true).path,
             ]
-            values["CMUX_CLI_SENTRY_CAPTURE_PROBE_PATH"] = probePath
             return values
         }
 
@@ -3545,7 +3551,6 @@ extension CLINotifyProcessIntegrationRegressionTests {
         let failureSocketPath = makeSocketPath("grok-live-failure")
         let failureListenerFD = try bindUnixSocket(at: failureSocketPath)
         let failureState = MockSocketServerState()
-        let probePath = root.appendingPathComponent("target-resolution-error.txt", isDirectory: false).path
         defer {
             Darwin.close(failureListenerFD)
             unlink(failureSocketPath)
@@ -3570,8 +3575,7 @@ extension CLINotifyProcessIntegrationRegressionTests {
             executablePath: cliPath,
             arguments: ["hooks", "grok", "session-start"],
             environment: environment(
-                socketPath: failureSocketPath,
-                probePath: probePath
+                socketPath: failureSocketPath
             ),
             standardInput: #"{"sessionId":"grok-failed-session","cwd":"\#(root.path)","hookEventName":"SessionStart"}"#,
             timeout: 5
@@ -3579,13 +3583,9 @@ extension CLINotifyProcessIntegrationRegressionTests {
         XCTAssertFalse(failedStart.timedOut, failedStart.stderr)
         XCTAssertEqual(failedStart.status, 0, failedStart.stderr)
         XCTAssertEqual(failedStart.stdout, "{}\n")
-        let capturedError = try String(contentsOfFile: probePath, encoding: .utf8)
-        XCTAssertTrue(
-            capturedError.contains("stage=agent-hook-target-resolution")
-                && capturedError.contains("Agent hook target resolution failed for grok session-start."),
-            "Target-resolution telemetry must describe the failure, saw \(capturedError)"
-        )
-        XCTAssertFalse(capturedError.contains("(null)"), capturedError)
+        let failureStore = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: storeURL)) as? [String: Any])
+        let slots = try XCTUnwrap(failureStore["agentHookFailureReportTimestamps"] as? [String: Any])
+        XCTAssertNotNil(slots["grok:target-resolution:grok-failed-session"])
     }
 
     func testGrokStopFallbackCompletionsFireForTwoConcurrentThreads() throws {

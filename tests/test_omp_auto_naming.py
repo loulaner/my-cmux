@@ -84,6 +84,11 @@ def run_case(cli, agent, override=None):
         try:
             environment = {
                 "HOME": temporary, "PATH": f"{temporary}:/usr/bin:/bin",
+                "CFFIXED_USER_HOME": temporary,
+                "XDG_CONFIG_HOME": temporary, "XDG_DATA_HOME": temporary,
+                "XDG_STATE_HOME": temporary, "XDG_CACHE_HOME": temporary,
+                "TMPDIR": temporary,
+                "CMUX_TEST_ISOLATED_SOCKET_DISCOVERY": "1",
                 "CMUX_AGENT_HOOK_STATE_DIR": temporary,
                 "CMUX_CLAUDE_HOOK_STATE_PATH": str(store),
                 "CMUX_SOCKET_PATH": socket_path,

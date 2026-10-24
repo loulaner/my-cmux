@@ -3172,7 +3172,6 @@ final class SocketClient {
     private(set) var socketFD: Int32 = -1
     private var streamReadBuffer = Data()
     private var lastConfiguredReceiveTimeout: TimeInterval?
-    private var lastOperationTelemetry: CLISocketOperationTelemetry.State?
     private var authenticationPassword: String?
     /// Whether ``configureAuthentication(password:)`` ran, so a resolved
     /// "no password" is distinguishable from one never resolved.
@@ -3269,11 +3268,9 @@ final class SocketClient {
         return SocketTransport().peerProcessID(of: socketFD)
     }
 
-    func operationTelemetryContext() -> [String: Any] {
-        lastOperationTelemetry?.context() ?? [:]
-    }
 
-    func hasUnfinishedOperationTelemetry() -> Bool { lastOperationTelemetry.map { $0.phase != .completed } ?? false }
+
+
 
     private var relayEndpoint: RelayEndpoint? {
         Self.parseRelayEndpoint(path)
@@ -3301,9 +3298,7 @@ final class SocketClient {
         )
     }
 
-    private func recordOperation(_ operation: CLISocketOperationTelemetry.State) {
-        lastOperationTelemetry = operation
-    }
+
 
     func connect() throws {
         try connectWithRetry(deadline: nil)
@@ -3779,13 +3774,6 @@ final class SocketClient {
         let initialResponseTimeout = try boundedTimeout(requestedResponseTimeout, until: operationDeadline)
         try configureResponseReceiveTimeout(initialResponseTimeout)
         _ = try? configureSocketWriteSafety(initialResponseTimeout)
-        var operation = CLISocketOperationTelemetry.State(
-            name: CLISocketOperationTelemetry.operationName(for: command),
-            timeout: initialResponseTimeout,
-            startedAt: Date(),
-            phase: .writeRequest
-        )
-        recordOperation(operation)
 
         let automationCommand = Self.automationEnvelopeCommand(command)
         let capabilityCommand = includeCapability
@@ -3806,7 +3794,6 @@ final class SocketClient {
 
         var data = Data()
         var sawNewline = false
-        var receivedCompleteResponse = false
 
         // Only operations with their own lifecycle deadline opt in. Connecting,
         // authenticating and writing remain bounded, and an explicit deadline
@@ -3816,10 +3803,6 @@ final class SocketClient {
         while true {
             let phaseTimeout = sawNewline ? Self.multilineResponseIdleTimeoutSeconds : initialResponseTimeout
             let currentTimeout = try boundedTimeout(phaseTimeout, until: responseDeadline)
-            operation.phase = sawNewline ? .readMultilineResponse : .waitForResponse
-            operation.sawNewline = sawNewline
-            operation.timeout = currentTimeout
-            recordOperation(operation)
             try configureResponseReceiveTimeout(currentTimeout)
 
             var buffer = [UInt8](repeating: 0, count: 8192)
@@ -3830,7 +3813,6 @@ final class SocketClient {
                 }
                 if errno == EAGAIN || errno == EWOULDBLOCK {
                     if sawNewline {
-                        receivedCompleteResponse = true
                         break
                     }
                     if waitUntilCompletion {
@@ -3841,33 +3823,23 @@ final class SocketClient {
                 throw CLIError(message: "Socket read error")
             }
             if count == 0 {
-                operation.sawNewline = sawNewline
-                recordOperation(operation)
                 if data.isEmpty {
                     throw CLIError(message: "Socket closed before reply")
                 }
                 if !sawNewline {
                     throw CLIError(message: "Socket closed before complete reply")
                 }
-                receivedCompleteResponse = true
                 break
             }
             data.append(buffer, count: count)
-            operation.bytesRead += count
             if data.contains(UInt8(0x0A)) {
                 sawNewline = true
                 if Self.isCompleteSingleLineResponse(data) {
-                    receivedCompleteResponse = true
                     break
                 }
             }
         }
 
-        operation.sawNewline = sawNewline
-        if receivedCompleteResponse {
-            operation.phase = .completed
-        }
-        recordOperation(operation)
 
         guard var response = String(data: data, encoding: .utf8) else {
             throw CLIError(message: "Invalid UTF-8 response")
@@ -3903,13 +3875,6 @@ final class SocketClient {
 
         try configureResponseReceiveTimeout(responseTimeout)
         _ = try? configureSocketWriteSafety(responseTimeout)
-        var operation = CLISocketOperationTelemetry.State(
-            name: CLISocketOperationTelemetry.operationName(for: command),
-            timeout: responseTimeout,
-            startedAt: Date(),
-            phase: .writeRequest
-        )
-        recordOperation(operation)
         try writeAllNonBlocking(
             payload,
             deadline: deadline,
@@ -3924,10 +3889,6 @@ final class SocketClient {
             guard remaining > 0 else {
                 throw CLIError(message: "Command timed out")
             }
-            operation.phase = .waitForResponse
-            operation.sawNewline = sawNewline
-            operation.timeout = remaining
-            recordOperation(operation)
             try configureResponseReceiveTimeout(remaining)
             let readCapacity = max(
                 1,
@@ -3943,7 +3904,6 @@ final class SocketClient {
                 throw CLIError(message: "Socket read error")
             }
             if count == 0 { break }
-            operation.bytesRead += count
             for byte in buffer.prefix(count) {
                 guard !sawNewline else {
                     throw CLIError(message: "Invalid socket frame")
@@ -3966,9 +3926,6 @@ final class SocketClient {
               ) else {
             throw CLIError(message: "Invalid socket frame")
         }
-        operation.phase = .completed
-        operation.sawNewline = true
-        recordOperation(operation)
         return decoded
     }
 
@@ -4010,13 +3967,6 @@ final class SocketClient {
         let shouldCloseAfterSend = relayEndpoint != nil
 
         try configureSocketWriteSafety(writeTimeout)
-        var operation = CLISocketOperationTelemetry.State(
-            name: CLISocketOperationTelemetry.operationName(for: command),
-            timeout: writeTimeout,
-            startedAt: Date(),
-            phase: .writeRequest
-        )
-        recordOperation(operation)
 
         guard let oneWayPayload = SocketCommandLine.framedLine(
             for: capabilityWrappedCommand(Self.automationEnvelopeCommand(command))
@@ -4034,8 +3984,6 @@ final class SocketClient {
             close()
             throw error
         }
-        operation.phase = .completed
-        recordOperation(operation)
         if shouldCloseAfterSend {
             close()
         } else {
@@ -5188,38 +5136,9 @@ struct CMUXCLI {
         self.coderouterArmServerPeerVerifier = coderouterArmServerPeerVerifier
     }
 
-    /// Sends transport failures and structured protocol failures through the
-    /// shared Sentry policy. A complete socket reply still needs classification:
-    /// `sendV2` marks the transport operation complete before it throws its
-    /// decoded ``CLIError``.
-    private func captureSocketTransportError(
-        telemetry: CLISocketSentryTelemetry,
-        stage: String,
-        error: Error,
-        client: SocketClient
-    ) {
-        guard client.hasUnfinishedOperationTelemetry() || hasStructuredCLIError(error) else {
-            return
-        }
-        telemetry.captureError(stage: stage, error: error, data: client.operationTelemetryContext())
-    }
 
-    private func hasStructuredCLIError(_ error: Error) -> Bool {
-        var current: Error? = error
-        var remaining = 8
-        while let candidate = current, remaining > 0 {
-            if let cliError = candidate as? CLIError {
-                if cliError.socketFailureKind != nil {
-                    return true
-                }
-                guard cliError.isStructuredProtocolResponse else { return false }
-                return !SentryNoiseFilter().isExpectedCLIProtocolOutcomeCode(cliError.v2Code)
-            }
-            current = (candidate as NSError).userInfo[NSUnderlyingErrorKey] as? Error
-            remaining -= 1
-        }
-        return false
-    }
+
+
 
     private struct VMCreateIdempotencyStore: Codable {
         var records: [String: VMCreateIdempotencyRecord] = [:]
@@ -6612,10 +6531,9 @@ struct CMUXCLI {
         } else {
             socketPathSource = .implicitDefault
         }
-        let cliTelemetry = CLISocketSentryTelemetry(
+        let classificationContext = AgentHookFailureClassificationContext(
             command: command,
             commandArgs: commandArgs,
-            socketPath: socketPath,
             processEnv: processEnv
         )
         let socketResolver = CLISocketPathResolver(
@@ -6827,7 +6745,7 @@ struct CMUXCLI {
                     commandArgs: Array(commandArgs.dropFirst()),
                     socketPath: resolvedSocketPath,
                     socketPassword: socketPasswordArg,
-                    telemetry: cliTelemetry
+                    classificationContext: classificationContext
                 )
                 return
             }
@@ -6837,7 +6755,7 @@ struct CMUXCLI {
                 commandArgs: commandArgs,
                 socketPath: resolvedSocketPath,
                 socketPassword: socketPasswordArg,
-                telemetry: cliTelemetry
+                classificationContext: classificationContext
             )
             return
         }
@@ -6934,22 +6852,8 @@ struct CMUXCLI {
             ? Date.now.addingTimeInterval(3.0)
             : nil
         if resolvedSocketPath != socketPath {
-            cliTelemetry.breadcrumb(
-                "socket.path.autodiscovered",
-                data: [
-                    "requested_path": socketPath,
-                    "resolved_path": resolvedSocketPath
-                ]
-            )
         }
         if !defersSocketConnection {
-            cliTelemetry.breadcrumb(
-                "socket.connect.attempt",
-                data: [
-                    "command": command,
-                    "path": resolvedSocketPath
-                ]
-            )
         }
         do {
             if !defersSocketConnection {
@@ -6958,21 +6862,10 @@ struct CMUXCLI {
                 } else {
                     try client.connect()
                 }
-                cliTelemetry.breadcrumb("socket.connect.success", data: ["path": resolvedSocketPath])
             }
         } catch {
-            cliTelemetry.breadcrumb("socket.connect.failure", data: ["path": resolvedSocketPath])
-            cliTelemetry.captureError(stage: "socket_connect", error: error)
             if commandUsesContinuationSocketStartupWait(command), explicitSocketPath == nil {
                 cliDebugLog("socket.connect.wait.entered path=\(resolvedSocketPath)")
-                cliTelemetry.breadcrumb(
-                    "socket.connect.wait",
-                    data: [
-                        "command": command,
-                        "path": resolvedSocketPath,
-                        "timeoutSeconds": Self.restoreSocketStartupTimeoutSeconds,
-                    ]
-                )
                 do {
                     client = try SocketClient.waitForConnectableSocket(
                         resolvePath: {
@@ -6984,12 +6877,7 @@ struct CMUXCLI {
                         timeout: Self.restoreSocketStartupTimeoutSeconds
                     )
                     resolvedSocketPath = client.socketPath
-                    cliTelemetry.breadcrumb(
-                        "socket.connect.wait.success",
-                        data: ["path": client.socketPath]
-                    )
                 } catch {
-                    cliTelemetry.captureError(stage: "socket_startup_wait", error: error)
                     guard SocketClient.isSocketStartupTimeout(error) else {
                         throw error
                     }
@@ -7029,7 +6917,7 @@ struct CMUXCLI {
                 let normalizedWindow = try normalizeWindowHandle(windowId, client: client) ?? windowId
                 _ = try client.sendV2(method: "window.focus", params: ["window_id": normalizedWindow])
             } catch {
-                captureSocketTransportError(telemetry: cliTelemetry, stage: "socket_command_window_focus", error: error, client: client)
+
                 throw error
             }
         }
@@ -9758,25 +9646,22 @@ struct CMUXCLI {
                 windowOverride: windowId
             )
         case "claude-hook":
-            cliTelemetry.breadcrumb("claude-hook.dispatch")
             do {
-                try runClaudeHook(commandArgs: commandArgs, client: client, telemetry: cliTelemetry, socketPassword: socketPasswordArg)
-                cliTelemetry.breadcrumb("claude-hook.completed")
+                try runClaudeHook(commandArgs: commandArgs, client: client, classificationContext: classificationContext, socketPassword: socketPasswordArg)
             } catch {
-                cliTelemetry.breadcrumb("claude-hook.failure")
-                captureSocketTransportError(telemetry: cliTelemetry, stage: "claude_hook_dispatch", error: error, client: client)
+
                 throw error
             }
         case "codex-hook": // Backwards compatibility for older installed Codex hooks. Hidden from help.
             guard let codexDef = Self.agentDef(named: "codex") else { print("{}"); return }
-            try runGenericAgentHook(def: codexDef, commandArgs: commandArgs, client: client, telemetry: cliTelemetry, socketPassword: socketPasswordArg)
+            try runGenericAgentHook(def: codexDef, commandArgs: commandArgs, client: client, classificationContext: classificationContext, socketPassword: socketPasswordArg)
         case "feed-hook": // Backwards compatibility for older installed Feed hooks. Hidden from help.
-            try runFeedHook(commandArgs: commandArgs, client: client, telemetry: cliTelemetry)
+            try runFeedHook(commandArgs: commandArgs, client: client, classificationContext: classificationContext)
         case "hooks":
             try runHooksSocketCommand(
                 commandArgs: commandArgs,
                 client: client,
-                telemetry: cliTelemetry,
+                classificationContext: classificationContext,
                 socketPassword: socketPasswordArg,
                 hookDeadline: cursorHookDeadline
             )
@@ -9888,7 +9773,7 @@ struct CMUXCLI {
             // Hook commands own their socket errors and run under a short
             // wall-clock budget, so they skip the extra identify round trip.
             guard !capturesSocketErrorsInsideCommand else { throw error }
-            captureSocketTransportError(telemetry: cliTelemetry, stage: "socket_command", error: error, client: client)
+
             throw CLIVersionSkew.diagnose(
                 error,
                 client: client,
@@ -30933,7 +30818,7 @@ struct CMUXCLI {
     private func runClaudeHook(
         commandArgs: [String],
         client: SocketClient,
-        telemetry: CLISocketSentryTelemetry,
+        classificationContext: AgentHookFailureClassificationContext,
         socketPassword: String? = nil
     ) throws {
         let env = ProcessInfo.processInfo.environment
@@ -31037,15 +30922,6 @@ struct CMUXCLI {
                 permissionMode: observedHookPermissionMode
             )
         }
-        telemetry.breadcrumb(
-            "claude-hook.input",
-            data: [
-                "subcommand": subcommand,
-                "has_session_id": parsedInput.sessionId != nil,
-                "has_workspace_flag": hookWsFlag != nil,
-                "has_surface_flag": optionValue(hookArgs, name: "--surface") != nil
-            ]
-        )
         var didSendFeedTelemetry = false
         func sendClaudeFeedTelemetry(workspaceId: String? = nil, surfaceId: String? = nil) {
             didSendFeedTelemetry = true
@@ -31066,14 +30942,12 @@ struct CMUXCLI {
 
         switch subcommand {
         case "session-start", "active":
-            telemetry.breadcrumb("claude-hook.session-start")
             guard let resolvedTarget = try resolveClaudeHookDeliveryTarget(
                 mappedSession: nil,
                 routing: hookRouting,
                 client: client
             ), resolvedTarget.isAuthoritative else {
                 didSendFeedTelemetry = true
-                telemetry.breadcrumb("claude-hook.session-start.unresolved")
                 emitAgentJournalEvent(
                     client: client,
                     kind: .sessionStarted,
@@ -31087,7 +30961,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                     store: sessionStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
                 printClaudeHookAck()
                 return
@@ -31123,8 +30997,7 @@ struct CMUXCLI {
                 sessionStore: sessionStore,
                 parsedInput: parsedInput,
                 workspaceId: workspaceId,
-                surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil,
-                telemetry: telemetry
+                surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil
             )
             let shouldPromoteActiveSession = !isForkSessionLaunch && (isClearSessionStart || canReplaceStoppedSession)
             let sessionStartResult: ClaudeHookSessionStore.AuthoritativeSessionStartResult? = parsedInput.sessionId.flatMap { sessionId in
@@ -31144,7 +31017,6 @@ struct CMUXCLI {
             }
             let acceptedSessionId = sessionStartResult?.accepted == true ? parsedInput.sessionId : nil
             guard isForkSessionLaunch || acceptedSessionId != nil else {
-                telemetry.breadcrumb("claude-hook.session-start.stale")
                 printClaudeHookAck()
                 return
             }
@@ -31205,7 +31077,7 @@ struct CMUXCLI {
                     attention: Self.semanticAttentionContext(parsedInput.rawObject),
                     occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                     store: sessionStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
             }
             // SessionStart establishes session identity and process ownership.
@@ -31218,8 +31090,7 @@ struct CMUXCLI {
                         sessionStore: sessionStore,
                         parsedInput: parsedInput,
                         workspaceId: workspaceId,
-                        surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil,
-                        telemetry: telemetry
+                        surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil
                     )
             if !relayOrigin, shouldRegisterPID, let claudePid, !suppressVisibleMutations {
                 _ = try? sendV1Command(
@@ -31256,7 +31127,6 @@ struct CMUXCLI {
             printClaudeHookAck()
 
         case "stop", "idle":
-            telemetry.breadcrumb("claude-hook.stop")
             do {
                 // Turn ended. Don't consume session or clear PID — Claude is still alive.
                 // Notification hook handles user-facing notifications; SessionEnd handles cleanup.
@@ -31268,7 +31138,6 @@ struct CMUXCLI {
                     client: client
                 ), resolvedTarget.isAuthoritative else {
                     didSendFeedTelemetry = true
-                    telemetry.breadcrumb("claude-hook.stop.unresolved")
                     emitAgentJournalEvent(
                         client: client,
                         kind: stopFailure == nil ? .turnCompleted : .errorReported,
@@ -31282,7 +31151,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                         store: sessionStore,
-                        telemetry: telemetry
+                        classificationContext: classificationContext
                     )
                     printClaudeHookAck()
                     return
@@ -31309,7 +31178,6 @@ struct CMUXCLI {
                 // only an explicit top-level `Stop` may settle status or emit
                 // completion attention. Keep the event in Feed as telemetry.
                 guard shouldApplyClaudeStopVisibleMutation(parsedInput) else {
-                    telemetry.breadcrumb("claude-hook.stop.non-parent-event")
                     sendClaudeFeedTelemetry(workspaceId: workspaceId, surfaceId: surfaceId)
                     printClaudeHookAck()
                     return
@@ -31321,10 +31189,8 @@ struct CMUXCLI {
                     sessionStore: sessionStore,
                     parsedInput: parsedInput,
                     workspaceId: workspaceId,
-                    surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil,
-                    telemetry: telemetry
+                    surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil
                 ) else {
-                    telemetry.breadcrumb("claude-hook.stop.stale")
                     // A stop from a session that is no longer the pane's
                     // active session: journal the supersession so the stale
                     // session stops contributing to the reduced lifecycle.
@@ -31341,14 +31207,13 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                         store: sessionStore,
-                        telemetry: telemetry
+                        classificationContext: classificationContext
                     )
                     printClaudeHookAck()
                     return
                 }
 
                 guard !suppressVisibleMutations else {
-                    telemetry.breadcrumb("claude-hook.stop.nested-suppressed")
                     emitAgentJournalEvent(
                         client: client,
                         kind: stopFailure == nil ? .turnCompleted : .errorReported,
@@ -31363,7 +31228,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                         store: sessionStore,
-                        telemetry: telemetry
+                        classificationContext: classificationContext
                     )
                     printClaudeHookAck()
                     return
@@ -31444,7 +31309,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                     store: sessionStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
                 if let stopFailure {
                     try? setClaudeStopFailureStatus(stopFailure, client: client, workspaceId: workspaceId, surfaceId: surfaceId)
@@ -31501,7 +31366,6 @@ struct CMUXCLI {
                 printClaudeHookAck()
             } catch {
                 if shouldIgnoreClaudeHookTeardownError(error) {
-                    telemetry.breadcrumb("claude-hook.stop.ignored", data: ["error": String(describing: error)])
                     printClaudeHookAck()
                     return
                 }
@@ -31509,7 +31373,6 @@ struct CMUXCLI {
             }
 
         case "prompt-submit":
-            telemetry.breadcrumb("claude-hook.prompt-submit")
             let mappedSession = parsedInput.sessionId.flatMap { try? sessionStore.lookup(sessionId: $0) }
             guard let resolvedTarget = try resolveClaudeHookDeliveryTarget(
                 mappedSession: mappedSession,
@@ -31517,7 +31380,6 @@ struct CMUXCLI {
                 client: client
             ), resolvedTarget.isAuthoritative else {
                 didSendFeedTelemetry = true
-                telemetry.breadcrumb("claude-hook.prompt-submit.unresolved")
                 emitAgentJournalEvent(
                     client: client,
                     kind: .turnStarted,
@@ -31531,7 +31393,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                     store: sessionStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
                 printClaudeHookAck()
                 return
@@ -31550,18 +31412,15 @@ struct CMUXCLI {
                     sessionStore: sessionStore,
                     parsedInput: parsedInput,
                     workspaceId: workspaceId,
-                    surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil,
-                    telemetry: telemetry
+                    surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil
                 ) ||
                 shouldReplaceStoppedClaudeSession(
                     sessionStore: sessionStore,
                     parsedInput: parsedInput,
                     workspaceId: workspaceId,
-                    surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil,
-                    telemetry: telemetry
+                    surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil
                 )
             guard shouldApplyPromptSubmit else {
-                telemetry.breadcrumb("claude-hook.prompt-submit.stale")
                 emitAgentJournalEvent(
                     client: client,
                     kind: .sessionEnded,
@@ -31575,13 +31434,12 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                     store: sessionStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
                 printClaudeHookAck()
                 return
             }
             guard !suppressVisibleMutations else {
-                telemetry.breadcrumb("claude-hook.prompt-submit.nested-suppressed")
                 emitAgentJournalEvent(
                     client: client,
                     kind: .turnStarted,
@@ -31595,7 +31453,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                     store: sessionStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
                 printClaudeHookAck()
                 return
@@ -31654,7 +31512,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                 store: sessionStore,
-                telemetry: telemetry
+                classificationContext: classificationContext
             )
             reportClaudeHookPaneDirectory(
                 hookCwd: hookCwd,
@@ -31674,7 +31532,6 @@ struct CMUXCLI {
             printClaudeHookAck()
 
         case "auto-name":
-            telemetry.breadcrumb("claude-hook.auto-name")
             // Auto-naming emits no feed events of its own; the sync Stop hook
             // already covers turn telemetry for this turn.
             didSendFeedTelemetry = true
@@ -31687,7 +31544,6 @@ struct CMUXCLI {
                     callerTerminalBinding: callerTTYBindingProvider,
                     client: client
                 ) else {
-                    telemetry.breadcrumb("claude-hook.auto-name.unresolved")
                     printClaudeHookAck()
                     return
                 }
@@ -31705,16 +31561,13 @@ struct CMUXCLI {
                     workspaceId: workspaceId,
                     surfaceId: surfaceId,
                     sessionStore: sessionStore,
-                    client: client,
-                    telemetry: telemetry
+                    client: client
                 )
             } catch {
-                telemetry.breadcrumb("claude-hook.auto-name.error")
             }
             printClaudeHookAck()
 
         case "notification", "notify":
-            telemetry.breadcrumb("claude-hook.notification")
             var summary = summarizeClaudeHookNotification(parsedInput: parsedInput)
             // The classifier's subtitle is a stable internal literal ("Permission",
             // "Waiting", "Error", "Completed", "Attention" — see
@@ -31730,7 +31583,6 @@ struct CMUXCLI {
                 client: client
             ), resolvedTarget.isAuthoritative else {
                 didSendFeedTelemetry = true
-                telemetry.breadcrumb("claude-hook.notification.unresolved")
                 emitAgentJournalEvent(
                     client: client,
                     kind: .stateChanged,
@@ -31744,7 +31596,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                     store: sessionStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
                 printClaudeHookAck()
                 return
@@ -31769,10 +31621,8 @@ struct CMUXCLI {
                 sessionStore: sessionStore,
                 parsedInput: parsedInput,
                 workspaceId: workspaceId,
-                surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil,
-                telemetry: telemetry
+                surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil
             ) else {
-                telemetry.breadcrumb("claude-hook.notification.stale")
                 emitAgentJournalEvent(
                     client: client,
                     kind: .sessionEnded,
@@ -31786,13 +31636,12 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                     store: sessionStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
                 printClaudeHookAck()
                 return
             }
             guard !suppressVisibleMutations else {
-                telemetry.breadcrumb("claude-hook.notification.nested-suppressed")
                 emitAgentJournalEvent(
                     client: client,
                     kind: .stateChanged,
@@ -31806,7 +31655,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                     store: sessionStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
                 printClaudeHookAck()
                 return
@@ -31969,7 +31818,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                 store: sessionStore,
-                telemetry: telemetry
+                classificationContext: classificationContext
             )
             let recordsNeedsInput = journalKind == .approvalRequested
                 || journalKind == .questionRequested
@@ -32008,9 +31857,8 @@ struct CMUXCLI {
                     pendingWork: notifyPending), client: client)
             }
             printClaudeHookAck()
-        case "push-notification": try runClaudePushNotificationHook(client: client, telemetry: telemetry, parsedInput: parsedInput, sessionStore: sessionStore, routing: hookRouting, markFeedTelemetryHandled: { didSendFeedTelemetry = true }, sendFeedTelemetry: sendClaudeFeedTelemetry)
+        case "push-notification": try runClaudePushNotificationHook(client: client,  parsedInput: parsedInput, sessionStore: sessionStore, routing: hookRouting, markFeedTelemetryHandled: { didSendFeedTelemetry = true }, sendFeedTelemetry: sendClaudeFeedTelemetry)
         case "session-end":
-            telemetry.breadcrumb("claude-hook.session-end")
             if let reportedSessionId = parsedInput.sessionId?.trimmingCharacters(in: .whitespacesAndNewlines),
                !reportedSessionId.isEmpty,
                let forkParentSessionId = claudeForkSessionParentId(
@@ -32019,7 +31867,6 @@ struct CMUXCLI {
                    fallbackPID: observedHookAgentPID
                ),
                reportedSessionId == forkParentSessionId {
-                telemetry.breadcrumb("claude-hook.session-end.fork-parent-skipped")
                 printClaudeHookAck()
                 return
             }
@@ -32043,7 +31890,6 @@ struct CMUXCLI {
                 // Keep the persisted route so a later authoritative cleanup
                 // can still clear the visible state this attempt could not.
                 didSendFeedTelemetry = true
-                telemetry.breadcrumb("claude-hook.session-end.unresolved")
                 emitAgentJournalEvent(
                     client: client,
                     kind: .sessionEnded,
@@ -32057,7 +31903,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                     store: sessionStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
                 printClaudeHookAck()
                 return
@@ -32102,7 +31948,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                     store: sessionStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
                 if !clearAgentSurfaceResumeBinding(
                     client: client,
@@ -32111,7 +31957,6 @@ struct CMUXCLI {
                     sessionId: consumedSession.sessionId,
                     sessionDidEnd: true
                 ) {
-                    telemetry.breadcrumb("claude-hook.session-end.live-resume-clear-failed")
                 }
                 if cleanupSurfaceId != consumedSession.surfaceId {
                     if !clearAgentSurfaceResumeBinding(
@@ -32121,7 +31966,6 @@ struct CMUXCLI {
                         sessionId: consumedSession.sessionId,
                         sessionDidEnd: true
                     ) {
-                        telemetry.breadcrumb("claude-hook.session-end.recorded-resume-clear-failed")
                     }
                 }
                 sendClaudeFeedTelemetry(workspaceId: workspaceId, surfaceId: cleanupSurfaceId)
@@ -32133,8 +31977,7 @@ struct CMUXCLI {
                     sessionId: consumedSession.sessionId,
                     turnId: parsedInput.turnId,
                     workspaceId: workspaceId,
-                    surfaceId: cleanupSurfaceId,
-                    telemetry: telemetry
+                    surfaceId: cleanupSurfaceId
                 )
                 let claudePid = relayOrigin ? nil : (consumedSession.pid ?? observedHookAgentPID)
                 let suppressVisibleMutations = shouldSuppressNestedAgentVisibleMutations(
@@ -32170,20 +32013,17 @@ struct CMUXCLI {
                         )
                     }
                 } else {
-                    telemetry.breadcrumb("claude-hook.session-end.stale")
                 }
             }
             printClaudeHookAck()
 
         case "cron-create-guard":
-            telemetry.breadcrumb("claude-hook.cron-create-guard")
             let guardResponse = claudeCronCreateGuardResponse(parsedInput.rawObject)
             didSendFeedTelemetry = guardResponse == "{}"
             print(guardResponse)
             fflush(stdout)
 
         case "pre-tool-use":
-            telemetry.breadcrumb("claude-hook.pre-tool-use")
             // Clears "Needs input" status and notification when Claude resumes work
             // (e.g. after permission grant). Runs async so it doesn't block tool execution.
             let mappedSession = parsedInput.sessionId.flatMap { try? sessionStore.lookup(sessionId: $0) }
@@ -32199,7 +32039,6 @@ struct CMUXCLI {
                 client: client
             ), resolvedTarget.isAuthoritative else {
                 didSendFeedTelemetry = true
-                telemetry.breadcrumb("claude-hook.pre-tool-use.unresolved")
                 printClaudeHookAck()
                 return
             }
@@ -32214,7 +32053,6 @@ struct CMUXCLI {
             // lifecycle and clears the guard.
             let parentTurnAlreadyEnded = mappedSession?.turnSettled == true
             guard !parentTurnAlreadyEnded else {
-                telemetry.breadcrumb("claude-hook.pre-tool-use.after-stop")
                 printClaudeHookAck()
                 return
             }
@@ -32234,15 +32072,12 @@ struct CMUXCLI {
                 sessionStore: sessionStore,
                 parsedInput: parsedInput,
                 workspaceId: workspaceId,
-                surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil,
-                telemetry: telemetry
+                surfaceId: resolvedSurface.isAuthoritative ? surfaceId : nil
             ) else {
-                telemetry.breadcrumb("claude-hook.pre-tool-use.stale")
                 printClaudeHookAck()
                 return
             }
             guard !suppressVisibleMutations else {
-                telemetry.breadcrumb("claude-hook.pre-tool-use.nested-suppressed")
                 printClaudeHookAck()
                 return
             }
@@ -32310,7 +32145,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                     store: sessionStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
                 // In bypassPermissions (--dangerously-skip-permissions) mode no
                 // PermissionRequest or Notification hook follows, so this handler must
@@ -32391,7 +32226,7 @@ struct CMUXCLI {
                         attention: Self.semanticAttentionContext(parsedInput.rawObject),
                         occurredAtMs: Self.semanticOccurredAtMs(parsedInput.rawObject),
                 store: sessionStore,
-                telemetry: telemetry
+                classificationContext: classificationContext
             )
 
             // A spawn call blocks the parent inside the tool until its
@@ -32432,7 +32267,6 @@ struct CMUXCLI {
             printClaudeHookAck()
 
         case "help", "--help", "-h":
-            telemetry.breadcrumb("claude-hook.help")
             print(
                 """
                 cmux claude-hook <session-start|stop|session-end|notification|push-notification|prompt-submit|pre-tool-use> [--workspace <id|index>] [--surface <id|index>]
@@ -32521,16 +32355,14 @@ struct CMUXCLI {
         sessionStore: ClaudeHookSessionStore,
         parsedInput: ClaudeHookParsedInput,
         workspaceId: String,
-        surfaceId: String?,
-        telemetry: CLISocketSentryTelemetry
+        surfaceId: String?
     ) -> Bool {
         shouldApplyClaudeHookVisibleMutation(
             sessionStore: sessionStore,
             sessionId: parsedInput.sessionId,
             turnId: parsedInput.turnId,
             workspaceId: workspaceId,
-            surfaceId: surfaceId,
-            telemetry: telemetry
+            surfaceId: surfaceId
         )
     }
 
@@ -32539,8 +32371,7 @@ struct CMUXCLI {
         sessionId: String?,
         turnId: String?,
         workspaceId: String,
-        surfaceId: String?,
-        telemetry: CLISocketSentryTelemetry
+        surfaceId: String?
     ) -> Bool {
         do {
             return try sessionStore.isCurrent(
@@ -32550,15 +32381,6 @@ struct CMUXCLI {
                 turnId: turnId
             )
         } catch {
-            telemetry.breadcrumb(
-                "claude-hook.is-current.error",
-                data: [
-                    "error": String(describing: error),
-                    "session_id": sessionId ?? "",
-                    "workspace_id": workspaceId,
-                    "turn_id": turnId ?? "",
-                ]
-            )
             return true
         }
     }
@@ -32567,8 +32389,7 @@ struct CMUXCLI {
         sessionStore: ClaudeHookSessionStore,
         parsedInput: ClaudeHookParsedInput,
         workspaceId: String,
-        surfaceId: String?,
-        telemetry: CLISocketSentryTelemetry
+        surfaceId: String?
     ) -> Bool {
         do {
             return try sessionStore.canReplaceActiveSession(
@@ -32577,14 +32398,6 @@ struct CMUXCLI {
                 surfaceId: surfaceId
             )
         } catch {
-            telemetry.breadcrumb(
-                "claude-hook.can-replace-active.error",
-                data: [
-                    "error": String(describing: error),
-                    "session_id": parsedInput.sessionId ?? "",
-                    "workspace_id": workspaceId,
-                ]
-            )
             return false
         }
     }
@@ -34154,21 +33967,12 @@ struct CMUXCLI {
         workspaceId: String,
         surfaceId: String?,
         leasePath: String?,
-        env: [String: String],
-        telemetry: CLISocketSentryTelemetry
+        env: [String: String]
     ) {
         guard !sessionId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !workspaceId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
-
-        let monitorTelemetry: [String: Any] = [
-            "has_lease": normalizedHookValue(leasePath) != nil,
-            "has_turn_id": normalizedHookValue(turnId) != nil,
-            "has_transcript": normalizedHookValue(transcriptPath) != nil,
-            "has_surface_id": normalizedHookValue(surfaceId) != nil,
-        ]
-        telemetry.breadcrumb("codex-hook.monitor.start", data: monitorTelemetry)
 
         let executablePath = resolvedExecutableURL()?.path ?? args.first ?? "cmux"
         let process = Process()
@@ -34209,9 +34013,7 @@ struct CMUXCLI {
         process.standardError = FileHandle.nullDevice
         do {
             try cliRunProcess(process)
-            telemetry.breadcrumb("codex-hook.monitor.started", data: monitorTelemetry)
         } catch {
-            telemetry.captureError(stage: "codex-monitor-start", error: error, data: monitorTelemetry)
         }
     }
 
@@ -35487,8 +35289,7 @@ struct CMUXCLI {
         transcriptPath: String? = nil,
         observedPermissionMode: String? = nil,
         responseTimeout: TimeInterval? = nil,
-        deadline: Date? = nil,
-        telemetry: CLISocketSentryTelemetry? = nil
+        deadline: Date? = nil
     ) -> Bool {
         guard ProcessInfo.processInfo.environment[agentHookRelayOriginEnvironmentKey] != "1" else {
             return false
@@ -35531,8 +35332,7 @@ struct CMUXCLI {
                     reason: "launch-evidence-rejected",
                     sessionId: sessionId,
                     incoming: nil,
-                    existing: nil,
-                    telemetry: telemetry
+                    existing: nil
                 )
                 return false
             }
@@ -35547,8 +35347,7 @@ struct CMUXCLI {
                         reason: "incoming-lower-provenance",
                         sessionId: evidence.sessionId,
                         incoming: evidence.provenance,
-                        existing: nil,
-                        telemetry: telemetry
+                        existing: nil
                     )
                     return false
                 }
@@ -35558,8 +35357,7 @@ struct CMUXCLI {
                     reason: "rollout-missing",
                     sessionId: sessionId,
                     incoming: nil,
-                    existing: nil,
-                    telemetry: telemetry
+                    existing: nil
                 )
                 clearAgentSurfaceResumeBinding(
                     client: client,
@@ -35575,8 +35373,7 @@ struct CMUXCLI {
                     reason: "rollout-store-unavailable",
                     sessionId: sessionId,
                     incoming: nil,
-                    existing: nil,
-                    telemetry: telemetry
+                    existing: nil
                 )
                 return false
             }
@@ -35658,8 +35455,7 @@ struct CMUXCLI {
                     reason: "resume-command-unavailable",
                     sessionId: sessionId,
                     incoming: nil,
-                    existing: nil,
-                    telemetry: telemetry
+                    existing: nil
                 )
             } else {
                 clearAgentSurfaceResumeBinding(
@@ -38251,7 +38047,7 @@ export default {
         def: AgentHookDef,
         commandArgs: [String],
         client: SocketClient,
-        telemetry: CLISocketSentryTelemetry,
+        classificationContext: AgentHookFailureClassificationContext,
         socketPassword: String? = nil,
         rawInputOverride: String? = nil,
         hookDeadline: Date? = nil
@@ -38261,14 +38057,13 @@ export default {
                 def: def,
                 commandArgs: commandArgs,
                 client: client,
-                telemetry: telemetry,
+                classificationContext: classificationContext,
                 socketPassword: socketPassword,
                 rawInputOverride: rawInputOverride,
                 hookDeadline: hookDeadline
             )
             return
         }
-        telemetry.breadcrumb("\(def.name)-hook.monitor")
         guard let replay = runCodexTranscriptMonitor(
             commandArgs: Array(commandArgs.dropFirst()),
             client: client
@@ -38283,7 +38078,7 @@ export default {
             def: def,
             commandArgs: replay.commandArguments,
             client: client,
-            telemetry: telemetry,
+            classificationContext: classificationContext,
             socketPassword: socketPassword,
             rawInputOverride: replay.payload,
             hookDeadline: hookDeadline,
@@ -38298,7 +38093,7 @@ export default {
         def: AgentHookDef,
         commandArgs: [String],
         client: SocketClient,
-        telemetry: CLISocketSentryTelemetry,
+        classificationContext: AgentHookFailureClassificationContext,
         socketPassword: String?,
         rawInputOverride: String?,
         hookDeadline: Date?,
@@ -38320,7 +38115,6 @@ export default {
             guard let cursorShellDeadline else { return nil }
             return max(0.01, min(cap, cursorShellDeadline.timeIntervalSinceNow))
         }
-        telemetry.breadcrumb("\(def.name)-hook.\(subcommand)")
 
         if env["CMUX_AGENT_HOOK_DELIVERY_PROCESS_GROUP"] != "1",
            subcommand == "session-finalize"
@@ -38333,9 +38127,7 @@ export default {
                 )
             } catch {
                 if subcommand == "session-finalize" {
-                    telemetry.breadcrumb("\(def.name)-hook.session-finalize.barrier-failed")
                 } else if def.name == "codex" {
-                    telemetry.breadcrumb("codex-hook.notification.barrier-failed")
                 } else {
                     throw error
                 }
@@ -38346,8 +38138,7 @@ export default {
             runCodexNativeTitleSyncHook(
                 commandArgs: hookArgs,
                 environment: env,
-                client: client,
-                telemetry: telemetry
+                client: client
             )
             print("OK")
             return
@@ -38361,7 +38152,6 @@ export default {
                 runCodexAutoNameHook(
                     commandArgs: hookArgs,
                     client: client,
-                    telemetry: telemetry,
                     env: env
                 )
             } else {
@@ -38369,7 +38159,6 @@ export default {
                     def: def,
                     commandArgs: hookArgs,
                     client: client,
-                    telemetry: telemetry,
                     env: env
                 )
             }
@@ -38558,7 +38347,6 @@ export default {
         let hookTranscriptPath = relayOrigin ? nil : input.transcriptPath
         if def.name == "codex",
            codexHookIsInternalSession(input: input, cwd: hookCwd, environment: env) {
-            telemetry.breadcrumb("codex-hook.internal-session-suppressed")
             print("{}")
             return
         }
@@ -38812,7 +38600,6 @@ export default {
                 surfaceId: surfaceId,
                 deadline: cursorShellDeadline
             ) else {
-                telemetry.breadcrumb("cursor-hook.reconciliation-lock-unavailable")
                 return false
             }
             cursorLifecycleLease = lease
@@ -38873,7 +38660,7 @@ export default {
                 responseTimeout: responseTimeout,
                 deadline: deadline ?? cursorShellDeadline,
                 store: store,
-                telemetry: telemetry
+                classificationContext: classificationContext
             )
         }
         // Destructive session teardown shared by a genuine (non-turn-boundary)
@@ -38889,7 +38676,6 @@ export default {
                 env: env
             )
             if suppressVisibleMutations {
-                telemetry.breadcrumb("\(def.name)-hook.session-end.nested-suppressed")
             } else if let consumed = try? store.consume(sessionId: sessionId, workspaceId: nil, surfaceId: nil) {
                 if def.name == "cursor", consumed.pendingCursorShellApprovals?.isEmpty == false {
                     for correlationKey in consumed.pendingCursorShellApprovals?.compactMap(\.notificationCorrelationKey) ?? [] {
@@ -38909,7 +38695,6 @@ export default {
                     responseTimeout: def.name == "cursor" ? cursorCriticalTimeout() : nil,
                     deadline: cursorShellDeadline
                 ) {
-                    telemetry.breadcrumb("\(def.name)-hook.session-end.resume-clear-failed")
                 }
                 if def.name == "cursor" {
                     sendCursorCriticalCommand(
@@ -39074,7 +38859,7 @@ export default {
                 sessionId: sessionId,
                 event: subcommand,
                 store: store,
-                telemetry: telemetry,
+                classificationContext: classificationContext,
                 deadline: cursorShellDeadline
             )
         }
@@ -39200,7 +38985,6 @@ export default {
                 // evidence about which agent emitted this hook. Returning it
                 // here would recreate the wrong-pane notification bug whenever
                 // the caller's pane identity is stale or unavailable.
-                telemetry.breadcrumb("\(def.name)-hook.target.no-authoritative-surface")
 #if DEBUG
                 agentHookDebugLog(
                     "agentHook.target.nil agent=\(def.name) subcommand=\(subcommand) session=\(agentHookDebugShort(sessionId)) reason=noAuthoritativeSurface mapped=\(mapped == nil ? 0 : 1)",
@@ -39356,7 +39140,6 @@ export default {
             }
             guard input.sessionId?.isEmpty == false else {
                 sendAgentFeedTelemetry()
-                telemetry.breadcrumb("\(def.name)-hook.shell-resolution.missing-session")
                 return
             }
             if failed {
@@ -39364,13 +39147,11 @@ export default {
                     firstString(in: $0, keys: ["tool_name", "toolName"])
                 }), toolName.caseInsensitiveCompare("Shell") == .orderedSame else {
                     sendAgentFeedTelemetry()
-                    telemetry.breadcrumb("\(def.name)-hook.shell-failed.non-shell")
                     return
                 }
                 let hasStableToolUseId = cursorShellToolUseId(from: input) != nil
                 guard hasStableToolUseId || cursorShellFailureIsExplicitDenial(from: input) else {
                     sendAgentFeedTelemetry()
-                    telemetry.breadcrumb("\(def.name)-hook.shell-failed.non-denial")
                     return
                 }
             }
@@ -39395,20 +39176,15 @@ export default {
             sendAgentFeedTelemetryUnlessSuppressed(workspaceId: workspaceId, surfaceId: surfaceId)
             if failed {
                 if input.rawObject?["sandbox"] as? Bool == true {
-                    telemetry.breadcrumb("\(def.name)-hook.shell-failed.sandboxed")
                     return
                 }
             } else {
                 guard input.rawObject?["sandbox"] as? Bool == false else {
-                    telemetry.breadcrumb("\(def.name)-hook.shell-done.non-unsandboxed")
                     return
                 }
             }
 
             guard let command = cursorShellCommand(from: input), !sessionId.isEmpty else {
-                telemetry.breadcrumb(
-                    "\(def.name)-hook.shell-\(failed ? "failed" : "done").unmatched"
-                )
                 emitJournal(
                     .stateChanged,
                     workspaceId: workspaceId,
@@ -39442,7 +39218,6 @@ export default {
                 env: env
             )
             guard !suppressVisibleMutations else {
-                telemetry.breadcrumb("\(def.name)-hook.shell-\(failed ? "failed" : "done").nested-suppressed")
                 return
             }
 
@@ -39566,7 +39341,6 @@ export default {
                 return
             }
             guard let resolution, resolution.matched else {
-                telemetry.breadcrumb("\(def.name)-hook.shell-\(failed ? "failed" : "done").unmatched")
                 emitJournal(
                     .stateChanged,
                     workspaceId: workspaceId,
@@ -39606,8 +39380,7 @@ export default {
                 launchCommand: resumeLaunchCommand,
                 transcriptPath: input.transcriptPath ?? mapped?.transcriptPath,
                 responseTimeout: cursorCriticalTimeout(),
-                deadline: cursorShellDeadline,
-                telemetry: telemetry
+                deadline: cursorShellDeadline
             )
             if let pid {
                 sendCursorCriticalCommand(
@@ -39798,7 +39571,6 @@ export default {
                 spawnDetachedCodexSettledStop(
                     payload: rawInput,
                     environment: env,
-                    telemetry: telemetry,
                     turnID: decision.turnID
                 )
             }
@@ -39837,7 +39609,6 @@ export default {
                     surfaceID: surfaceId
                 )
                 guard ownership.ownership == .foreground else {
-                    telemetry.breadcrumb("codex-hook.session-start.nested-or-unknown")
                     emitJournal(
                         .sessionStarted,
                         workspaceId: workspaceId,
@@ -39906,14 +39677,12 @@ export default {
                     acceptedSessionStart = true
                 }
                 if !acceptedSessionStart {
-                    telemetry.breadcrumb("\(def.name)-hook.session-start.stale-after-turn")
                     didSendFeedTelemetry = true
                     printCodexForkSessionStartResult(bound: false)
                     return
                 }
             }
             if codexSessionStartWentStaleAfterAccept() {
-                telemetry.breadcrumb("\(def.name)-hook.session-start.stale-after-turn")
                 didSendFeedTelemetry = true
                 printCodexForkSessionStartResult(bound: false)
                 return
@@ -39921,7 +39690,6 @@ export default {
             sendAgentFeedTelemetryUnlessSuppressed(workspaceId: workspaceId, surfaceId: surfaceId)
             if !relayOrigin, !suppressVisibleMutations {
                 if codexSessionStartWentStaleAfterAccept() {
-                    telemetry.breadcrumb("\(def.name)-hook.session-start.stale-after-turn")
                     didSendFeedTelemetry = true
                     printCodexForkSessionStartResult(bound: false)
                     return
@@ -39939,14 +39707,12 @@ export default {
             }
             if !sessionId.isEmpty {
                 if suppressVisibleMutations {
-                    telemetry.breadcrumb("\(def.name)-hook.session-start.nested-suppressed")
                     if isCodexForkSession {
                         printCodexForkSessionStartResult(bound: false)
                         return
                     }
                 } else {
                     if codexSessionStartWentStaleAfterAccept() {
-                        telemetry.breadcrumb("\(def.name)-hook.session-start.stale-after-turn")
                         didSendFeedTelemetry = true
                         printCodexForkSessionStartResult(bound: false)
                         return
@@ -39963,8 +39729,7 @@ export default {
                         sessionId: sessionId,
                         cwd: preferredAgentHookResumeWorkingDirectory(kind: def.name, current: launchCommand, currentCwd: hookCwd, mapped: mapped),
                         launchCommand: resumeLaunchCommand,
-                        transcriptPath: input.transcriptPath ?? mapped?.transcriptPath,
-                        telemetry: telemetry
+                        transcriptPath: input.transcriptPath ?? mapped?.transcriptPath
                     )
                     if isCodexForkSession && !didPublishBinding {
                         printCodexForkSessionStartResult(bound: false)
@@ -39973,7 +39738,6 @@ export default {
                 }
             }
             if codexSessionStartWentStaleAfterAccept() {
-                telemetry.breadcrumb("\(def.name)-hook.session-start.stale-after-turn")
                 didSendFeedTelemetry = true
                 printCodexForkSessionStartResult(bound: false)
                 return
@@ -40031,7 +39795,6 @@ export default {
                     surfaceID: surfaceId
                 )
                 guard ownership.ownership == .foreground else {
-                    telemetry.breadcrumb("codex-hook.prompt-submit.nested-or-unknown")
                     emitJournal(
                         .turnStarted,
                         workspaceId: workspaceId,
@@ -40067,7 +39830,6 @@ export default {
                     cursorPromptShouldPreservePendingState = cursorPromptShouldPreservePendingState || hasOtherPending
                 } else {
                     cursorPromptShouldPreservePendingState = true
-                    telemetry.breadcrumb("cursor-hook.prompt-submit.pending-lookup-failed")
                 }
             }
             if def.name == "omp", let mapped {
@@ -40113,8 +39875,7 @@ export default {
                     sessionId: sessionId,
                     cwd: latest.cwd,
                     launchCommand: latest.launchCommand,
-                    transcriptPath: latest.transcriptPath,
-                    telemetry: telemetry
+                    transcriptPath: latest.transcriptPath
                 )
                 // A stale prompt-submit may have journaled a spurious
                 // turn-started before the turn was recognized as terminal.
@@ -40174,7 +39935,6 @@ export default {
                 if restoreVisibleState {
                     restoreCodexPromptVisibleStateFromStore()
                 }
-                telemetry.breadcrumb("\(def.name)-hook.prompt-submit.stale-terminal-turn")
                 didSendFeedTelemetry = true
                 print("{}")
             }
@@ -40307,8 +40067,7 @@ export default {
                     launchCommand: resumeLaunchCommand,
                     transcriptPath: transcriptPathForStore,
                     responseTimeout: def.name == "cursor" ? cursorCriticalTimeout() : nil,
-                    deadline: cursorShellDeadline,
-                    telemetry: telemetry
+                    deadline: cursorShellDeadline
                 )
                 if codexPromptTurnWentTerminal() {
                     stopStaleCodexPromptSubmit(restoreVisibleState: true)
@@ -40372,7 +40131,6 @@ export default {
                         "set_status \(def.statusKey) \(runningStatus) --icon=bolt.fill --color=#4C8DFF --tab=\(workspaceId)\(socketPanelOption(surfaceId))"
                     )
                 } else if def.name == "cursor" {
-                    telemetry.breadcrumb("cursor-hook.prompt-submit.pending-preserved")
                 } else {
                     _ = try sendV1Command(
                         "set_status \(def.statusKey) \(runningStatus) --icon=bolt.fill --color=#4C8DFF --tab=\(workspaceId)\(socketPanelOption(surfaceId))",
@@ -40384,7 +40142,6 @@ export default {
                     return
                 }
             } else {
-                telemetry.breadcrumb("\(def.name)-hook.prompt-submit.nested-suppressed")
                 emitJournal(
                     .turnStarted,
                     workspaceId: workspaceId,
@@ -40410,10 +40167,6 @@ export default {
                     env: env
                 )
                 if leasePath == nil {
-                    telemetry.breadcrumb(
-                        "codex-hook.monitor.lease-unavailable",
-                        data: ["has_turn_id": normalizedHookValue(input.turnId) != nil]
-                    )
                 } else {
                     retireCodexMonitorLeases(
                         sessionId: sessionId,
@@ -40430,8 +40183,7 @@ export default {
                     workspaceId: workspaceId,
                     surfaceId: surfaceId,
                     leasePath: leasePath,
-                    env: env,
-                    telemetry: telemetry
+                    env: env
                 )
             }
 
@@ -40463,7 +40215,6 @@ export default {
             if def.name == "codex", !sessionId.isEmpty,
                resolvedTarget != nil || codexStopOwnership?.ownership == .foreground {
                 guard codexStopDecision?.ownership == .foreground else {
-                    telemetry.breadcrumb("codex-hook.stop.nested-or-unknown")
                     print("{}")
                     return
                 }
@@ -40500,7 +40251,6 @@ export default {
                         spawnDetachedCodexSettledStop(
                             payload: rawInput,
                             environment: env,
-                            telemetry: telemetry,
                             turnID: codexStopDecision?.turnID
                         )
                     }
@@ -40719,12 +40469,10 @@ export default {
             if def.name == "codex",
                !nestedPromptStop,
                codexStopDecision?.ownership != .foreground {
-                telemetry.breadcrumb("codex-hook.stop.settlement-unavailable")
                 print("{}")
                 return
             }
             if def.name == "codex", codexStopDecision?.settlement == .duplicate {
-                telemetry.breadcrumb("codex-hook.stop.duplicate-settled")
                 print("{}")
                 return
             }
@@ -40801,7 +40549,7 @@ export default {
                         attention: AgentAttentionContext(turnIdentity: priorTurnId),
                         occurredAtMs: Self.semanticOccurredAtMs(input.rawObject),
                         store: store,
-                        telemetry: telemetry
+                        classificationContext: classificationContext
                     )
                 }
             }
@@ -40846,8 +40594,7 @@ export default {
                     launchCommand: resumeLaunchCommand,
                     transcriptPath: input.transcriptPath ?? mapped?.transcriptPath,
                     responseTimeout: def.name == "cursor" ? cursorCriticalTimeout() : nil,
-                    deadline: cursorShellDeadline,
-                    telemetry: telemetry
+                    deadline: cursorShellDeadline
                 )
             }
             if let pid, !suppressVisibleMutations {
@@ -40887,13 +40634,7 @@ export default {
                 && !suppressCompletionNotification
                 && (codexStopDecision?.shouldNotify ?? true)
             if suppressVisibleMutations {
-                telemetry.breadcrumb(
-                    staleIdleStopHasNewerRunningSession
-                        ? "\(def.name)-hook.stop.stale-idle-suppressed"
-                        : "\(def.name)-hook.stop.nested-suppressed"
-                )
             } else if suppressCompletionNotification {
-                telemetry.breadcrumb("\(def.name)-hook.stop.subagent-notification-suppressed")
             }
             if shouldPublishStopAlert {
                 // Tag successful turn-end pings; error alerts always deliver.
@@ -40948,7 +40689,7 @@ export default {
                         event: subcommand,
                         error: error,
                         store: store,
-                        telemetry: telemetry
+                        classificationContext: classificationContext
                     )
                 }
             } else if shouldPublishStopAlert {
@@ -41024,8 +40765,7 @@ export default {
                     sessionId: sessionId,
                     workspaceId: workspaceId,
                     surfaceId: surfaceId,
-                    environment: env,
-                    telemetry: telemetry
+                    environment: env
                 )
             }
             // Opt-in auto-naming for generic-agent sessions: a detached pass so the
@@ -41050,8 +40790,7 @@ export default {
                     surfaceId: surfaceId,
                     transcriptPath: normalizedHookValue(localTranscriptPath(mapped: mapped)),
                     cwd: cwd,
-                    env: env,
-                    telemetry: telemetry
+                    env: env
                 )
             }
         case .shellObserved:
@@ -41069,7 +40808,6 @@ export default {
                 )
             } else {
                 didSendFeedTelemetry = true
-                telemetry.breadcrumb("cursor-hook.shell-observed.target-unresolved")
             }
             break
 
@@ -41135,8 +40873,7 @@ export default {
                         sessionId: sessionId,
                         cwd: preferredAgentHookResumeWorkingDirectory(kind: def.name, current: launchCommand, currentCwd: hookCwd, mapped: mapped),
                         launchCommand: resumeLaunchCommand,
-                        transcriptPath: input.transcriptPath ?? mapped?.transcriptPath,
-                        telemetry: telemetry
+                        transcriptPath: input.transcriptPath ?? mapped?.transcriptPath
                     )
                 }
             }
@@ -41168,7 +40905,6 @@ export default {
                     )
                 }
             } else {
-                telemetry.breadcrumb("\(def.name)-hook.approval-response.nested-suppressed")
             }
 
         case .notification:
@@ -41179,7 +40915,6 @@ export default {
                     surfaceID: resolvedDirectSurfaceArg
                 )
                 guard ownership.ownership == .foreground else {
-                    telemetry.breadcrumb("codex-hook.notification.nested-or-unknown")
                     print("{}")
                     return
                 }
@@ -41668,7 +41403,6 @@ export default {
                     surfaceID: resolvedDirectSurfaceArg
                 )
                 guard ownership.ownership == .foreground else {
-                    telemetry.breadcrumb("codex-hook.session-end.nested-or-unknown")
                     print("{}")
                     return
                 }
@@ -41755,7 +41489,6 @@ export default {
                     surfaceID: resolvedDirectSurfaceArg
                 )
                 guard ownership.ownership == .foreground else {
-                    telemetry.breadcrumb("codex-hook.session-finalize.nested-or-unknown")
                     print("{}")
                     return
                 }
@@ -44191,9 +43924,8 @@ export default {
         client: SocketClient? = nil,
         socketPath: String? = nil,
         socketPassword: String? = nil,
-        telemetry: CLISocketSentryTelemetry
+        classificationContext: AgentHookFailureClassificationContext
     ) throws {
-        _ = telemetry
         let source = optionValue(commandArgs, name: "--source") ?? ""
         guard !source.isEmpty else {
             throw CLIError(message: "cmux hooks feed requires --source <agent-name>")
@@ -44427,7 +44159,6 @@ export default {
                 spawnDetachedCodexSettledStop(
                     payload: payload,
                     environment: env,
-                    telemetry: telemetry,
                     turnID: decision.turnID
                 )
             }
@@ -44445,7 +44176,7 @@ export default {
                     sessionId: sessionId,
                     event: hookEventName,
                     store: diagnosticStore,
-                    telemetry: telemetry
+                    classificationContext: classificationContext
                 )
                 if let diagnosticClient = client ?? lifecycleProbeClient {
                     emitAgentJournalEvent(
@@ -44463,7 +44194,7 @@ export default {
                         responseTimeout: max(0.01, lifecycleProbeDeadline.timeIntervalSinceNow),
                         deadline: lifecycleProbeDeadline,
                         store: diagnosticStore,
-                        telemetry: telemetry
+                        classificationContext: classificationContext
                     )
                 }
                 print("{}")
@@ -45341,14 +45072,14 @@ export default {
 
     private func runCursorInstallHooks() throws { try installAgentHooks(Self.agentDef(named: "cursor")!) }
     private func runCursorUninstallHooks() throws { try uninstallAgentHooks(Self.agentDef(named: "cursor")!) }
-    private func runCursorHook(commandArgs: [String], client: SocketClient, telemetry: CLISocketSentryTelemetry) throws {
-        try runGenericAgentHook(def: Self.agentDef(named: "cursor")!, commandArgs: commandArgs, client: client, telemetry: telemetry)
+    private func runCursorHook(commandArgs: [String], client: SocketClient, classificationContext: AgentHookFailureClassificationContext) throws {
+        try runGenericAgentHook(def: Self.agentDef(named: "cursor")!, commandArgs: commandArgs, client: client, classificationContext: classificationContext)
     }
 
     private func runGeminiInstallHooks() throws { try installAgentHooks(Self.agentDef(named: "gemini")!) }
     private func runGeminiUninstallHooks() throws { try uninstallAgentHooks(Self.agentDef(named: "gemini")!) }
-    private func runGeminiHook(commandArgs: [String], client: SocketClient, telemetry: CLISocketSentryTelemetry) throws {
-        try runGenericAgentHook(def: Self.agentDef(named: "gemini")!, commandArgs: commandArgs, client: client, telemetry: telemetry)
+    private func runGeminiHook(commandArgs: [String], client: SocketClient, classificationContext: AgentHookFailureClassificationContext) throws {
+        try runGenericAgentHook(def: Self.agentDef(named: "gemini")!, commandArgs: commandArgs, client: client, classificationContext: classificationContext)
     }
 
     // MARK: - Hooks namespace
@@ -45484,7 +45215,7 @@ export default {
     private func runHooksSocketCommand(
         commandArgs: [String],
         client: SocketClient,
-        telemetry: CLISocketSentryTelemetry,
+        classificationContext: AgentHookFailureClassificationContext,
         socketPassword: String? = nil,
         hookDeadline: Date? = nil
     ) throws {
@@ -45505,27 +45236,21 @@ export default {
             )
 
         case "feed":
-            telemetry.breadcrumb("hooks.feed.dispatch")
             do {
-                try runFeedHook(commandArgs: rest, client: client, telemetry: telemetry)
-                telemetry.breadcrumb("hooks.feed.completed")
+                try runFeedHook(commandArgs: rest, client: client, classificationContext: classificationContext)
             } catch {
-                telemetry.breadcrumb("hooks.feed.failure")
-                captureSocketTransportError(telemetry: telemetry, stage: "hooks_feed_dispatch", error: error, client: client)
+
                 throw error
             }
 
         case "claude":
-            telemetry.breadcrumb("hooks.claude.dispatch")
             if try runAgentInboxHookIfMatched(agent: "claude", commandArgs: rest, client: client) {
                 return
             }
             do {
-                try runClaudeHook(commandArgs: rest, client: client, telemetry: telemetry, socketPassword: socketPassword)
-                telemetry.breadcrumb("hooks.claude.completed")
+                try runClaudeHook(commandArgs: rest, client: client, classificationContext: classificationContext, socketPassword: socketPassword)
             } catch {
-                telemetry.breadcrumb("hooks.claude.failure")
-                captureSocketTransportError(telemetry: telemetry, stage: "hooks_claude_dispatch", error: error, client: client)
+
                 throw error
             }
 
@@ -45533,7 +45258,6 @@ export default {
             guard let def = Self.agentDef(named: first) else {
                 throw CLIError(message: "Unknown hooks target: \(first)")
             }
-            telemetry.breadcrumb("hooks.\(def.name).dispatch")
             if def.name == "codex",
                try runAgentInboxHookIfMatched(agent: "codex", commandArgs: rest, client: client) {
                 return
@@ -45543,14 +45267,12 @@ export default {
                     def: def,
                     commandArgs: rest,
                     client: client,
-                    telemetry: telemetry,
+                    classificationContext: classificationContext,
                     socketPassword: socketPassword,
                     hookDeadline: hookDeadline
                 )
-                telemetry.breadcrumb("hooks.\(def.name).completed")
             } catch {
-                telemetry.breadcrumb("hooks.\(def.name).failure")
-                captureSocketTransportError(telemetry: telemetry, stage: "hooks_\(def.name)_dispatch", error: error, client: client)
+
                 throw error
             }
         }
