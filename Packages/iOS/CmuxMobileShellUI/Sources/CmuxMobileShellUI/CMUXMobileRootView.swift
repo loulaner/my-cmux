@@ -727,7 +727,6 @@ struct CMUXMobileRootView: View {
             // Swaps the root sheet's content from Settings to Computers in
             // place; the presentation state machine allows this transition.
             showComputers: showComputers,
-            signOut: signOut,
             store: store,
             initialFocus: initialFocus,
             dismissAction: dismissRootSettings

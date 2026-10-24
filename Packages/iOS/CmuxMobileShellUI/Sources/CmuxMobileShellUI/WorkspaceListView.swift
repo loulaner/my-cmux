@@ -736,7 +736,6 @@ struct WorkspaceListView: View {
                         isSettingsPresented: settingsPresentation.isPresented
                     )
                 },
-                signOut: signOut,
                 store: store
             )
         }

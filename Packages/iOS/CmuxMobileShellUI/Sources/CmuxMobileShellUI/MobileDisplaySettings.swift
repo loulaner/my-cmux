@@ -36,8 +36,6 @@ public final class MobileDisplaySettings {
     private static let feedReplacesNotificationsKey = "cmux.mobile.debug.feedReplacesNotifications.v1"
     private static let feedBubbleQuotesKey = "cmux.mobile.feedBubbleQuotes.v1"
     private static let legacyFeedBubbleQuotesKey = "cmux.mobile.debug.feedBubbleQuotes.v1"
-    #if DEBUG
-    #endif
 
     /// The preview line counts the "Preview Lines" setting offers.
     public static let workspacePreviewLineCountRange = 1...2
@@ -199,9 +197,6 @@ public final class MobileDisplaySettings {
             )
         }
     }
-    #else
-    /// Production builds expose only the shipping Shell icon treatment.
-    /// The Labs-only treatment is unavailable in production builds.
     #endif
 
     /// Creates the display settings, seeding stored values from `defaults`.

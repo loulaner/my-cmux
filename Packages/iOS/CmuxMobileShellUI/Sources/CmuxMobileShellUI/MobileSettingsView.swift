@@ -10,10 +10,8 @@ import CmuxMobileWorkspace
 import SwiftUI
 import UIKit
 
-/// The mobile app's settings page. Surfaces the signed-in account (so the user
-/// can confirm which cmux account this device uses — the account must match the
-/// Mac it pairs with), plus terminal shortcuts, agent notifications, and the
-/// paired Mac. Presented as a sheet from the workspace list.
+/// The mobile app's settings page for connections, terminal preferences, and
+/// diagnostics. Presented as a sheet from the workspace list.
 struct MobileSettingsView: View {
     @Environment(AuthCoordinator.self) private var authManager
     @Environment(\.analyticsClientID) private var analyticsClientID
@@ -35,7 +33,6 @@ struct MobileSettingsView: View {
     /// Opens the Computers screen (the host dismisses or swaps this sheet
     /// first). `nil` hides the Connection section's All Computers row.
     var showComputers: (() -> Void)? = nil
-    let signOut: (() -> Void)?
     /// The shell store, used for the live connection rows and the onboarding
     /// replay's connection state. `nil` in previews.
     var store: CMUXMobileShellStore?
@@ -45,13 +42,6 @@ struct MobileSettingsView: View {
     var dismissAction: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var showingShortcuts = false
-    /// Keeps the picker responsive while Stack Auth persists the selection.
-    /// The coordinator remains the confirmed scope authority; this value is
-    /// cleared when that request finishes or fails.
-    @State private var pendingTeamID: String?
-    @State private var pendingTeamRequestID: UUID?
-    @State private var teamSelectionTask: Task<Void, Never>?
-    @State private var teamSelectionFailed = false
     @State private var didCopySupportInformation = false
     @State private var showingOnboarding = false
     @State private var showingSetupHelp = false
@@ -66,49 +56,6 @@ struct MobileSettingsView: View {
         @Bindable var displaySettings = displaySettings
         return NavigationStack {
             Form {
-                MobileSettingsAccountSection(signOut: signOut)
-
-                // Stack team switcher. Only shown when the user belongs to more than
-                // one team. Rendered as an INLINE picker — each team is a row with a
-                // checkmark on the current one — so every team is visible at a glance
-                // and one tap switches (clearer than a menu/navigation push for a
-                // small set). Selecting a team writes `selectedTeamID`, which the root
-                // view observes to re-scope the team-bound surfaces (paired Macs,
-                // presence, backup) to that team without dropping the live terminal.
-                if authManager.availableTeams.count > 1 {
-                    Section {
-                        Picker(selection: teamSelection) {
-                            ForEach(authManager.availableTeams) { team in
-                                Text(team.displayName).tag(team.id as String?)
-                            }
-                        } label: {
-                            EmptyView()
-                        }
-                        .pickerStyle(.inline)
-                        .accessibilityIdentifier("MobileSettingsTeamPicker")
-                    } header: {
-                        Label(
-                            L10n.string("mobile.settings.team", defaultValue: "Team"),
-                            systemImage: "person.2"
-                        )
-                    } footer: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(L10n.string(
-                                "mobile.settings.teamFooter",
-                                defaultValue: "Switches which cmux team's computers and devices this app shows."
-                            ))
-                            if teamSelectionFailed {
-                                Text(L10n.string(
-                                    "mobile.settings.teamSwitchFailed",
-                                    defaultValue: "Could not switch teams. Try again."
-                                ))
-                                .foregroundStyle(.red)
-                                .accessibilityIdentifier("MobileSettingsTeamSwitchError")
-                            }
-                        }
-                    }
-                }
-
                 // One row per connected Mac: transport is per computer (each
                 // dials its own configured method), so the old single "Active
                 // Transport" row became a per-row trailing label, and a row
@@ -578,7 +525,6 @@ struct MobileSettingsView: View {
             diagnosticLog?.recordAppEvent(.settingsOpened)
         }
         .onDisappear {
-            teamSelectionTask?.cancel()
             diagnosticLog?.recordAppEvent(.settingsClosed)
         }
     }
@@ -710,43 +656,6 @@ struct MobileSettingsView: View {
     /// shell action still omit the section.
     private var hasConnectionSection: Bool {
         !connectedHostName.isEmpty || store != nil || showComputers != nil
-    }
-
-    /// Drives the team Picker. Reads the EFFECTIVE current team (`resolvedTeamID`,
-    /// which falls back to the first team when nothing is explicitly selected) so
-    /// the picker always shows a concrete selection, and writes the user's choice
-    /// through the shared coordinator action (persisted; observed by the root for the lazy re-scope).
-    private var teamSelection: Binding<String?> {
-        Binding(
-            get: { pendingTeamID ?? authManager.resolvedTeamID },
-            set: { newValue in
-                guard let newValue,
-                      newValue != (pendingTeamID ?? authManager.resolvedTeamID) else { return }
-                let requestID = UUID()
-                teamSelectionTask?.cancel()
-                pendingTeamID = newValue
-                pendingTeamRequestID = requestID
-                teamSelectionFailed = false
-                teamSelectionTask = Task { @MainActor in
-                    do {
-                        try await authManager.selectTeam(id: newValue)
-                    } catch is CancellationError {
-                        guard pendingTeamRequestID == requestID else { return }
-                        pendingTeamID = nil
-                        pendingTeamRequestID = nil
-                    } catch {
-                        guard pendingTeamRequestID == requestID else { return }
-                        pendingTeamID = nil
-                        pendingTeamRequestID = nil
-                        teamSelectionFailed = true
-                        return
-                    }
-                    guard pendingTeamRequestID == requestID else { return }
-                    pendingTeamID = nil
-                    pendingTeamRequestID = nil
-                }
-            }
-        )
     }
 
     #if DEBUG
