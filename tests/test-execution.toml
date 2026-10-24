@@ -1861,3 +1861,7 @@ lane = "macos-shell"
 [[test]]
 path = "tests/test_mac_posthog_producer_removed.py"
 lane = "macos-shell"
+
+[[test]]
+path = "tests/test_mac_cloud_telemetry_removed.py"
+lane = "macos-shell"

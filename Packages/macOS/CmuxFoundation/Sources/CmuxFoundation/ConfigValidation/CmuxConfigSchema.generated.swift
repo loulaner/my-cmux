@@ -879,7 +879,7 @@ enum CmuxEmbeddedConfigSchema {
         "sendAnonymousTelemetry": {
           "type": "boolean",
           "default": true,
-          "description": "Allow anonymous telemetry."
+          "description": "Legacy compatibility preference; retained without enabling diagnostic uploads in this build."
         },
         "confirmQuit": {
           "type": "string",

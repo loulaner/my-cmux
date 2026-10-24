@@ -30,9 +30,10 @@ class MacPostHogProducerRemovedTests(unittest.TestCase):
         app = (ROOT / 'Sources/AppDelegate.swift').read_text()
         for token in ('GhosttyCrashBreadcrumb.pendingCrashFromDefaultStorage',
                       'return pendingCrash', '_ = CmuxFeatureFlags.shared',
-                      'CloudTelemetryUploader(', 'telemetry: VMClientTelemetry()',
+                      'telemetry: VMClientTelemetry()',
                       'let telemetryEnabled = TelemetrySettings.enabledForCurrentLaunch'):
             self.assertIn(token, app)
+        self.assertNotIn('CloudTelemetryUploader(', app)
         auth = (ROOT / 'Sources/Auth/MacAuthComposition.swift').read_text()
         self.assertIn('coordinator.start()', auth)
         self.assertIn('teamScopeRecoveryTriggers.start()', auth)

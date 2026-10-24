@@ -1,5 +1,8 @@
 # Mac product analytics (PostHog)
 
+> Historical design: this fork has retired the macOS app producers described
+> below. The remaining text records the original design, not this build’s behavior.
+
 The macOS app's activation, Cloud conversion and retention events. They go to
 the main cmux project (`244066`), alongside `cmux_daily_active`, the web and
 the server's `cmux_billing_*` and `cloud_vm_*` events.

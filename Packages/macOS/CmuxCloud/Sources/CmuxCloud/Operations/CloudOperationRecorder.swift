@@ -101,16 +101,16 @@ public final class CloudOperationRecorder {
             }
             if failure != nil && failure != .cancelled { operations[index].foreground = true }
         }
-        let start = Int64(context.startedAt.timeIntervalSince1970 * 1000)
-        let span = CloudTelemetrySpan(
-            eventId: UUID().uuidString.lowercased(), operationId: context.operationID.uuidString.lowercased(),
-            traceId: context.traceID, spanId: context.spanID, parentSpanId: context.parentSpanID,
-            operation: context.operation, phase: context.phase, outcome: outcome,
-            startedAtMs: start, endedAtMs: start + milliseconds, attempt: context.attempt,
-            failure: failure, httpStatus: httpStatus, errorNumber: errorNumber ?? (error as? URLError)?.code.rawValue,
-            sourceFile: context.sourceFile, sourceLine: context.sourceLine
-        )
         if let uploader, let identity = context.identity {
+            let start = Int64(context.startedAt.timeIntervalSince1970 * 1000)
+            let span = CloudTelemetrySpan(
+                eventId: UUID().uuidString.lowercased(), operationId: context.operationID.uuidString.lowercased(),
+                traceId: context.traceID, spanId: context.spanID, parentSpanId: context.parentSpanID,
+                operation: context.operation, phase: context.phase, outcome: outcome,
+                startedAtMs: start, endedAtMs: start + milliseconds, attempt: context.attempt,
+                failure: failure, httpStatus: httpStatus, errorNumber: errorNumber ?? (error as? URLError)?.code.rawValue,
+                sourceFile: context.sourceFile, sourceLine: context.sourceLine
+            )
             await uploader.enqueue(span, identity: identity)
         }
         trim()

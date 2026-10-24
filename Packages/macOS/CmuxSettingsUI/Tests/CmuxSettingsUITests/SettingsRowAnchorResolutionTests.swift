@@ -18,6 +18,13 @@ import Testing
 /// single key). Together they must cover every curated setting entry.
 @Suite("SettingsRowAnchorResolution")
 struct SettingsRowAnchorResolutionTests {
+    @Test
+    func retiredTelemetryHasNoSearchEntryOrAnchor() {
+        let index = SettingsSearchIndex(catalog: SettingCatalog())
+        #expect(!index.entries.contains { $0.id == "setting:app:telemetry" })
+        #expect(index.anchorID(forSettingsPath: "app.sendAnonymousTelemetry") == nil)
+    }
+
     /// Every singular cmux.json path declared by an *unconditionally
     /// rendered* settings row. Excludes rows that aren't standalone search
     /// results: `workspaceColors.colors` (repeated per-palette rows) and
@@ -55,7 +62,6 @@ struct SettingsRowAnchorResolutionTests {
         "app.preferredEditor",
         "app.renameSelectsExistingName",
         "app.reorderOnNotification",
-        "app.sendAnonymousTelemetry",
         "app.warnBeforeClosingAgentSession",
         "app.warnBeforeClosingTab",
         "app.warnBeforeClosingTabXButton",

@@ -36,7 +36,7 @@ domain wins over the release-domain fallback.
 | `DisableRemoteConnections` | Boolean | `false` | Disables cmux-created remote connections: SSH, Mosh, and remote tmux sessions, plus the remote registry, from every entry point (command palette, menus, `cmux` CLI, socket automation, and session restore). The socket refuses with `remote_connections_disabled`, `ssh://` links cmux is asked to open are refused up front, and a profile pushed mid-session disconnects every live cmux-created remote workspace and remote tmux mirror (a retained configuration cannot redial, and the wake-from-sleep re-arm is skipped). Cloud Machines attach over the same mechanism, so this key blocks them too; use `DisableCloud` to disable Cloud as a product. Terminals on this Mac are unaffected, and a user's own `ssh` typed into a shell is deliberately out of scope — this control governs connections cmux creates, not the shell. |
 | `DisableFileTransfer` | Boolean | `false` | Disables cmux-mediated file transfer: drag-and-drop and pasted-image uploads into a remote terminal (both the workspace remote session and a detected `ssh` session, including a configured `terminal.uploadCommands` custom command), remote-file previews in the SSH file explorer, phone↔Mac transfers over the iOS app (attachment upload, artifact and changed-file fetch, image paste; RPC code `file_transfer_disabled`), and `cmux vm push` / `cmux vm pull`. A refused drop or paste shows the policy message. Local drops into local terminals still work. A user's own `scp` or `rsync` typed into a shell is deliberately out of scope. |
 | `DisableIrohNetworking` | Boolean | `false` | Disables cmux-managed Iroh networking: the host runtime never activates, so no endpoint is created, no relay traffic flows, and no routes are published. Local terminal work, the local automation socket, and ordinary SSH are unaffected. `DisableRemoteControl` disables the Mac's role as an iOS remote-control host; this key disables the transport itself. Settings → Networking shows the managed state and locks its controls. |
-| `DisableTelemetry` | Boolean | `false` | Disables analytics and crash reporting (PostHog, Sentry) and the remote feature-flag fetch; all three carry the install's anonymous id off the Mac, and flags then use their built-in defaults. Read once at launch, like the user opt-in it overrides, so a profile pushed mid-session applies at the next launch. Settings → App shows the telemetry toggle locked. |
+| `DisableTelemetry` | Boolean | `false` | Retains the legacy policy-resolved telemetry preference. Official diagnostic uploaders and the sharing control are retired in this build. This key still gates local feature-flag prewarming at launch; it does not enable uploads. |
 | `DisableAutoUpdate` | Boolean | `false` | Disables Sparkle: no scheduled or launch-time update checks and no downloads, and "Check for Updates…" explains the managed state. Read at launch. Deploy app versions through your MDM instead. |
 | `DisableAutomationWebhooks` | Boolean | `false` | Disables the `webhook` action of automation rules (`~/.cmuxterm/automations.json`, `cmux automation`), which posts event payloads with caller-supplied headers to any http(s) URL. The action fails with a managed-policy message in the automation log; `run` and `notify` actions are unaffected. |
 | `DisableTLSTrustBypass` | Boolean | `false` | Disables the embedded browser's click-through on certificate errors: the error page offers no bypass and no earlier 24-hour grant is honored. |
@@ -98,9 +98,11 @@ Notes:
   notifications, whenever the app becomes active, and on a periodic
   re-check (about once a minute) while the app runs — a profile pushed
   mid-session takes effect within roughly a minute even if the user never
-  leaves cmux. `DisableTelemetry` and `DisableAutoUpdate` are the two
-  launch-time reads: Settings shows their managed state within that minute,
-  and the telemetry and updater processes honor them at the next launch.
+  leaves cmux. `DisableAutoUpdate` remains a launch-time read: Settings
+  shows its managed state within that minute, and the updater honors it at
+  the next launch. `DisableTelemetry` retains the launch-frozen legacy
+  preference and the existing local feature-flag prewarm gate; it no longer
+  controls an uploader or a sharing control.
 - `SocketControlMode` uses the same roughly 60-second managed-policy
   re-check. A live mode change rotates the socket authorization generation and
   closes clients admitted under the old mode, including idle connections and

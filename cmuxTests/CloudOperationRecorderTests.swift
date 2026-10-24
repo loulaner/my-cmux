@@ -10,48 +10,90 @@ import Testing
 
 @MainActor
 struct CloudOperationRecorderTests {
-    @Test("Placement receipts distinguish acceptance from permanent rejection", arguments: [202, 400])
-    func placementUploaderReceipt(status: Int) async throws {
-        let fixture = try await CloudRefreshFixture.make()
-        defer { fixture.session.invalidateAndCancel() }
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let queueURL = directory.appendingPathComponent("queue.json")
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.protocolClasses = [PlacementReceiptURLProtocol.self]
-        let session = URLSession(configuration: configuration)
-        defer { session.invalidateAndCancel() }
-        let uploader = CloudTelemetryUploader(
-            auth: fixture.auth,
-            baseURL: try #require(URL(string: "https://receipt-\(status).test")),
-            client: CloudTelemetryClient.current(info: [:], flavor: .dev),
-            session: session,
-            queueURL: queueURL,
-            batchDelay: .milliseconds(50)
-        )
-        let identity = try #require(fixture.auth.authenticatedSessionIdentity)
-        let recorder = CloudOperationRecorder(uploader: uploader, identity: { identity })
-        let operation = recorder.begin(.open)
-        await PlacementReceiptURLProtocol.resetCapture(status: status)
-        await recorder.finish(operation, error: CmuxTuiSurfaceProvider.ProviderError.remotePlacementUnavailable("fixture-machine"))
-        let deadline = ContinuousClock.now.advanced(by: .seconds(10))
-        var acknowledged = false
-        while ContinuousClock.now < deadline {
-            let data = try Data(contentsOf: queueURL)
-            let entries = try #require(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
-            if entries.isEmpty, await PlacementReceiptURLProtocol.captured(status: status) != nil {
-                acknowledged = true
-                break
-            }
-            try await Task.sleep(for: .milliseconds(10))
+    @Test func nilReporterPreservesOutcomesAndRepeatedFinish() async throws {
+        let recorder = CloudOperationRecorder()
+        for (status, expected) in [(200, CloudTelemetrySpan.Outcome.success), (503, .failure), (504, .timeout)] {
+            let root = recorder.begin(.open, foreground: false)
+            let child = recorder.beginChild(of: root, phase: .request, attempt: 1)
+            await recorder.finish(child, httpStatus: status)
+            await recorder.finish(root, httpStatus: status)
+            let snapshot = try #require(recorder.operations.last)
+            #expect(snapshot.outcome == expected)
+            #expect(snapshot.steps.first?.outcome == expected)
+            #expect(snapshot.durationMs != nil)
+            #expect(snapshot.foreground == (status >= 400))
+            await recorder.finish(root, error: CloudDiagnosticFailure.network)
+            #expect(recorder.operations.last == snapshot)
         }
-        #expect(acknowledged)
-        let captured = try #require(await PlacementReceiptURLProtocol.captured(status: status))
-        #expect(captured.failure == "placement")
-        #expect(captured.traceID == operation.traceID)
-        #expect(captured.operationID == operation.operationID.uuidString.lowercased())
-        #expect(await uploader.droppedCount == (status == 400 ? 1 : 0))
-        await uploader.clearForSignOut()
+        let cancelled = recorder.begin(.open, foreground: false)
+        await recorder.finish(cancelled, error: CancellationError())
+        #expect(recorder.operations.last?.outcome == .cancelled)
+        #expect(recorder.operations.last?.foreground == false)
+    }
+
+    @Test func nilReporterPreservesReturnThrowAndTaskLocalRestoration() async throws {
+        enum Marker: Error, Equatable { case expected }
+        let recorder = CloudOperationRecorder()
+        #expect(CloudOperationContext.current == nil)
+        let value = try await recorder.perform(.open) {
+            let root = try #require(CloudOperationContext.current)
+            let nested = await CloudOperationContext.phase(.request) { 73 }
+            #expect(CloudOperationContext.current?.spanID == root.spanID)
+            return nested
+        }
+        #expect(value == 73)
+        #expect(CloudOperationContext.current == nil)
+        do {
+            try await recorder.perform(.connect) {
+                try await CloudOperationContext.phase(.request) { throw Marker.expected }
+            }
+            Issue.record("The real error must escape the recorder")
+        } catch let error as Marker {
+            #expect(error == .expected)
+        }
+        #expect(CloudOperationContext.current == nil)
+        #expect(recorder.operations.last?.outcome == .failure)
+        let cancelled = Task { @MainActor in
+            try await recorder.perform(.connect) { try Task.checkCancellation() }
+        }
+        cancelled.cancel()
+        do {
+            try await cancelled.value
+            Issue.record("Cancellation must escape the recorder")
+        } catch is CancellationError {}
+        #expect(recorder.operations.last?.outcome == .cancelled)
+        #expect(CloudOperationContext.current == nil)
+    }
+
+    @Test func nilReporterKeepsIdentityFenceAndLocalTransferReference() async throws {
+        var identity: AuthenticatedSessionIdentity? = .init(generation: 1, accountID: "fixture")
+        let recorder = CloudOperationRecorder(identity: { identity })
+        let root = recorder.begin(.file)
+        #expect(recorder.reference(operationID: root.operationID.uuidString.lowercased(), traceID: root.traceID, spanID: root.spanID) != nil)
+        identity = .init(generation: 2, accountID: "fixture")
+        #expect(recorder.reference(operationID: root.operationID.uuidString.lowercased(), traceID: root.traceID, spanID: root.spanID) == nil)
+        let reference = try #require(await recorder.recordFileTransferFailure(phase: .file, failure: .process, errorNumber: 255))
+        #expect(recorder.operations.last?.copyableError.contains(reference) == true)
+        #expect(recorder.operations.last?.failure == .process)
+        identity = nil
+        #expect(await recorder.recordFileTransferFailure(phase: .file, failure: .process, errorNumber: 255) == nil)
+        recorder.reset()
+        await recorder.finish(root, error: CloudDiagnosticFailure.network)
+        #expect(recorder.operations.isEmpty)
+    }
+
+    @Test func nilReporterStillTrimsCompletedOperationsAndKeepsRunningOnes() async {
+        let recorder = CloudOperationRecorder()
+        for _ in 0..<105 { await recorder.finish(recorder.begin(.list)) }
+        #expect(recorder.operations.count == 100)
+        recorder.reset()
+        for _ in 0..<205 { await recorder.finish(recorder.begin(.open), error: CloudDiagnosticFailure.network) }
+        #expect(recorder.operations.count == 200)
+        #expect(recorder.operations.allSatisfy { $0.needsAttention })
+        recorder.reset()
+        for _ in 0..<205 { _ = recorder.begin(.open) }
+        #expect(recorder.operations.count == 205)
+        #expect(recorder.operations.allSatisfy { $0.isRunning })
     }
 
     @Test func authenticationFailuresKeepTheirTelemetryClassification() async throws {
@@ -296,81 +338,4 @@ private actor CapturedCloudDiagnostics: CloudTelemetrySending {
     func clearForSignOut() { spans.removeAll() }
 }
 
-/// The parsed immutable span crosses to the capture actor before any receipt is delivered.
-/// URLProtocol callbacks can arrive off-actor; mutable capture state stays actor-isolated.
-private final class PlacementReceiptURLProtocol: URLProtocol, @unchecked Sendable {
-    fileprivate struct UploadedSpan: Sendable {
-        let failure: String
-        let traceID: String
-        let operationID: String
-    }
-
-    private actor Capture {
-        private var values: [Int: UploadedSpan] = [:]
-
-        func reset(status: Int) {
-            values.removeValue(forKey: status)
-        }
-
-        func record(status: Int, span: UploadedSpan) {
-            values[status] = span
-        }
-
-        func value(status: Int) -> UploadedSpan? {
-            return values[status]
-        }
-    }
-
-    private static let capture = Capture()
-    fileprivate static func resetCapture(status: Int) async { await capture.reset(status: status) }
-    fileprivate static func captured(status: Int) async -> UploadedSpan? { await capture.value(status: status) }
-
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-    override func stopLoading() {}
-    override func startLoading() {
-        do {
-            var body = request.httpBody ?? Data()
-            if body.isEmpty, let stream = request.httpBodyStream {
-                stream.open()
-                defer { stream.close() }
-                var buffer = [UInt8](repeating: 0, count: 4096)
-                while true {
-                    let count = stream.read(&buffer, maxLength: buffer.count)
-                    if count < 0 { throw URLError(.cannotDecodeContentData) }
-                    if count == 0 { break }
-                    body.append(contentsOf: buffer.prefix(count))
-                }
-            }
-            guard let batch = try JSONSerialization.jsonObject(with: body) as? [String: Any],
-                  let spans = batch["spans"] as? [[String: Any]], spans.count == 1,
-                  let span = spans.first, let eventID = span["eventId"] as? String,
-                  span["failure"] as? String == "placement",
-                  let operationID = span["operationId"] as? String, !operationID.isEmpty,
-                  (span["traceId"] as? String)?.count == 32,
-                  (span["spanId"] as? String)?.count == 16 else {
-                throw URLError(.cannotDecodeContentData)
-            }
-            let status = request.url?.host == "receipt-202.test" ? 202 : 400
-            let uploaded = UploadedSpan(
-                failure: span["failure"] as? String ?? "",
-                traceID: span["traceId"] as? String ?? "",
-                operationID: operationID
-            )
-            guard let url = request.url,
-                  let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil) else {
-                throw URLError(.badURL)
-            }
-            let receipt = try JSONSerialization.data(withJSONObject: ["eventIds": [eventID]])
-            Task {
-                await Self.capture.record(status: status, span: uploaded)
-                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-                client?.urlProtocol(self, didLoad: receipt)
-                client?.urlProtocolDidFinishLoading(self)
-            }
-        } catch {
-            client?.urlProtocol(self, didFailWithError: error)
-        }
-    }
-}
 #endif

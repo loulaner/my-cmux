@@ -56,9 +56,9 @@ public enum ManagedDevicePolicyKey: String, CaseIterable, Sendable {
     /// transport itself, including the paths that are not remote control.
     case disableIrohNetworking = "DisableIrohNetworking"
 
-    /// Disables analytics and crash reporting (PostHog, Sentry) and the remote
-    /// feature-flag fetch, all of which carry the install's anonymous id off
-    /// the Mac. Read once at launch, like the user opt-in it overrides.
+    /// Retains the legacy telemetry preference policy for compatibility.
+    /// No official diagnostic uploader is composed in this build. This key
+    /// still gates local feature-flag prewarming at launch.
     case disableTelemetry = "DisableTelemetry"
 
     /// Disables Sparkle: no scheduled or launch-time update checks and no
