@@ -229,7 +229,7 @@ the first production deploy and dogfood.
   route-change uploads, and quit goodbyes have been removed. The historical
   `presenceHeartbeatEnabled` preference no longer enables uploads.
   `Sources/Cloud/PresenceServiceEndpoint.swift` retains URL resolution for
-  `CloudVMSyncSubscriber`, `DeviceDirectory`, and `MobileHostIrxRuntime`; `presenceServiceURL` / `CMUX_PRESENCE_BASE_URL`
+  `DeviceDirectory` and `MobileHostIrxRuntime`; `presenceServiceURL` / `CMUX_PRESENCE_BASE_URL`
   still configure those remaining clients in Debug development builds.
   Release and production-auth builds remain pinned to the production URL.
 - **Mac workspace collaborator presence (retired in MyCMUX)**: workspace
@@ -242,24 +242,13 @@ the first production deploy and dogfood.
   reading clients remain. Existing server records are not deleted or migrated
   by this change; their expiry timing has not been verified. Auth sign-out,
   browser-session clearing, and Cloud credential revocation remain in place.
-- **Mac Cloud machines list** (`Sources/Cloud/CloudVMSyncSubscriber.swift`,
-  owned by `MachinesPanelViewModel`): a second subscribe socket per visible
-  machines panel whose `sync.hello` asks only for `vms`, from the cursor and
-  epoch it last applied (0/0 on the first connect and after a team switch).
-  It sends the same `X-Cmux-Team-Id` header as `VMClient`
-  (`auth.resolvedTeamID`; omitted for a personal account without teams) and
-  fails closed on an account or team change, after which the panel
-  resubscribes under the new scope. Frames decode records with the REST list
-  parser (`VMClient.decodeListItem`) and merge into the rows in place:
-  upserts replace by id or insert in createdAt-descending order, tombstones
-  remove, a `backfilled: true` snapshot is the complete fleet, and an
-  unbackfilled snapshot is upsert-only. The stream never carries `limits`, so
-  a REST `GET /api/vm` still runs on panel show, wake, app activation,
-  network online and on every stream (re)connect; the routine poll stretches
-  from 45 s to 5 minutes while the stream is connected. Reconnect backoff is
-  `DeviceDirectory`'s (`1, 2, 5, 10, 30` s; at once after the 15-minute clean
-  close). The socket exists exactly while the panel polls (Cloud enabled,
-  signed in, visible, online).
+- **Mac Cloud machines list**: MyCMUX has retired the realtime `vms` sync
+  socket and stream merge state. The existing REST list remains active under
+  its visibility, online, signed-in, and Cloud-enabled gates. Panel show,
+  wake, app activation, and return online retain their REST refresh behavior;
+  routine reads use the existing 45-second fallback cadence. This does not
+  remove official Cloud REST requests; retiring the rest of the Cloud feature
+  is separate work.
 - **iOS** (`Packages/iOS/CmuxMobileShell/Sources/CmuxMobileShell/PresenceClient.swift`):
   typed WebSocket subscribe client. `MobileShellComposite` owns the
   subscription (starts on sign-in, blanks and stops on sign-out, backoff
