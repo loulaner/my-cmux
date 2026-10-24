@@ -42,20 +42,16 @@ struct CloudWelcomePresentationTests {
         #expect(resumed == 1)
 
         let relaunchedDefaults = try #require(UserDefaults(suiteName: suite))
-        let relaunched = CloudWelcomeWindowController(defaults: relaunchedDefaults)
-        let policy = ManagedDevicePolicy(defaults: relaunchedDefaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
-        #expect(!relaunched.claimLaunchPresentation(appVersion: "0.65.2", policy: policy))
+        #expect(CloudWelcomeWindowController.hasSeenWelcome(in: relaunchedDefaults))
     }
 
-    @Test("a launch viewer takes the current next step on every later Cloud action",
+    @Test("a previously seen viewer takes the current next step on every later Cloud action",
           arguments: [CloudWelcomeNextStep.signIn, .enable, .upgrade, .openCloud])
-    func launchViewerSkipsCard(step: CloudWelcomeNextStep) throws {
+    func previouslySeenViewerSkipsCard(step: CloudWelcomeNextStep) throws {
         let suite = "CloudWelcomePresentationTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
-        let launch = CloudWelcomeWindowController(defaults: defaults)
-        #expect(launch.claimLaunchPresentation(appVersion: "0.65.1", policy: policy))
+        defaults.set("0.65.1", forKey: CloudWelcomeWindowController.seenVersionDefaultsKey)
         var steps: [CloudWelcomeNextStep] = []
         var resumed = 0
         let controller = CloudWelcomeWindowController(
@@ -70,7 +66,7 @@ struct CloudWelcomePresentationTests {
         }
         #expect(steps == [step, step])
         #expect(resumed == 2)
-        #expect(!controller.claimLaunchPresentation(appVersion: "0.65.2", policy: policy))
+        #expect(CloudWelcomeWindowController.hasSeenWelcome(in: defaults))
     }
 
     #if DEBUG
@@ -81,12 +77,11 @@ struct CloudWelcomePresentationTests {
         defer { defaults.removePersistentDomain(forName: suite) }
         let controller = CloudWelcomeWindowController(defaults: defaults, performNextStep: { _, _ in })
         defer { controller.dismiss() }
-        let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
         controller.presentForDebug(over: nil)
         #expect(isVisible)
         #expect(CloudWelcomeWindowController.hasSeenWelcome(in: defaults))
         controller.dismiss()
-        #expect(!controller.claimLaunchPresentation(appVersion: "0.65.1", policy: policy))
+        #expect(CloudWelcomeWindowController.hasSeenWelcome(in: defaults))
         controller.presentForDebug(over: nil)
         #expect(isVisible)
         controller.dismiss()
@@ -98,7 +93,7 @@ struct CloudWelcomePresentationTests {
         #expect(isVisible)
         #expect(CloudWelcomeWindowController.hasSeenWelcome(in: defaults))
         controller.resetForDebug()
-        #expect(controller.claimLaunchPresentation(appVersion: "0.65.1", policy: policy))
+        #expect(!CloudWelcomeWindowController.hasSeenWelcome(in: defaults))
     }
     #endif
 }

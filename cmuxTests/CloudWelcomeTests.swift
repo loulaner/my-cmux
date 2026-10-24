@@ -11,9 +11,9 @@ import Testing
 
 @Suite("Cloud welcome")
 struct CloudWelcomeTests {
-    @Test("the shipped welcome selects the approved headline preview")
+    @Test("the explicit welcome card selects the approved headline preview")
     @MainActor
-    func launchUsesHeadlinePreview() {
+    func explicitCardUsesHeadlinePreview() {
         let view = CloudWelcomeView(nextStep: .upgrade, onNotNow: {}, onNext: { _ in })
         #expect(view.posterHeadline == String(localized: "cloud.welcome.headline", defaultValue: "Cloud machines for your agents"))
         #expect(view.sliderShowsFeatureList)
@@ -23,120 +23,6 @@ struct CloudWelcomeTests {
         #expect(!view.footerHasNotNow)
         let carousel = CloudWelcomeMediaCarousel(slides: CloudWelcomeSlide.all, mediaURL: { _ in nil })
         #expect(carousel.posterHeadline == view.posterHeadline)
-    }
-
-    @Test("overlapping launch triggers, dismissal and relaunch present one campaign")
-    @MainActor
-    func launchClaimIsPersistedBeforePresentation() throws {
-        let suiteName = "CloudWelcomeTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
-        let controller = CloudWelcomeWindowController(defaults: defaults)
-
-        #expect(controller.claimLaunchPresentation(appVersion: "0.65.1", policy: policy))
-        // The marker exists before the caller creates any window or awaits work.
-        #expect(defaults.string(forKey: CloudWelcomeWindowController.seenVersionDefaultsKey) == "0.65.1")
-        #expect(!controller.claimLaunchPresentation(appVersion: "0.65.1", policy: policy))
-        controller.dismiss()
-        #expect(!controller.claimLaunchPresentation(appVersion: "0.65.1", policy: policy))
-
-        // A fresh controller and defaults handle model another launch/process.
-        let relaunchedDefaults = try #require(UserDefaults(suiteName: suiteName))
-        let relaunched = CloudWelcomeWindowController(defaults: relaunchedDefaults)
-        #expect(!relaunched.claimLaunchPresentation(appVersion: "0.65.1", policy: policy))
-    }
-
-    @Test("users who saw the 0.65.0 welcome still get the 0.65.1 card")
-    @MainActor
-    func earlierWelcomeDoesNotSuppressCampaign() throws {
-        let suiteName = "CloudWelcomeTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
-        // 0.65.0 recorded its welcome under this boolean key.
-        defaults.set(true, forKey: "cmux.cloud.welcome.seen")
-        #expect(CloudWelcomeWindowController(defaults: defaults).claimLaunchPresentation(appVersion: "0.65.1", policy: policy))
-    }
-
-    @Test("a blocked first window waits for the next launch, even when policy changes")
-    @MainActor
-    func blockedLaunchDoesNotReconsiderOrConsumeCampaign() throws {
-        let suiteName = "CloudWelcomeTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        let blocked = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil) { _, key in
-            key == ManagedDevicePolicyKey.disableCloud.rawValue ? true : nil
-        }
-        let allowed = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
-        let controller = CloudWelcomeWindowController(defaults: defaults)
-        #expect(!controller.claimLaunchPresentation(appVersion: "0.65.1", policy: blocked))
-        #expect(!controller.claimLaunchPresentation(appVersion: "0.65.1", policy: allowed))
-        #expect(defaults.object(forKey: CloudWelcomeWindowController.seenVersionDefaultsKey) == nil)
-        #expect(CloudWelcomeWindowController(defaults: defaults).claimLaunchPresentation(appVersion: "0.65.1", policy: allowed))
-    }
-
-    @Test("ineligible release and debug/test launches leave the campaign available", arguments: ["0.65.0", "0.65.3", "0.66.0", "0.65.1-nightly", "0.65.1", "0.65.2"])
-    @MainActor
-    func launchClaimEnforcesReleaseAndRuntime(appVersion: String) throws {
-        let suiteName = "CloudWelcomeTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
-        let modes = ["0.65.1", "0.65.2"].contains(appVersion) ? [(true, false, false), (false, true, false), (false, false, true)] : [(false, false, false)]
-        for (debug, xctest, uiTest) in modes {
-            let controller = CloudWelcomeWindowController(defaults: defaults)
-            #expect(!controller.claimLaunchPresentation(
-                appVersion: appVersion, policy: policy,
-                isDebugBuild: debug, isRunningUnderXCTest: xctest, isUITestMode: uiTest
-            ))
-        }
-        #expect(defaults.object(forKey: CloudWelcomeWindowController.seenVersionDefaultsKey) == nil)
-        #expect(CloudWelcomeWindowController(defaults: defaults).claimLaunchPresentation(appVersion: "0.65.1", policy: policy))
-    }
-
-    @Test("a fresh user on 0.65.2 sees the campaign once and records the 0.65.1 marker")
-    @MainActor
-    func freshUserOnFollowUpReleaseSeesCampaignOnce() throws {
-        let suiteName = "CloudWelcomeTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
-
-        #expect(CloudWelcomeWindowController(defaults: defaults).claimLaunchPresentation(appVersion: "0.65.2", policy: policy))
-        // The marker keeps the value 0.65.1 wrote, so both releases share it.
-        #expect(defaults.string(forKey: CloudWelcomeWindowController.seenVersionDefaultsKey) == "0.65.1")
-        #expect(!CloudWelcomeWindowController(defaults: defaults).claimLaunchPresentation(appVersion: "0.65.2", policy: policy))
-        #expect(!CloudWelcomeWindowController(defaults: defaults).claimLaunchPresentation(appVersion: "0.65.1", policy: policy))
-    }
-
-    @Test("a user who saw the welcome on 0.65.1 does not see it again on 0.65.2")
-    @MainActor
-    func campaignSeenOnFirstReleaseIsNotRepeated() throws {
-        let suiteName = "CloudWelcomeTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
-
-        #expect(CloudWelcomeWindowController(defaults: defaults).claimLaunchPresentation(appVersion: "0.65.1", policy: policy))
-        // The literal value 0.65.1 already wrote for users before this change.
-        #expect(defaults.string(forKey: CloudWelcomeWindowController.seenVersionDefaultsKey) == "0.65.1")
-        #expect(!CloudWelcomeWindowController.shouldPresentAutomatically(defaults: defaults, appVersion: "0.65.2", policy: policy))
-        #expect(!CloudWelcomeWindowController(defaults: defaults).claimLaunchPresentation(appVersion: "0.65.2", policy: policy))
-    }
-
-    @Test("MDM DisableCloud blocks the campaign on 0.65.2 without consuming it")
-    @MainActor
-    func managedPolicyBlocksFollowUpRelease() throws {
-        let suiteName = "CloudWelcomeTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        let blocked = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil) { _, key in
-            key == ManagedDevicePolicyKey.disableCloud.rawValue ? true : nil
-        }
-        #expect(!CloudWelcomeWindowController.shouldPresentAutomatically(defaults: defaults, appVersion: "0.65.2", policy: blocked))
-        #expect(!CloudWelcomeWindowController(defaults: defaults).claimLaunchPresentation(appVersion: "0.65.2", policy: blocked))
-        #expect(defaults.object(forKey: CloudWelcomeWindowController.seenVersionDefaultsKey) == nil)
     }
 
     @Test("Reduce Motion holds movies through selection, restart and attachment")
@@ -189,26 +75,6 @@ struct CloudWelcomeTests {
         #expect(await deadline.value == false)
     }
 
-    @Test("welcome includes Cloud on and off; only MDM blocks it", arguments: [nil, false, true] as [Bool?], [false, true])
-    func welcomeIgnoresActivation(cloudIsOn: Bool?, blockedByMDM: Bool) throws {
-        let suiteName = "CloudWelcomeTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        if let cloudIsOn {
-            defaults.set(cloudIsOn, forKey: BetaFeaturesCatalogSection().cloudMachines.userDefaultsKey)
-        }
-        let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil) { _, key in
-            key == ManagedDevicePolicyKey.disableCloud.rawValue && blockedByMDM ? true : nil
-        }
-
-        #expect(CloudWelcomeWindowController.shouldPresentAutomatically(
-            defaults: defaults,
-            appVersion: "0.65.1",
-            policy: policy
-        ) == !blockedByMDM)
-        #expect(defaults.object(forKey: CloudWelcomeWindowController.seenVersionDefaultsKey) == nil)
-    }
-
     @Test("welcome owns close instead of the terminal behind it")
     @MainActor
     func welcomeOwnsCloseShortcut() {
@@ -224,83 +90,21 @@ struct CloudWelcomeTests {
         #expect(cmuxWindowShouldOwnCloseShortcut(window))
     }
 
-    @Test("automatic welcome targets only the campaign's stable releases", arguments: ["0.64.25", "0.65.0", "0.65.1", "0.65.2", "0.65.3", "0.66.0", "0.65.1-nightly", "0.65.2-nightly", ""])
-    func presentsOnlyInCampaignRelease(appVersion: String) throws {
+    @Test("any existing marker is seen; explicit presentation writes only the current marker",
+          arguments: [nil, "0.64.25", "0.65.0", "", "0.65.1"] as [String?])
+    func campaignMarkerUpgradeAndNoRepeat(previousMarker: String?) throws {
         let suiteName = "CloudWelcomeTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
-        #expect(CloudWelcomeWindowController.shouldPresentAutomatically(
-            defaults: defaults,
-            appVersion: appVersion,
-            policy: policy
-        ) == ["0.65.1", "0.65.2"].contains(appVersion))
-    }
-
-    @Test("any existing version marker prevents a repeat", arguments: [nil, "0.64.25", "0.65.0"] as [String?], ["0.65.1", "0.65.2"])
-    func campaignMarkerUpgradeAndNoRepeat(previousMarker: String?, appVersion: String) throws {
-        let suiteName = "CloudWelcomeTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
-
+        defaults.set(true, forKey: "cmux.cloud.welcome.seen")
         if let previousMarker {
             defaults.set(previousMarker, forKey: CloudWelcomeWindowController.seenVersionDefaultsKey)
         }
-        #expect(CloudWelcomeWindowController.shouldPresentAutomatically(
-            defaults: defaults,
-            appVersion: appVersion,
-            policy: policy
-        ) == (previousMarker == nil))
-
+        #expect(CloudWelcomeWindowController.hasSeenWelcome(in: defaults) == (previousMarker != nil))
         CloudWelcomeWindowController.markCampaignSeen(in: defaults)
-
-        #expect(defaults.string(forKey: CloudWelcomeWindowController.seenVersionDefaultsKey) == CloudWelcomeWindowController.campaignVersion)
-        for cloudIsOn in [false, true] {
-            defaults.set(cloudIsOn, forKey: BetaFeaturesCatalogSection().cloudMachines.userDefaultsKey)
-            #expect(!CloudWelcomeWindowController.shouldPresentAutomatically(
-                defaults: defaults,
-                appVersion: appVersion,
-                policy: policy
-            ))
-        }
-    }
-
-    @Test("only a profile-enforced DisableCloud policy suppresses the welcome")
-    func unmanagedDisableCloudPreferenceDoesNotSuppressWelcome() throws {
-        let suiteName = "CloudWelcomeTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        defaults.set(true, forKey: ManagedDevicePolicyKey.disableCloud.rawValue)
-        let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
-        #expect(CloudWelcomeWindowController.shouldPresentAutomatically(
-            defaults: defaults,
-            appVersion: "0.65.1",
-            policy: policy
-        ))
-    }
-
-    @Test("automatic presentation is suppressed for development and test launches")
-    func suppressesDevelopmentAndTestLaunches() throws {
-        let suiteName = "CloudWelcomeTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
-        let arguments: [(Bool, Bool, Bool)] = [
-            (true, false, false),
-            (false, true, false),
-            (false, false, true),
-        ]
-        for (isDebugBuild, isRunningUnderXCTest, isUITestMode) in arguments {
-            #expect(!CloudWelcomeWindowController.shouldPresentAutomatically(
-                defaults: defaults,
-                appVersion: "0.65.1",
-                policy: policy,
-                isDebugBuild: isDebugBuild,
-                isRunningUnderXCTest: isRunningUnderXCTest,
-                isUITestMode: isUITestMode
-            ))
-        }
+        #expect(defaults.string(forKey: CloudWelcomeWindowController.seenVersionDefaultsKey) == "0.65.1")
+        #expect(CloudWelcomeWindowController.hasSeenWelcome(in: defaults))
+        #expect(defaults.bool(forKey: "cmux.cloud.welcome.seen"), "The historical boolean is not deleted or migrated")
     }
 
     @Test("the one prominent button is the next step for this account")

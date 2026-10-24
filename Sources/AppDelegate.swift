@@ -5432,25 +5432,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
 
         attemptStartupSessionRestoreAndSaveIfNeeded(primaryWindow: window)
-        presentCloudWelcomeIfNeeded(over: window)
     }
 
-    /// In release builds, once per Mac after the first main window is up. Tests
-    /// never see it; debug builds can open it from Help when needed.
-    private func presentCloudWelcomeIfNeeded(over window: NSWindow) {
-#if DEBUG
-        // Keep the first-run welcome available from Help while iterating on the
-        // app, but do not interrupt every development launch with it.
-        return
-#else
-        let env = ProcessInfo.processInfo.environment
-        guard !isRunningUnderXCTestCached, !isRunningUnderXCTest(env), env["CMUX_UI_TEST_MODE"] != "1" else { return }
-        // Next turn of the main loop, so the window is on screen to place it over.
-        DispatchQueue.main.async { [weak self, weak window] in
-            self?.cloudWelcomeWindowController.presentIfNeeded(over: window)
-        }
-#endif
-    }
 
 #if DEBUG
     func sessionSnapshotForTesting(includeScrollback: Bool = false) -> AppSessionSnapshot? {

@@ -30,18 +30,13 @@ enum CloudCreationGate: Equatable {
     }
 }
 
-/// Shows the Cloud welcome campaign once on its eligible releases (0.65.1 and
-/// 0.65.2), whether Cloud is on or off, unless MDM blocks Cloud. Debug builds
-/// can reopen it from Help.
+/// Presents the Cloud welcome card for explicit Cloud actions.
+/// Returning viewers continue to the next step; Debug builds can reopen it from Help.
 @MainActor
 final class CloudWelcomeWindowController: NSObject, NSWindowDelegate {
     /// Retain the shipped marker value; any recorded version means the user
     /// has seen the welcome, even if the release campaign changes later.
     nonisolated static let campaignVersion = "0.65.1"
-    /// App versions that automatically show this campaign. Add a release here
-    /// to extend the campaign; keep ``campaignVersion`` so earlier viewers are
-    /// not shown it again.
-    nonisolated static let campaignAppVersions: Set<String> = ["0.65.1", "0.65.2"]
     nonisolated static let seenVersionDefaultsKey = "cmux.cloud.welcome.seenVersion"
 
     private let defaults: UserDefaults
@@ -72,81 +67,14 @@ final class CloudWelcomeWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     /// The Cloud action that opened this card, run again once Enable succeeds.
     private var onEnabled: (@MainActor () -> Void)?
-    /// Launch presentation is considered once, at the first main window. A
-    /// window opened later (Cmd+N an hour in) must not pop the welcome up just
-    /// because MDM policy changed since; an unseen welcome waits for next launch.
-    private var didConsiderLaunchPresentation = false
-
-    /// Cloud's on/off setting does not affect the announcement. Only managed
-    /// DisableCloud policy excludes users from this one-time release campaign,
-    /// which shows on any version in ``campaignAppVersions`` until the marker
-    /// records ``campaignVersion``.
-    nonisolated static func shouldPresentAutomatically(
-        defaults: UserDefaults,
-        appVersion: String,
-        policy: ManagedDevicePolicy,
-        isDebugBuild: Bool = false,
-        isRunningUnderXCTest: Bool = false,
-        isUITestMode: Bool = false
-    ) -> Bool {
-        guard !isDebugBuild, !isRunningUnderXCTest, !isUITestMode else { return false }
-        return campaignAppVersions.contains(appVersion)
-            && !hasSeenWelcome(in: defaults)
-            && !policy.isEnforced(.disableCloud)
-    }
-
     nonisolated static func hasSeenWelcome(in defaults: UserDefaults) -> Bool {
         defaults.string(forKey: seenVersionDefaultsKey) != nil
     }
 
-    /// Records that this campaign's announcement has been considered, on any of
-    /// its releases. The caller writes this before presenting so a crash or
-    /// quit cannot replay it.
+    /// Records an explicit welcome presentation before creating the window,
+    /// preserving the shipped marker for subsequent user actions.
     nonisolated static func markCampaignSeen(in defaults: UserDefaults) {
         defaults.set(campaignVersion, forKey: seenVersionDefaultsKey)
-    }
-
-    /// Presents at launch when it applies, and marks it seen on the way so a
-    /// quit or crash while it is open does not show it again.
-    func presentIfNeeded(over parent: NSWindow?) {
-        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
-        let environment = ProcessInfo.processInfo.environment
-        #if DEBUG
-        let isDebugBuild = true
-        #else
-        let isDebugBuild = false
-        #endif
-        guard claimLaunchPresentation(
-            appVersion: appVersion,
-            policy: ManagedDevicePolicy(),
-            isDebugBuild: isDebugBuild,
-            isRunningUnderXCTest: MacSentryStartupPolicy.isRunningUnderXCTest(environment: environment),
-            isUITestMode: environment["CMUX_UI_TEST_MODE"] == "1"
-        ) else { return }
-        show(over: parent, trigger: .launchAnnouncement)
-    }
-
-    /// Claims the release announcement synchronously before creating its window.
-    /// Overlapping main-window callbacks and a later launch share the persisted
-    /// marker; an ineligible first window still consumes this launch's decision.
-    func claimLaunchPresentation(
-        appVersion: String,
-        policy: ManagedDevicePolicy,
-        isDebugBuild: Bool = false,
-        isRunningUnderXCTest: Bool = false,
-        isUITestMode: Bool = false
-    ) -> Bool {
-        guard !didConsiderLaunchPresentation else { return false }
-        didConsiderLaunchPresentation = true
-        guard Self.shouldPresentAutomatically(
-            defaults: defaults,
-            appVersion: appVersion,
-            policy: policy,
-            isDebugBuild: isDebugBuild,
-            isRunningUnderXCTest: isRunningUnderXCTest,
-            isUITestMode: isUITestMode
-        ) else { return false }
-        return claimPresentation()
     }
 
     /// Every normal presentation claims the same persisted marker. A direct
@@ -172,8 +100,8 @@ final class CloudWelcomeWindowController: NSObject, NSWindowDelegate {
     }
 
     /// Reopens the introduction from the sidebar Cloud button. An explicit
-    /// press always shows the card, even after the one-time launch campaign
-    /// recorded it as seen, and still records it so the launch never repeats it.
+    /// press always shows the card, even when a previous presentation recorded
+    /// it as seen, and records the marker for subsequent Cloud actions.
     func presentIntroduction(over parent: NSWindow?) {
         Self.markCampaignSeen(in: defaults)
         show(over: parent, trigger: .sidebarCloudButton)
@@ -202,7 +130,6 @@ final class CloudWelcomeWindowController: NSObject, NSWindowDelegate {
     func resetForDebug() {
         dismiss()
         defaults.removeObject(forKey: Self.seenVersionDefaultsKey)
-        didConsiderLaunchPresentation = false
     }
     #endif
 

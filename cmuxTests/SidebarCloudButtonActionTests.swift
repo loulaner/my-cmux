@@ -67,7 +67,7 @@ struct SidebarCloudButtonActionTests {
         #expect(CloudWelcomeWindowController.hasSeenWelcome(in: defaults))
     }
 
-    @Test("an explicit introduction records the seen marker so launch does not repeat it")
+    @Test("an explicit introduction preserves the shipped seen marker")
     func introductionMarksWelcomeSeen() throws {
         let suite = "SidebarCloudButtonActionTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
@@ -77,7 +77,7 @@ struct SidebarCloudButtonActionTests {
         #expect(!CloudWelcomeWindowController.hasSeenWelcome(in: defaults))
         welcome.presentIntroduction(over: nil)
         #expect(CloudWelcomeWindowController.hasSeenWelcome(in: defaults))
-        #expect(!welcome.claimLaunchPresentation(appVersion: "0.65.1", policy: ManagedDevicePolicy(defaults: defaults)))
+        #expect(defaults.string(forKey: CloudWelcomeWindowController.seenVersionDefaultsKey) == CloudWelcomeWindowController.campaignVersion)
     }
 
     @Test("managed Cloud restrictions do not reveal or introduce Cloud")
