@@ -95,22 +95,6 @@ struct MacAuthComposition {
             baseURL: AuthEnvironment.stackBaseURL.absoluteString,
             noAutomaticPrefetch: true
         )
-        // DEBUG-only: make a tagged `cmux DEV` build come up already signed in
-        // as the dogfood account, mirroring iOS. A tagged build is a separate
-        // bundle (separate keychain), so it starts signed out. iOS injects
-        // `CMUX_UITEST_STACK_*` into the launch environment; the Mac app needs
-        // the same, but a `cmux DEV` opened from Finder / the CMUX Tag Opener
-        // does not inherit a shell's environment, so the resolver also reads
-        // `~/.secrets/cmuxterm-dev.env` / `~/.secrets/cmux.env` directly. The
-        // resolver runs unconditionally and applies file-first precedence, so
-        // on the dog Mac the verified dogfood file wins even when stale Stack
-        // creds are present in the environment; only the two resolved cred keys
-        // are filled in (never the whole file). When the only creds are
-        // `CMUX_UITEST_STACK_*` env (a CI UI test with no `~/.secrets` files),
-        // the resolver returns that same pair, so the merge is a no-op. The
-        // existing `CMUXAuthAutoLoginCredentials` + `shouldStartAutoLogin` gate
-        // then fires unchanged. Compiled out of release builds.
-        let resolvedEnvironment = Self.environmentWithDogfoodAutoSignIn(environment)
         let authProjectSwitched = Self.detectAuthProjectSwitch(
             resolvedProjectID: stackProjectID,
             buildDefaultProjectID: AuthEnvironment.resolvedStackProjectID(
@@ -122,21 +106,16 @@ struct MacAuthComposition {
         let includesDevAuth = Self.includesDevAuth(
             resolvedAuthEnvironment: resolvedAuthEnvironment
         )
-        let replacesStoredDevSession = includesDevAuth
-            && resolvedEnvironment["CMUX_DEV_AUTH_CREDENTIALS_RESOLVED"] == "1"
-        let launch = AuthLaunchOptions(
-            clearAuthRequested: resolvedEnvironment["CMUX_UITEST_CLEAR_AUTH"] == "1",
-            mockDataEnabled: false,
-            environment: resolvedEnvironment,
+        let launch = Self.launchOptions(
+            environment: environment,
             includesDevAuth: includesDevAuth,
-            clearStaleAuthOnLaunch: authProjectSwitched,
-            replaceStoredSessionWithAutoLogin: replacesStoredDevSession
+            authProjectSwitched: authProjectSwitched
         )
 
         let anchor = AuthPresentationContextProvider()
         let browserAppSessionSignInRelay = BrowserAppSessionSignInRelay()
         let coordinator = AuthCoordinator(
-            client: Self.uiTestAuthClient(wrapping: client, environment: resolvedEnvironment),
+            client: Self.uiTestAuthClient(wrapping: client, environment: environment),
             sessionCache: sessionCache,
             userCache: userCache,
             teamSelection: CMUXAuthTeamSelectionStore(
@@ -288,86 +267,21 @@ struct MacAuthComposition {
         return previous != resolvedProjectID
     }
 
-    #if DEBUG
-    /// Returns `environment` with the dogfood auto-sign-in credentials filled in
-    /// under the `CMUX_UITEST_STACK_*` keys (DEBUG only; the whole method is
-    /// compiled out of release, so the auto-sign-in path can never run in
-    /// production).
-    ///
-    /// Always consults ``DebugDogfoodCredentialResolver`` so the resolver's
-    /// file-first precedence is honored even when stale `CMUX_UITEST_STACK_*`
-    /// or `CMUX_DOGFOOD_STACK_*` vars are already present in the environment:
-    /// on the dog Mac, the verified `~/.secrets/cmuxterm-dev.env` account must
-    /// win, while a CI UI test with no `~/.secrets` files still resolves the
-    /// env pair and merges it unchanged.
-    ///
-    /// - Parameters:
-    ///   - environment: The launch environment.
-    ///   - secretFilePaths: Ordered secret-file candidates for the resolver.
-    ///     Defaults to `nil` so the resolver uses `~/.secrets/cmuxterm-dev.env`
-    ///     then `~/.secrets/cmux.env`. Injected by tests to exercise the
-    ///     dog-Mac precedence without touching real files.
-    ///   - readFile: File reader seam for the resolver. Defaults to a real read;
-    ///     injected by tests.
-    ///
-    /// `nonisolated`: a pure transformation over its arguments that touches no
-    /// main-actor state, so tests can call it from a nonisolated context.
-    nonisolated static func environmentWithDogfoodAutoSignIn(
-        _ environment: [String: String],
-        secretFilePaths: [String]? = nil,
-        readFile: ((String) -> String?)? = nil
-    ) -> [String: String] {
-        let resolver: DebugDogfoodCredentialResolver
-        if let readFile {
-            resolver = DebugDogfoodCredentialResolver(
-                environment: environment,
-                secretFilePaths: secretFilePaths,
-                readFile: readFile
-            )
-        } else {
-            resolver = DebugDogfoodCredentialResolver(
-                environment: environment,
-                secretFilePaths: secretFilePaths
-            )
-        }
-        guard let resolved = resolver.resolve() else {
-            var unresolved = environment
-            unresolved["CMUX_DEV_AUTH_CREDENTIALS_RESOLVED"] = nil
-            unresolved["CMUX_DEV_AUTH_REPLACE_SESSION"] = nil
-            return unresolved
-        }
-        let replacementRequested = environment[DebugDogfoodCredentialResolver.authProfileEnvironmentKey] != nil
-            || environment[DebugDogfoodCredentialResolver.explicitCredentialsFileEnvironmentKey] != nil
-            || environment["CMUX_DEV_AUTH_REPLACE_SESSION"] == "1"
-        var merged = environment
-        merged["CMUX_UITEST_STACK_EMAIL"] = resolved.email
-        merged["CMUX_UITEST_STACK_PASSWORD"] = resolved.password
-        if replacementRequested {
-            // Credential resolution is the deterministic identity selection
-            // for an explicit tagged DEBUG launch, even when the source is a
-            // file and the secret values never arrive in the process
-            // environment. Mirror the iOS launch contract so a stale stored
-            // session cannot survive under a different account.
-            merged["CMUX_DEV_AUTH_CREDENTIALS_RESOLVED"] = "1"
-            merged["CMUX_DEV_AUTH_REPLACE_SESSION"] = "1"
-        } else {
-            // Preserve legacy launches that only discover ambient credentials:
-            // they may auto-login when signed out, but must not clear an active
-            // persisted session on every ordinary restart.
-            merged["CMUX_DEV_AUTH_CREDENTIALS_RESOLVED"] = nil
-            merged["CMUX_DEV_AUTH_REPLACE_SESSION"] = nil
-        }
-        return merged
+    /// Combines explicit launch inputs without resolving or injecting credentials.
+    nonisolated static func launchOptions(
+        environment: [String: String],
+        includesDevAuth: Bool,
+        authProjectSwitched: Bool
+    ) -> AuthLaunchOptions {
+        AuthLaunchOptions(
+            clearAuthRequested: environment["CMUX_UITEST_CLEAR_AUTH"] == "1",
+            mockDataEnabled: false,
+            environment: environment,
+            includesDevAuth: includesDevAuth,
+            clearStaleAuthOnLaunch: authProjectSwitched
+        )
     }
-    #else
-    /// In release builds the dogfood auto-sign-in path does not exist; this is
-    /// the identity function so production never auto-signs-in.
-    nonisolated static func environmentWithDogfoodAutoSignIn(
-        _ environment: [String: String]
-    ) -> [String: String] {
-        environment
-    }
-    #endif
+
 }
 
 /// Retries a missing team scope when a retry is likely to succeed.

@@ -1870,8 +1870,6 @@
 		C57B00080000000000000001 /* CustomSidebarPaneDataContextCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = C57B00080000000000000002 /* CustomSidebarPaneDataContextCache.swift */; };
 		C57B00010000000000000001 /* CustomSidebarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C57B00010000000000000002 /* CustomSidebarPanel.swift */; };
 		C57B00090000000000000001 /* CustomSidebarPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C57B00090000000000000002 /* CustomSidebarPanelView.swift */; };
-		DEBDADADADADADADAD000001 /* DebugDogfoodCredentialResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEBDADADADADADADAD000002 /* DebugDogfoodCredentialResolver.swift */; };
-		DEBDADADADADADADAD000003 /* DebugDogfoodCredentialResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEBDADADADADADADAD000004 /* DebugDogfoodCredentialResolverTests.swift */; };
 		C0DE31410000000000000103 /* DebugEventLogSerializedAppendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE31410000000000000104 /* DebugEventLogSerializedAppendTests.swift */; };
 		A500D010A1B2C3D4E5F60718 /* DebugLogging.swift in Sources */ = {isa = PBXBuildFile; fileRef = A500D011A1B2C3D4E5F60718 /* DebugLogging.swift */; };
 		917300000000000000000001 /* DeferredActionReplacementStackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 917300000000000000000002 /* DeferredActionReplacementStackTests.swift */; };
@@ -2478,6 +2476,7 @@
 		46B3714B4885B3FE8D511EF2 /* LocalZellijCommandBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E3754097117785696FCE0B6 /* LocalZellijCommandBuilder.swift */; };
 		B3F35A1B08D1DD75015193B5 /* LocalZellijInvocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9B07608AA39A7201AE18BB /* LocalZellijInvocation.swift */; };
 		53750022A0B1C2D3E4F50022 /* MacAuthComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53750023A0B1C2D3E4F50023 /* MacAuthComposition.swift */; };
+		8942AA075C2CB874658EA930 /* MacAuthCompositionLaunchOptionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 596FEC1D39F600E76CC47CD8 /* MacAuthCompositionLaunchOptionsTests.swift */; };
 				A11D00000000000000000001 /* MacDevicesComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11D00000000000000000002 /* MacDevicesComposition.swift */; };
 		A12677000000000000000001 /* MachineCreateCoordinator+Selection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12677000000000000000002 /* MachineCreateCoordinator+Selection.swift */; };
 		90030E8466D433A52EAB6AB7 /* MachineCreateCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41A4C1F4530CD78EAC321C53 /* MachineCreateCoordinator.swift */; };
@@ -6436,8 +6435,6 @@
 		C57B00080000000000000002 /* CustomSidebarPaneDataContextCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Panels/CustomSidebarPaneDataContextCache.swift; sourceTree = "<group>"; };
 		C57B00010000000000000002 /* CustomSidebarPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Panels/CustomSidebarPanel.swift; sourceTree = "<group>"; };
 		C57B00090000000000000002 /* CustomSidebarPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Panels/CustomSidebarPanelView.swift; sourceTree = "<group>"; };
-		DEBDADADADADADADAD000002 /* DebugDogfoodCredentialResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DebugDogfoodCredentialResolver.swift; sourceTree = "<group>"; };
-		DEBDADADADADADADAD000004 /* DebugDogfoodCredentialResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDogfoodCredentialResolverTests.swift; sourceTree = "<group>"; };
 		C0DE31410000000000000104 /* DebugEventLogSerializedAppendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugEventLogSerializedAppendTests.swift; sourceTree = "<group>"; };
 		A500D011A1B2C3D4E5F60718 /* DebugLogging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/DebugLogging.swift; sourceTree = "<group>"; };
 		917300000000000000000002 /* DeferredActionReplacementStackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeferredActionReplacementStackTests.swift; sourceTree = "<group>"; };
@@ -7036,6 +7033,7 @@
 		4E3754097117785696FCE0B6 /* LocalZellijCommandBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalZellijCommandBuilder.swift; sourceTree = "<group>"; };
 		DE9B07608AA39A7201AE18BB /* LocalZellijInvocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalZellijInvocation.swift; sourceTree = "<group>"; };
 		53750023A0B1C2D3E4F50023 /* MacAuthComposition.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MacAuthComposition.swift; sourceTree = "<group>"; };
+		596FEC1D39F600E76CC47CD8 /* MacAuthCompositionLaunchOptionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MacAuthCompositionLaunchOptionsTests.swift"; sourceTree = "<group>"; };
 				A11D00000000000000000002 /* MacDevicesComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/MacDevicesComposition.swift"; sourceTree = "<group>"; };
 		A12677000000000000000002 /* MachineCreateCoordinator+Selection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "MachineCreateCoordinator+Selection.swift"; sourceTree = "<group>"; };
 		41A4C1F4530CD78EAC321C53 /* MachineCreateCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MachineCreateCoordinator.swift; sourceTree = "<group>"; };
@@ -9495,7 +9493,6 @@
 				B5A5E5560000000000000002 /* BrowserAppSessionStoreCleanupTarget.swift */,
 				B5A5E5580000000000000002 /* BrowserAppSessionStoreRegistry.swift */,
 				B5A5E5570000000000000002 /* BrowserAppSessionWeakReference.swift */,
-				DEBDADADADADADADAD000002 /* DebugDogfoodCredentialResolver.swift */,
 				53750023A0B1C2D3E4F50023 /* MacAuthComposition.swift */,
 				CD0CFE6100000000CD0CFE61 /* HostAccountFlow.swift */,
 				13019B000000000000000001 /* HostAccountFlow+TeamSelection.swift */,
@@ -12669,7 +12666,6 @@
 				C13519000000000000000004 /* GhosttyTerminalStartupEnvironmentTests.swift */,
 				C13519000000000000000008 /* ClaudeConfigDirectoryPathTests.swift */,
 				C65930010000000000000001 /* CrashDiagnosticSessionPolicyTests.swift */,
-				DEBDADADADADADADAD000004 /* DebugDogfoodCredentialResolverTests.swift */,
 				C135190000000000000000B2 /* SidebarWorkspaceGroupConfigOpenerTests.swift */,
 				A11EAE000000000000000001 /* WorkspaceAppearanceConfigResolutionTests.swift */,
 				A11EAF000000000000000001 /* GhosttyNotificationDispatcherTests.swift */,
@@ -13889,6 +13885,7 @@
 				774F5FF7D4460618C69AC7D7 /* CMUXCLISocketFailureRegressionTests.swift */,
 				1D4BD5979B9ED49CA1A0EBC4 /* MacPairedMacBackupRecordWireTests.swift */,
 				CDC5BB14919E79D131948949 /* PresenceServiceEndpointTests.swift */,
+				596FEC1D39F600E76CC47CD8 /* MacAuthCompositionLaunchOptionsTests.swift */,
 			);
 			path = cmuxTests;
 			sourceTree = "<group>";
@@ -15540,7 +15537,6 @@
 				C57B00080000000000000001 /* CustomSidebarPaneDataContextCache.swift in Sources */,
 				C57B00010000000000000001 /* CustomSidebarPanel.swift in Sources */,
 				C57B00090000000000000001 /* CustomSidebarPanelView.swift in Sources */,
-				DEBDADADADADADADAD000001 /* DebugDogfoodCredentialResolver.swift in Sources */,
 				A500D010A1B2C3D4E5F60718 /* DebugLogging.swift in Sources */,
 				9132BC2F156AD09D1346256D /* DeferredAgentResumeAdmissionOwner.swift in Sources */,
 				D10786DB0000000000000001 /* DeferredBrowserPanel.swift in Sources */,
@@ -18342,7 +18338,6 @@
 				46FF4C2573735348394EB428 /* CurrentWorkCommandPaletteTests.swift in Sources */,
 				7657BE6E69D9F4E6DAE62072 /* CurrentWorkQueryServiceTests.swift in Sources */,
 				A229999BB6C8A757F54AB35F /* CurrentWorkReducerTests.swift in Sources */,
-				DEBDADADADADADADAD000003 /* DebugDogfoodCredentialResolverTests.swift in Sources */,
 				C0DE31410000000000000103 /* DebugEventLogSerializedAppendTests.swift in Sources */,
 				917300000000000000000001 /* DeferredActionReplacementStackTests.swift in Sources */,
 				BA7A43065A846B4A19D749FE /* DeferredAdmissionTestOwner.swift in Sources */,
@@ -18522,6 +18517,7 @@
 				C11218000000000000000012 /* LocalTmuxSessionBinding.swift in Sources */,
 				C11218000000000000000013 /* LocalTmuxSessionIdentity.swift in Sources */,
 				C11218000000000000000014 /* LocalTmuxSessionListParser.swift in Sources */,
+				8942AA075C2CB874658EA930 /* MacAuthCompositionLaunchOptionsTests.swift in Sources */,
 				484A89A4B4AA08EF63E0DB51 /* MachineCreateCoordinatorTests.swift in Sources */,
 				E4C9D6A1F2B34E5D8C7A9012 /* MachineCreateOptimisticProjectionTests.swift in Sources */,
 				55DB52C3D79CFBA5F5BB856E /* MachineDeleteCoordinatorTests.swift in Sources */,
