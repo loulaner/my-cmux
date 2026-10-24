@@ -415,6 +415,7 @@ jobs:
           python3 ios/tests/test_legacy_auth_composition_removed.py
           python3 ios/tests/test_workspace_presence_publisher_removed.py
           python3 ios/tests/test_device_presence_backup_removed.py
+          python3 ios/tests/test_iroh_settings_removed.py
 
       - name: Lint iOS package conventions
         run: |

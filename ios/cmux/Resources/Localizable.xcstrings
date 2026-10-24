@@ -70942,55 +70942,55 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This permanently removes the connection timeline stored on this device."
+            "value": "This removes local app logs and the current diagnostic and verbose connection logs on this device."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このデバイスに保存された接続タイムラインを完全に削除します。"
+            "value": "このデバイスのアプリログと、現在の診断ログおよび詳細な接続ログを削除します。"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dadurch wird die auf diesem Gerät gespeicherte Verbindungszeitleiste dauerhaft entfernt."
+            "value": "Dadurch werden lokale App-Protokolle sowie die aktuellen Diagnose- und ausführlichen Verbindungsprotokolle auf diesem Gerät gelöscht."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cela supprime définitivement la chronologie de connexion stockée sur cet appareil."
+            "value": "Cela supprime les journaux locaux de l’app ainsi que les journaux de diagnostic et de connexion détaillés actuels de cet appareil."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يؤدي هذا إلى إزالة المخطط الزمني للاتصال المخزن على هذا الجهاز بشكل دائم."
+            "value": "سيؤدي هذا إلى حذف سجلات التطبيق المحلية وسجلات التشخيص الحالية وسجلات الاتصال التفصيلية على هذا الجهاز."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esto elimina permanentemente la línea de tiempo de conexión almacenada en este dispositivo."
+            "value": "Esto elimina los registros locales de la app y los registros actuales de diagnóstico y conexión detallada de este dispositivo."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "這將永久刪除儲存在該裝置上的連接時間軸。"
+            "value": "這會刪除本機應用程式日誌，以及目前的診斷日誌和詳細連線日誌。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "这将永久删除存储在该设备上的连接时间线。"
+            "value": "这会删除本机应用日志，以及当前的诊断日志和详细连接日志。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 장치에 저장된 연결 타임라인이 영구적으로 제거됩니다."
+            "value": "이 기기의 로컬 앱 로그와 현재 진단 로그 및 상세 연결 로그를 삭제합니다."
           }
         }
       }

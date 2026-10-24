@@ -21,7 +21,6 @@ struct MobileSettingsView: View {
     @Environment(MobileConnectionMethodStore.self) private var connectionMethodStore:
         MobileConnectionMethodStore?
     @Environment(ToastCenter.self) private var toasts
-    @Environment(\.irohSettingsController) private var irohSettingsController
     @Environment(\.mobileDiagnosticLog) private var diagnosticLog
     let connectedHostName: String
     let startPairingScanner: (() -> Void)?
@@ -149,23 +148,6 @@ struct MobileSettingsView: View {
                             "mobile.ssh.settings.keys.footer",
                             defaultValue: "Keys this iPhone uses to log in to SSH computers."
                         ))
-                    }
-                }
-
-                if let irohSettingsController {
-                    Section(L10n.string("mobile.settings.networking", defaultValue: "Networking")) {
-                        NavigationLink {
-                            MobileIrohSettingsView(
-                                controller: irohSettingsController,
-                                diagnosticLog: diagnosticLog
-                            )
-                        } label: {
-                            Label(
-                                L10n.string("mobile.settings.iroh", defaultValue: "Networking"),
-                                systemImage: "network"
-                            )
-                        }
-                        .accessibilityIdentifier("MobileSettingsIroh")
                     }
                 }
 
@@ -692,7 +674,6 @@ struct MobileSettingsView: View {
 /// (simulator, browser, composer, lifecycle), and the connection diagnostics
 /// cover all connection activity, not one transport.
 private struct MobileSettingsDiagnosticsSection: View {
-    @Environment(\.irohSettingsController) private var irohSettingsController
     @Environment(\.mobileDiagnosticLog) private var diagnosticLog
     @Environment(\.mobileAppLog) private var appLog
     @State private var isPreparingExport = false
@@ -700,10 +681,8 @@ private struct MobileSettingsDiagnosticsSection: View {
     @State private var logExportTaskID: UUID?
     @State private var presentationHost: UIViewController?
     @State private var exportErrorMessage: String?
-    /// Owns the verbose-log toggle and the privacy-scrubbed connection report
-    /// that used to live on the Networking screen. `nil` without a controller
-    /// (previews, hosts without the app root).
-    @State private var irohSettingsModel: MobileIrohSettingsModel?
+    /// Owns only the local verbose-log toggle. Absent in hosts without logs.
+    @State private var localDiagnosticSettingsModel: MobileLocalDiagnosticSettingsModel?
     @State private var showsClearConfirmation = false
 
     var body: some View {
@@ -723,7 +702,7 @@ private struct MobileSettingsDiagnosticsSection: View {
                 .disabled(isPreparingExport)
                 .accessibilityIdentifier("MobileSettingsExportLogs")
             }
-            if let model = irohSettingsModel {
+            if let model = localDiagnosticSettingsModel {
                 Toggle(isOn: Binding(
                     get: { model.verboseLogEnabled },
                     set: { enabled in Task { await model.setVerboseLog(enabled) } }
@@ -776,18 +755,17 @@ private struct MobileSettingsDiagnosticsSection: View {
                     // Stop and drain the string sink first. Its synchronous
                     // observer mirrors each accepted line into AppLog, so the
                     // AppLog barrier below includes every pre-clear line.
-                    let verboseLogWasEnabled = irohSettingsModel?.verboseLogEnabled == true
+                    let verboseLogWasEnabled = localDiagnosticSettingsModel?.verboseLogEnabled == true
                     let didClearVerboseLog = await MobileDebugLog.shared.clearPersistedLog()
                     if !didClearVerboseLog {
                         if verboseLogWasEnabled {
-                            await irohSettingsModel?.setVerboseLog(false)
+                            await localDiagnosticSettingsModel?.setVerboseLog(false)
                         }
                         exportErrorMessage = L10n.string(
                             "mobile.settings.diagnostics.clear.failed",
                             defaultValue: "Couldn’t clear the verbose connection logs. Check available storage and try again."
                         )
                     }
-                    await irohSettingsModel?.clearDiagnosticReport()
                     await diagnosticLog?.clear()
                     let didClearAppLog = await appLog?.clear() ?? true
                     if !didClearAppLog {
@@ -802,26 +780,24 @@ private struct MobileSettingsDiagnosticsSection: View {
         } message: {
             Text(L10n.string(
                 "mobile.iroh.diagnostics.clear.message",
-                defaultValue: "This permanently removes the app, networking, verbose, and connection logs stored on this device."
+                defaultValue: "This removes local app logs and the current diagnostic and verbose connection logs on this device."
             ))
         }
         .task {
-            guard !Task.isCancelled else { return }
-            guard let irohSettingsController else { return }
-            // Reuse the model but restart observation on every appearance;
-            // the previous observe loop died with the previous task.
-            let model = irohSettingsModel ?? MobileIrohSettingsModel(
-                controller: irohSettingsController,
-                diagnosticLog: diagnosticLog
+            guard !Task.isCancelled, localDiagnosticSettingsModel == nil,
+                  diagnosticLog != nil || appLog != nil else { return }
+            localDiagnosticSettingsModel = MobileLocalDiagnosticSettingsModel(
+                verboseLogEnabled: UserDefaults.standard.bool(forKey: MobileDebugLog.verboseLogDefaultsKey),
+                diagnosticLog: diagnosticLog,
+                setFileLogging: { enabled in
+                    await MobileDebugLog.shared.setFileLogging(enabled: enabled)
+                }
             )
-            irohSettingsModel = model
-            await model.observe(recordingScreenEvents: false)
         }
         .onDisappear {
             logExportTask?.cancel()
             logExportTask = nil
             logExportTaskID = nil
-            irohSettingsModel?.cancelOperations()
         }
         .alert(
             L10n.string("mobile.settings.diagnostics", defaultValue: "Diagnostics"),

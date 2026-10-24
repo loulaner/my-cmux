@@ -9265,55 +9265,55 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This permanently removes the app, networking, verbose, and connection logs stored on this device."
+            "value": "This removes local app logs and the current diagnostic and verbose connection logs on this device."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このデバイスに保存されたアプリ、ネットワーク、詳細、接続ログを完全に削除します。"
+            "value": "このデバイスのアプリログと、現在の診断ログおよび詳細な接続ログを削除します。"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dadurch werden die auf diesem Gerät gespeicherten App-, Netzwerk-, ausführlichen und Verbindungsprotokolle dauerhaft entfernt."
+            "value": "Dadurch werden lokale App-Protokolle sowie die aktuellen Diagnose- und ausführlichen Verbindungsprotokolle auf diesem Gerät gelöscht."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cela supprime définitivement les journaux d’app, réseau, détaillés et de connexion stockés sur cet appareil."
+            "value": "Cela supprime les journaux locaux de l’app ainsi que les journaux de diagnostic et de connexion détaillés actuels de cet appareil."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يؤدي هذا إلى إزالة سجلات التطبيق والشبكة والسجلات المطولة والاتصال المخزنة على هذا الجهاز بشكل دائم."
+            "value": "سيؤدي هذا إلى حذف سجلات التطبيق المحلية وسجلات التشخيص الحالية وسجلات الاتصال التفصيلية على هذا الجهاز."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Esto elimina permanentemente los registros de la aplicación, la red, los detalles y la conexión almacenados en este dispositivo."
+            "value": "Esto elimina los registros locales de la app y los registros actuales de diagnóstico y conexión detallada de este dispositivo."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "這將永久刪除儲存在該裝置上的應用程式、網路、詳細和連線日誌。"
+            "value": "這會刪除本機應用程式日誌，以及目前的診斷日誌和詳細連線日誌。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "这将永久删除存储在该设备上的应用程序、网络、详细和连接日志。"
+            "value": "这会删除本机应用日志，以及当前的诊断日志和详细连接日志。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 기기에 저장된 앱, 네트워크, 상세 및 연결 로그가 영구적으로 제거됩니다."
+            "value": "이 기기의 로컬 앱 로그와 현재 진단 로그 및 상세 연결 로그를 삭제합니다."
           }
         }
       }
