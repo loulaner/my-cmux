@@ -253,8 +253,7 @@ struct SidebarHiddenPresentationTests {
         )
 
         let featureFlags = CmuxFeatureFlags(
-            defaults: defaults,
-            remoteFlagValueProvider: { _ in nil }
+            defaults: defaults
         )
         featureFlags.setOverride(true, for: CmuxFeatureFlags.appKitSidebarListFlag)
 

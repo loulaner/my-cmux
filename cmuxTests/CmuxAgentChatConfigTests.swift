@@ -449,7 +449,7 @@ struct CmuxAgentChatConfigTests {
         let defaultsName = "cmux-agent-chat-flag-defaults-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: defaultsName))
         defer { defaults.removePersistentDomain(forName: defaultsName) }
-        let flags = CmuxFeatureFlags(defaults: defaults, remoteFlagValueProvider: { _ in nil })
+        let flags = CmuxFeatureFlags(defaults: defaults)
 
         #expect(!flags.isAgentChatUIEnabled)
     }

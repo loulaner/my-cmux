@@ -41,7 +41,7 @@ struct CmuxFeatureFlagOverrideCapability: Equatable, Sendable {
     }
 
     func policy(for definition: CmuxFeatureFlagDefinition) -> CmuxFeatureFlagOverridePolicy {
-        guard definition.key == CmuxFeatureFlags.cloudMachinesFlag.key else { return .remoteFirst }
+        guard definition.key == CmuxFeatureFlags.cloudMachinesFlag.key else { return .localFirst }
         return allowsCloudOverride ? .localFirst : .disabled
     }
 }

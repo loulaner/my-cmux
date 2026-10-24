@@ -21,10 +21,8 @@ struct CloudFeatureFlagTests {
         defer { defaults.removePersistentDomain(forName: suite) }
         let flags = CmuxFeatureFlags(
             defaults: defaults,
-            overrideCapability: .init(bundleIdentifier: "com.cmuxterm.app", isDebugBuild: false),
-            remoteFlagValueProvider: { _ in nil }
+            overrideCapability: .init(bundleIdentifier: "com.cmuxterm.app", isDebugBuild: false)
         )
-        flags.applyLoadedFlags()
         #expect(!flags.isAgentInboxQuickViewEnabled)
         let definition = try #require(CmuxFeatureFlags.allFlags.first { $0.key == "agent-inbox-quick-view-enabled-release" })
         #expect(definition.defaultWhenUnavailable == false)
@@ -37,13 +35,6 @@ struct CloudFeatureFlagTests {
         defer { defaults.removePersistentDomain(forName: suite) }
         let definition = CmuxFeatureFlags.cloudMachinesFlag
         #expect(!CmuxFeatureFlags.allFlags.contains { $0.key == definition.key })
-        var requestedKeys: [String] = []
-        let flags = CmuxFeatureFlags(defaults: defaults, remoteFlagValueProvider: { key in
-            requestedKeys.append(key)
-            return nil
-        })
-        flags.applyLoadedFlags()
-        #expect(!requestedKeys.contains(definition.key))
         let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
         defaults.set(true, forKey: RightSidebarBetaFeatureSettings.cloudMachinesEnabledKey)
         #expect(CloudMachinesFeature.isAvailable(policy: policy))
@@ -60,20 +51,13 @@ struct CloudFeatureFlagTests {
             defaults.set(remoteValue, forKey: "cmux.flags.remote.\(key)")
             defaults.set(false, forKey: "cmux.flags.override.\(key)")
         }
-        var requestedKeys: [String] = []
-        let flags = CmuxFeatureFlags(
+        _ = CmuxFeatureFlags(
             defaults: defaults,
-            overrideCapability: .init(bundleIdentifier: "com.cmuxterm.app", isDebugBuild: false),
-            remoteFlagValueProvider: { key in
-                requestedKeys.append(key)
-                return remoteValue
-            },
-            pinsFlagsToLocalValues: false
+            overrideCapability: .init(bundleIdentifier: "com.cmuxterm.app", isDebugBuild: false)
         )
-        flags.applyLoadedFlags()
         for key in retiredKeys {
-            #expect(!requestedKeys.contains(key))
             #expect(!CmuxFeatureFlags.allFlags.contains { $0.key == key })
+            #expect(defaults.object(forKey: "cmux.flags.remote.\(key)") as? Bool == remoteValue)
         }
         let policy = ManagedDevicePolicy(defaults: defaults, releaseDomainDefaults: nil, forcedObject: { _, _ in nil })
         #expect(CloudMachinesFeature.isAvailable(policy: policy))
@@ -101,12 +85,10 @@ struct CloudFeatureFlagTests {
             ("workspace-todo-controls-enabled-release", \.isWorkspaceTodoControlsEnabled)
         ]
         for (enabledKey, _) in accessors {
-            let flags = CmuxFeatureFlags(
-                defaults: defaults,
-                remoteFlagValueProvider: { $0 == enabledKey },
-                pinsFlagsToLocalValues: false
-            )
-            flags.applyLoadedFlags()
+            let flags = CmuxFeatureFlags(defaults: defaults)
+            for definition in CmuxFeatureFlags.allFlags {
+                flags.setOverride(definition.key == enabledKey, for: definition)
+            }
             for (key, accessor) in accessors {
                 #expect(flags[keyPath: accessor] == (key == enabledKey))
             }

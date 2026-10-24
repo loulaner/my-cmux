@@ -62,7 +62,7 @@ struct SidebarSnapshotOwnerTests {
         let defaults = try #require(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
         defaults.set(CmuxExtensionSidebarSelection.defaultProviderId, forKey: CmuxExtensionSidebarSelection.defaultsKey)
-        let flags = CmuxFeatureFlags(defaults: defaults, remoteFlagValueProvider: { _ in nil })
+        let flags = CmuxFeatureFlags(defaults: defaults)
         flags.setOverride(appKit, for: CmuxFeatureFlags.appKitSidebarListFlag)
         let cache = SidebarRowSnapshotCache()
         let manager = TabManager(autoWelcomeIfNeeded: false)

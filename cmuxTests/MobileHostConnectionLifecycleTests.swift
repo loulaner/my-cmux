@@ -889,51 +889,31 @@ extension MobileHostAuthorizationTests {
         #expect(enabled.filter { !taskCapabilities.contains($0) } == disabled)
     }
 
-    @Test @MainActor func testMobileWorkspaceChangesFlagDefaultsAndRemoteValue() {
+    @Test @MainActor func testMobileWorkspaceChangesFlagDefaultsAndLocalValue() {
         let suiteName = "cmux-tests-mobile-changes-flag-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
-
-        var remoteValue: Any?
-        let flags = CmuxFeatureFlags(
-            defaults: defaults,
-            remoteFlagValueProvider: { _ in remoteValue }
-        )
-
-        // Without a remote value the per-build default applies (DEBUG on for
-        // dogfood, Release off); tests compile DEBUG.
+        let flags = CmuxFeatureFlags(defaults: defaults)
+        #if DEBUG
         #expect(flags.isMobileWorkspaceChangesEnabled)
-
-        remoteValue = false
-        flags.applyLoadedFlags()
+        #else
         #expect(!flags.isMobileWorkspaceChangesEnabled)
-
-        remoteValue = true
-        flags.applyLoadedFlags()
+        #endif
+        flags.setOverride(false, for: CmuxFeatureFlags.mobileWorkspaceChangesFlag)
+        #expect(!flags.isMobileWorkspaceChangesEnabled)
+        flags.setOverride(true, for: CmuxFeatureFlags.mobileWorkspaceChangesFlag)
         #expect(flags.isMobileWorkspaceChangesEnabled)
     }
 
-    @Test @MainActor func testMobileTaskComposerFlagDefaultsOnAndCanDisableRemotely() {
+    @Test @MainActor func testMobileTaskComposerFlagDefaultsOnAndCanDisableLocally() {
         let suiteName = "cmux-tests-mobile-task-composer-flag-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
-
-        var remoteValue: Any?
-        let flags = CmuxFeatureFlags(
-            defaults: defaults,
-            remoteFlagValueProvider: { key in
-                key == CmuxFeatureFlags.mobileTaskComposerFlag.key ? remoteValue : nil
-            }
-        )
-
+        let flags = CmuxFeatureFlags(defaults: defaults)
         #expect(flags.isMobileTaskComposerEnabled)
-
-        remoteValue = false
-        flags.applyLoadedFlags()
+        flags.setOverride(false, for: CmuxFeatureFlags.mobileTaskComposerFlag)
         #expect(!flags.isMobileTaskComposerEnabled)
-
-        remoteValue = true
-        flags.applyLoadedFlags()
+        flags.setOverride(true, for: CmuxFeatureFlags.mobileTaskComposerFlag)
         #expect(flags.isMobileTaskComposerEnabled)
     }
 

@@ -1,4 +1,4 @@
-/// Metadata for a registered PostHog runtime flag.
+/// Metadata for a registered local runtime flag.
 struct CmuxFeatureFlagDefinition: Identifiable, Equatable, Sendable {
     var id: String { key }
 

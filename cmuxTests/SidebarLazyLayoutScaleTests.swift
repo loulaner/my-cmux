@@ -114,8 +114,7 @@ final class SidebarLazyLayoutScaleTests {
         // This suite measures SwiftUI lazy row bodies and pointer ownership.
         // Keep that implementation explicit now that AppKit is the default.
         let featureFlags = CmuxFeatureFlags(
-            defaults: defaults,
-            remoteFlagValueProvider: { _ in nil }
+            defaults: defaults
         )
         featureFlags.setOverride(false, for: CmuxFeatureFlags.appKitSidebarListFlag)
 

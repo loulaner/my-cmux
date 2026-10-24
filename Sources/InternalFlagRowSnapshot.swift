@@ -18,8 +18,8 @@ struct InternalFlagRowSnapshot: Identifiable, Equatable {
     var overrideNote: String? {
         if !resolution.allowsLocalOverride {
             return String(
-                localized: "featureFlags.override.remoteControlledNote",
-                defaultValue: "Controlled remotely; local override inactive."
+                localized: "featureFlags.override.buildDisallowedNote",
+                defaultValue: "This build does not allow local overrides."
             )
         }
         if definition.key == CmuxFeatureFlags.cloudMachinesFlag.key {
@@ -33,8 +33,6 @@ struct InternalFlagRowSnapshot: Identifiable, Equatable {
 
     var sourceTitle: String {
         switch resolution.source {
-        case .remote:
-            return String(localized: "featureFlags.source.remote", defaultValue: "Remote")
         case .override:
             return String(localized: "featureFlags.source.override", defaultValue: "Override")
         case .default:

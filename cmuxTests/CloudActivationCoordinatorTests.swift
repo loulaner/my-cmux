@@ -26,8 +26,7 @@ struct CloudActivationCoordinatorTests {
         )
         _ = CmuxFeatureFlags(
             defaults: defaults,
-            overrideCapability: capability,
-            remoteFlagValueProvider: { _ in false }
+            overrideCapability: capability
         )
         #expect(defaults.bool(forKey: CloudActivationCoordinator.activationKey))
 

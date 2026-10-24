@@ -42,7 +42,7 @@ class MacSentryStartupRemovedTests(unittest.TestCase):
                       'PostHogAnalytics.shared.recordLaunchIdentity()',
                       'if telemetryEnabled && !isRunningUnderXCTest {',
                       'PostHogAnalytics.shared.startIfNeeded()', 'startProductAnalytics()',
-                      'CmuxFeatureFlags.shared.start()', 'GhosttyCrashBreadcrumb.markCleanExit()'):
+                      '_ = CmuxFeatureFlags.shared', 'GhosttyCrashBreadcrumb.markCleanExit()'):
             self.assertIn(token, source)
         ring = (ROOT / 'Sources/Mobile/MobileHostDiagnostics.swift').read_text()
         self.assertIn('nonisolated static let log = DiagnosticLog(', ring)

@@ -210932,55 +210932,55 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remote values take priority, except for local Cloud overrides in Nightly and debug builds."
+            "value": "Allowed local overrides take priority; otherwise, the feature default applies."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "リモート値が優先されます。ただし、NIGHTLYとデバッグビルドのCloudのローカル上書きは例外です。"
+            "value": "許可されたローカル上書きが優先され、それ以外は機能のデフォルト値が適用されます。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "远程值优先，但 Nightly 和调试版本中的 Cloud 本地覆盖除外。"
+            "value": "允许的本地覆盖优先，否则使用功能默认值。"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remote-Werte haben Vorrang, außer bei lokalen Cloud-Überschreibungen in Nightly- und Debug-Builds."
+            "value": "Zulässige lokale Überschreibungen haben Vorrang; andernfalls gilt der Standardwert der Funktion."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les valeurs distantes ont la priorité, sauf les surcharges locales de Cloud dans les versions Nightly et de débogage."
+            "value": "Les remplacements locaux autorisés sont prioritaires ; sinon, la valeur par défaut de la fonctionnalité s’applique."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "تكون الأولوية للقيم البعيدة، باستثناء تجاوزات Cloud المحلية في إصدارات Nightly وتصحيح الأخطاء."
+            "value": "تُعطى الأولوية للتجاوزات المحلية المسموح بها؛ وإلا فتُستخدم القيمة الافتراضية للميزة."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Los valores remotos tienen prioridad, salvo las anulaciones locales de Cloud en las versiones Nightly y de depuración."
+            "value": "Las anulaciones locales permitidas tienen prioridad; de lo contrario, se usa el valor predeterminado de la función."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "遠端值優先，但 Nightly 和除錯版本中的 Cloud 本機覆寫除外。"
+            "value": "允許的本機覆寫優先，否則使用功能預設值。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "원격 값이 우선하지만 Nightly 및 디버그 빌드의 로컬 Cloud 재정의는 예외입니다."
+            "value": "허용된 로컬 재정의가 우선하며, 그렇지 않으면 기능 기본값이 적용됩니다."
           }
         }
       }
@@ -212708,55 +212708,55 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inspect remote feature flag state and local overrides for this Mac."
+            "value": "Inspect local feature flags and overrides for this Mac."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このMacのリモート機能フラグの状態とローカル上書きを確認します。"
+            "value": "このMacのローカル機能フラグと上書き設定を確認します。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "查看此 Mac 的远程功能开关状态和本地覆盖项。"
+            "value": "查看此 Mac 的本地功能开关和覆盖设置。"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remote-Feature-Flag-Status und lokale Überschreibungen für diesen Mac untersuchen."
+            "value": "Lokale Funktionsschalter und Überschreibungen für diesen Mac anzeigen."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inspecter l’état des drapeaux de fonctionnalités distants et les surcharges locales pour ce Mac."
+            "value": "Consultez les indicateurs de fonctionnalités et les remplacements locaux de ce Mac."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "افحص حالة علامات الميزات البعيدة والتجاوزات المحلية لجهاز Mac هذا."
+            "value": "اعرض مفاتيح الميزات والتجاوزات المحلية لهذا الـ Mac."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inspecciona el estado de los flags de funciones remotos y las anulaciones locales para esta Mac."
+            "value": "Consulta las opciones de funciones y las anulaciones locales de este Mac."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "檢查此 Mac 的遠端功能旗標狀態與本機覆蓋。"
+            "value": "檢視此 Mac 的本機功能開關與覆寫設定。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 Mac의 원격 기능 플래그 상태 및 로컬 재정의를 검사합니다."
+            "value": "이 Mac의 로컬 기능 플래그와 재정의를 확인합니다."
           }
         }
       }
@@ -660086,6 +660086,65 @@
           "stringUnit": {
             "state": "translated",
             "value": "MacでこのiPadを承認してください。"
+          }
+        }
+      }
+    },
+    "featureFlags.override.buildDisallowedNote": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This build does not allow local overrides."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يسمح هذا الإصدار بالتجاوزات المحلية."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Build erlaubt keine lokalen Überschreibungen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta compilación no permite anulaciones locales."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette version n’autorise pas les remplacements locaux."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このビルドではローカル上書きは許可されていません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 빌드에서는 로컬 재정의를 허용하지 않습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前构建不允许本地覆盖。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此版本不允許本機覆寫。"
           }
         }
       }

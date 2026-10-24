@@ -68,7 +68,7 @@ private struct InternalFlagsView: View {
                     .font(.title2.weight(.semibold))
                 Text(String(
                     localized: "featureFlags.window.subtitle",
-                    defaultValue: "Inspect remote feature flag state and local overrides for this Mac."
+                    defaultValue: "Inspect local feature flags and overrides for this Mac."
                 ))
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -116,7 +116,7 @@ private struct InternalFlagsView: View {
             HStack(alignment: .center, spacing: 16) {
                 Text(String(
                     localized: "featureFlags.footer.note",
-                    defaultValue: "Remote values take priority, except for local Cloud overrides in Nightly and debug builds."
+                    defaultValue: "Allowed local overrides take priority; otherwise, the feature default applies."
                 ))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
