@@ -68,8 +68,8 @@ final class DeviceSurfaceProviderRegistry {
         makeAutomaticClient: @escaping @MainActor (AuthenticatedSessionIdentity, String?) -> DeviceIrxClient? = { _, _ in nil },
         allowsAutomaticConnections: @escaping @MainActor () -> Bool = { false },
         retainsAcrossTeamChanges: @escaping @MainActor () -> Bool = { AccountMacDirectoryFeature.isEnabled() },
-        makeDirectory: @escaping DirectoryFactory = { auth, identity, teamID, pairing, automaticClient in
-            DeviceDirectory(auth: auth, identity: identity, teamID: teamID, pairing: pairing, automaticClient: automaticClient)
+        makeDirectory: @escaping DirectoryFactory = { _, identity, teamID, pairing, automaticClient in
+            DeviceDirectory(identity: identity, teamID: teamID, pairing: pairing, automaticClient: automaticClient)
         },
         isFeatureEnabled: @escaping @MainActor () -> Bool = { DevicesFeature.isDiscoveryEnabled() }
     ) {

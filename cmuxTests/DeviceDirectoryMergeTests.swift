@@ -136,10 +136,10 @@ struct DeviceDirectoryMergeTests {
         platform: String = "mac",
         manual: Bool = false,
         lastSeenAt: Date? = nil
-    ) -> DeviceRegistryDirectoryClient.Device {
-        DeviceRegistryDirectoryClient.Device(
+    ) -> DeviceRegistryDirectoryWire.Device {
+        DeviceRegistryDirectoryWire.Device(
             deviceID: deviceID, platform: platform, displayName: name, isManual: manual, lastSeenAt: lastSeenAt,
-            instances: tags.map { DeviceRegistryDirectoryClient.Instance(tag: $0, routes: routes, lastSeenAt: lastSeenAt) }
+            instances: tags.map { DeviceRegistryDirectoryWire.Instance(tag: $0, routes: routes, lastSeenAt: lastSeenAt) }
         )
     }
 
@@ -225,7 +225,7 @@ struct DeviceDirectoryMergeTests {
 
     private func directoryInput(
         macs: [DeviceDiscoveredMac],
-        registry: [DeviceRegistryDirectoryClient.Device] = [],
+        registry: [DeviceRegistryDirectoryWire.Device] = [],
         presence: [(SurfaceDeviceInstanceID, DevicePresenceInstance)] = [],
         previous: [DeviceDirectoryRecord] = []
     ) -> DeviceDirectoryMerge.Input {

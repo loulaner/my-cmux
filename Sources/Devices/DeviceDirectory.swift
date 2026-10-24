@@ -5,17 +5,12 @@ import CmuxIrohTransport
 import CmuxSurfaceCatalogModel
 import Foundation
 import Observation
-import OSLog
 
-nonisolated private let deviceDirectoryLog = Logger(subsystem: "dev.cmux", category: "device-directory")
-
-/// The account's discoverable Macs, authorized by the Mac directory and enriched
-/// with saved pairings and registry metadata. An unavailable discovery client
-/// never makes those secondary sources authoritative.
-/// Bound to one account generation. Team-scoped registry enrichment may fail
-/// and is never allowed to remove an account-owned row. The registry is read
-/// on start, explicit refresh, and authenticated directory changes; it is not
-/// polled and does not establish whether a device is online.
+/// The account's discoverable Macs, admitted only by authenticated discovery.
+/// Saved pairings and previous records enrich admitted rows, never add peers.
+/// Bound to one account generation. Discovery failures preserve known rows;
+/// per-session leases still reject stale or revoked peers before application I/O.
+/// Refreshes run on start, explicit refresh, and authenticated directory changes.
 @MainActor
 @Observable
 final class DeviceDirectory {
@@ -26,7 +21,7 @@ final class DeviceDirectory {
     private(set) var registryError: String?
     private(set) var hasLoadedRegistry = false
     private(set) var isRefreshingRegistry = false
-    /// The revision of the v2 directory the last registry read observed; the
+    /// The revision of the v2 directory the last discovery read observed; the
     /// provider registry retries host refusals when it advances.
     private(set) var directoryStamp: DeviceDirectoryStamp?
 
@@ -46,7 +41,6 @@ final class DeviceDirectory {
     private let identity: AuthenticatedSessionIdentity
     private let teamID: String?
     private let pairing: any DeviceLinkAuthorizationSource
-    private let registryClient: DeviceRegistryDirectoryClient
     private let automaticClient: DeviceIrxClient?
     private var authenticatedMacs: [DeviceDiscoveredMac] = []
     private var directoryChangesTask: Task<Void, Never>?
@@ -55,16 +49,13 @@ final class DeviceDirectory {
         fixedSelfInstance ?? SurfaceDeviceInstanceID(deviceID: MobileHostIdentity.deviceID(), tag: MobileHostIdentity.instanceTag())
     }
 
-    private var registryDevices: [DeviceRegistryDirectoryClient.Device] = []
     private var registryTask: Task<Void, Never>?
     private var registryGeneration: UInt64 = 0
     private var pairingObserver: NSObjectProtocol?
     init(
-        auth: AuthCoordinator,
         identity: AuthenticatedSessionIdentity,
         teamID: String?,
         pairing: any DeviceLinkAuthorizationSource,
-        registryClient: DeviceRegistryDirectoryClient? = nil,
         automaticClient: DeviceIrxClient? = nil,
         selfInstance: SurfaceDeviceInstanceID? = nil
     ) {
@@ -72,18 +63,6 @@ final class DeviceDirectory {
         self.teamID = teamID
         self.pairing = pairing
         self.automaticClient = automaticClient
-        let accountDirectoryEnabled = AccountMacDirectoryFeature.isEnabled()
-        let tokens = accountDirectoryEnabled
-            ? HiveAccountTokenSource(accountScopedAuth: auth, identity: identity)
-            : HiveAccountTokenSource(auth: auth, identity: identity, teamID: teamID)
-        self.registryClient = registryClient ?? DeviceRegistryDirectoryClient(
-            session: { try await tokens.session() },
-            // The account directory has no selected-team partition. The
-            // registry is enrichment only, so do not pin it to the team that
-            // happened to be selected when this account-scoped directory was
-            // created. The rollback path keeps the team header.
-            teamID: accountDirectoryEnabled ? nil : teamID
-        )
         self.fixedSelfInstance = selfInstance
     }
 
@@ -92,13 +71,12 @@ final class DeviceDirectory {
     /// account's (the per-user directory), so only team-scoped reads restart.
     struct CarriedState: Sendable {
         var records: [DeviceDirectoryRecord]
-        var registryDevices: [DeviceRegistryDirectoryClient.Device]
         var authenticatedMacs: [DeviceDiscoveredMac]
         var hasLoadedRegistry: Bool
     }
 
     func carriedState() -> CarriedState {
-        CarriedState(records: records, registryDevices: registryDevices, authenticatedMacs: authenticatedMacs,
+        CarriedState(records: records, authenticatedMacs: authenticatedMacs,
             hasLoadedRegistry: hasLoadedRegistry)
     }
 
@@ -107,7 +85,6 @@ final class DeviceDirectory {
     func adopt(_ carried: CarriedState) {
         guard !isRunning else { return }
         records = carried.records
-        registryDevices = carried.registryDevices
         authenticatedMacs = carried.authenticatedMacs
         hasLoadedRegistry = carried.hasLoadedRegistry
         notifyChanged()
@@ -149,7 +126,6 @@ final class DeviceDirectory {
         registryTask?.cancel()
         registryTask = nil
         isRefreshingRegistry = false
-        registryDevices = []
         records = []
         hasLoadedRegistry = false
         registryError = nil
@@ -157,7 +133,7 @@ final class DeviceDirectory {
         notifyChanged()
     }
 
-    /// The explicit Refresh verb: re-read registry and authenticated discovery now.
+    /// Refresh authenticated discovery. Registry-named state remains for UI compatibility.
     @discardableResult
     func refreshRegistry() -> Task<Void, Never> {
         if let registryTask { return registryTask }
@@ -175,19 +151,6 @@ final class DeviceDirectory {
                 }
             }
             guard !Task.isCancelled else { return }
-            do {
-                let devices = try await self.registryClient.list()
-                guard !Task.isCancelled else { return }
-                self.registryDevices = devices
-                self.registryError = nil
-            } catch DeviceRegistryDirectoryClient.ListError.notSignedIn {
-                guard !Task.isCancelled else { return }
-                self.registryError = nil
-            } catch {
-                guard !Task.isCancelled else { return }
-                self.registryError = String(localized: "devices.registry.failed", defaultValue: "Could not refresh your Macs. Check your connection and try again.")
-                deviceDirectoryLog.error("device registry list failed: \(String(describing: error), privacy: .private)")
-            }
             if let automaticClient = self.automaticClient {
                 do {
                     let bindings = try await automaticClient.discoverMacs()
@@ -198,9 +161,12 @@ final class DeviceDirectory {
                     self.registryError = nil
                 } catch {
                     guard !Task.isCancelled else { return }
+                    self.registryError = String(localized: "devices.registry.failed", defaultValue: "Could not refresh your Macs. Check your connection and try again.")
                     // An outage retains the last authenticated rows; per-session
                     // leases reject stale or revoked peers before application I/O.
                 }
+            } else {
+                self.registryError = nil
             }
             self.hasLoadedRegistry = true
         }
@@ -210,7 +176,6 @@ final class DeviceDirectory {
 
     private func remerge() {
         let merged = DeviceDirectoryMerge.merge(DeviceDirectoryMerge.Input(
-            registry: registryDevices,
             authenticatedMacs: authenticatedMacs,
             requiresAuthenticatedDiscovery: true,
             paired: pairing.pairedDevices,

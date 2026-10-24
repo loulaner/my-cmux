@@ -11,7 +11,7 @@ import Foundation
 /// network.
 struct DeviceDirectoryMerge {
     struct Input: Sendable {
-        var registry: [DeviceRegistryDirectoryClient.Device] = []
+        var registry: [DeviceRegistryDirectoryWire.Device] = []
         /// Account-wide bindings from the same authenticated broker used by iOS.
         var authenticatedMacs: [DeviceDiscoveredMac] = []
         /// Automatic discovery admits only hosts that currently advertise Mac
@@ -40,7 +40,7 @@ struct DeviceDirectoryMerge {
         var resolvedTeamID: String?
     }
 
-    private typealias RegistryEntry = (device: DeviceRegistryDirectoryClient.Device, instance: DeviceRegistryDirectoryClient.Instance)
+    private typealias RegistryEntry = (device: DeviceRegistryDirectoryWire.Device, instance: DeviceRegistryDirectoryWire.Instance)
 
     static func merge(_ input: Input, now: Date = Date()) -> [DeviceDirectoryRecord] {
         var hostRegistry: [SurfaceDeviceInstanceID: RegistryEntry] = [:]

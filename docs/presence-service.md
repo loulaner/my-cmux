@@ -240,13 +240,16 @@ the first production deploy and dogfood.
   `CmuxWorkspacePresence`; the shared package source remains in the repository.
 - **Mac device registry publisher (retired in MyCMUX)**: device registration
   POSTs, lease renewals, and PATCH withdrawals have been removed. Directory
-  reading clients remain. Existing server records are not deleted or migrated
+  metadata reads from the legacy registry have also been retired. Authenticated
+  Mac discovery remains; failures retain known rows without bypassing session
+  leases. `RemotesClient` still uses the endpoint for user-added manual remotes.
+  Existing server records are not deleted or migrated
   by this change; their expiry timing has not been verified. Auth sign-out,
   browser-session clearing, and Cloud credential revocation remain in place.
 - **Mac device directory presence (retired in MyCMUX)**: the account presence
   stream and owner-sync state have been removed. Authenticated Mac discovery
-  and REST registry enrichment remain, including their account/team scope and
-  cancellation guards. Registry and saved pairing data cannot admit a Mac
+  remains, including its account/team scope and
+  cancellation guards. Legacy registry and saved pairing data cannot admit a Mac
   without authenticated discovery consent. Settings report online only for a
   genuinely connected local provider; otherwise online status is unknown.
   The unused legacy `DevicePresenceSubscriber` implementation and its exclusive

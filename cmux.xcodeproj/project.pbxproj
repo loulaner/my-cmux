@@ -1925,7 +1925,7 @@
 		07AF27B47199DEC187248FA0 /* DeviceNotificationSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19205912D7B09B4FEFBDE66D /* DeviceNotificationSyncTests.swift */; };
 				DEC1CE000000000000000004 /* DevicePresenceFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000003 /* DevicePresenceFrame.swift */; };
 				DEC1CE000000000000000040 /* DevicePresenceWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE00000000000000003F /* DevicePresenceWireTests.swift */; };
-				DEC1CE000000000000000008 /* DeviceRegistryDirectoryClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000007 /* DeviceRegistryDirectoryClient.swift */; };
+				DEC1CE000000000000000008 /* DeviceRegistryDirectoryWire.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000007 /* DeviceRegistryDirectoryWire.swift */; };
 				DEC1CE000000000000000012 /* DeviceRouteSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000011 /* DeviceRouteSelector.swift */; };
 				DEC1CE000000000000000044 /* DeviceRouteSelectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000043 /* DeviceRouteSelectorTests.swift */; };
 				DEC1CE00000000000000004A /* DevicesCloudTreeBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000049 /* DevicesCloudTreeBuilderTests.swift */; };
@@ -6491,7 +6491,7 @@
 		19205912D7B09B4FEFBDE66D /* DeviceNotificationSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DeviceNotificationSyncTests.swift"; sourceTree = "<group>"; };
 				DEC1CE000000000000000003 /* DevicePresenceFrame.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DevicePresenceFrame.swift"; sourceTree = "<group>"; };
 				DEC1CE00000000000000003F /* DevicePresenceWireTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DevicePresenceWireTests.swift; sourceTree = "<group>"; };
-				DEC1CE000000000000000007 /* DeviceRegistryDirectoryClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DeviceRegistryDirectoryClient.swift"; sourceTree = "<group>"; };
+				DEC1CE000000000000000007 /* DeviceRegistryDirectoryWire.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DeviceRegistryDirectoryWire.swift"; sourceTree = "<group>"; };
 				DEC1CE000000000000000011 /* DeviceRouteSelector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DeviceRouteSelector.swift"; sourceTree = "<group>"; };
 				DEC1CE000000000000000043 /* DeviceRouteSelectorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeviceRouteSelectorTests.swift; sourceTree = "<group>"; };
 				DEC1CE000000000000000049 /* DevicesCloudTreeBuilderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DevicesCloudTreeBuilderTests.swift; sourceTree = "<group>"; };
@@ -12110,7 +12110,7 @@
 				9720CD7F02C94F41A07E193D /* CloudTerminalCreationCoordinator.swift */,
 				DEC1CE000000000000000001 /* DevicesFeature.swift */,
 				DEC1CE000000000000000003 /* DevicePresenceFrame.swift */,
-				DEC1CE000000000000000007 /* DeviceRegistryDirectoryClient.swift */,
+				DEC1CE000000000000000007 /* DeviceRegistryDirectoryWire.swift */,
 				DEC1CE000000000000000009 /* DeviceDirectoryRecord.swift */,
 				DEC1CE00000000000000000B /* DeviceDirectoryMerge.swift */,
 				DEC1CE00000000000000000D /* DeviceDirectory.swift */,
@@ -15574,7 +15574,7 @@
 				DEC1CE000000000000000016 /* DeviceLinkTerminalEvents.swift in Sources */,
 				05B7E14C6F0EB2DF684B7A67 /* DeviceNotificationFeed.swift in Sources */,
 				DEC1CE000000000000000004 /* DevicePresenceFrame.swift in Sources */,
-				DEC1CE000000000000000008 /* DeviceRegistryDirectoryClient.swift in Sources */,
+				DEC1CE000000000000000008 /* DeviceRegistryDirectoryWire.swift in Sources */,
 				DEC1CE000000000000000012 /* DeviceRouteSelector.swift in Sources */,
 				DEC1CE000000000000000002 /* DevicesFeature.swift in Sources */,
 				DEC1CE000000000000000028 /* DevicesPanelViewModel.swift in Sources */,

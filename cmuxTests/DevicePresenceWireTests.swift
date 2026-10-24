@@ -273,7 +273,7 @@ struct DevicePresenceWireTests {
                 ["deviceId": "phone-1", "platform": "iOS", "displayName": ""],
             ],
         ])
-        let devices = try #require(DeviceRegistryDirectoryClient.parse(data))
+        let devices = try #require(DeviceRegistryDirectoryWire.parse(data))
         #expect(devices.map(\.deviceID) == [uuid, "manual-1", "phone-1"])
         let base = try #require(ISO8601DateFormatter().date(from: "2026-09-01T10:00:00Z"))
         #expect(devices[0].displayName == "Studio")
@@ -288,7 +288,7 @@ struct DevicePresenceWireTests {
         #expect(devices[1].instances.isEmpty)
         #expect(devices[2].platform == "ios")
         #expect(devices[2].displayName == nil)
-        #expect(DeviceRegistryDirectoryClient.parse(Data("[]".utf8)) == nil)
-        #expect(DeviceRegistryDirectoryClient.parse(Data("{}".utf8)) == nil)
+        #expect(DeviceRegistryDirectoryWire.parse(Data("[]".utf8)) == nil)
+        #expect(DeviceRegistryDirectoryWire.parse(Data("{}".utf8)) == nil)
     }
 }

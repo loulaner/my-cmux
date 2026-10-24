@@ -35,32 +35,26 @@ struct DeviceDirectoryLifecycleTests {
         #expect(directory.records.isEmpty, "An unavailable authenticated directory must not fall back to pairing")
     }
 
-    @Test("Starting twice installs one pairing observer and one registry read; stopping permits restart")
+    @Test("Starting twice installs one pairing observer and one refresh; stopping permits restart")
     func startIsIdempotentAndStopAllowsRegistryRestart() async throws {
         let suite = "DeviceDirectoryStart-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        let requests = AsyncStream<CheckedContinuation<AuthenticatedSessionSnapshot, any Error>>.makeStream()
-        defer { requests.continuation.finish() }
-        let client = DeviceRegistryDirectoryClient(session: {
-            try await withCheckedThrowingContinuation { requests.continuation.yield($0) }
-        }, teamID: nil, baseURL: URL(string: "http://127.0.0.1:1")!)
         let pairing = UnpairedDevices()
-        let directory = makeDirectory(defaults: defaults, registryClient: client, pairing: pairing)
+        let directory = makeDirectory(defaults: defaults, pairing: pairing)
         defer { directory.stop() }
-        var calls = requests.stream.makeAsyncIterator()
+        // With no discovery client, start exercises lifecycle without a pushed initial refresh.
         directory.start()
         let firstTask = directory.refreshRegistry()
-        let firstRequest = try #require(await calls.next())
         let reads = pairing.readCount
         directory.start()
         #expect(directory.isRunning)
         #expect(pairing.readCount == reads)
         NotificationCenter.default.post(name: pairing.authorizationDidChangeNotification, object: nil)
         #expect(pairing.readCount == reads + 1, "Only one pairing observer should remerge")
-        firstRequest.resume(throwing: DeviceRegistryDirectoryClient.ListError.notSignedIn)
         await firstTask.value
         #expect(directory.hasLoadedRegistry && !directory.isRefreshingRegistry)
+        #expect(directory.registryError == nil, "No discovery client completes without a network substitute")
         directory.start()
         #expect(!directory.isRefreshingRegistry, "A second start must not launch another registry read")
         directory.stop()
@@ -70,8 +64,6 @@ struct DeviceDirectoryLifecycleTests {
         #expect(pairing.readCount == stoppedReads, "Stop removes the observer")
         directory.start()
         let restartedTask = directory.refreshRegistry()
-        let restartedRequest = try #require(await calls.next())
-        restartedRequest.resume(throwing: DeviceRegistryDirectoryClient.ListError.notSignedIn)
         await restartedTask.value
         #expect(directory.isRunning && directory.hasLoadedRegistry && !directory.isRefreshingRegistry)
     }
@@ -108,13 +100,13 @@ struct DeviceDirectoryLifecycleTests {
         let suite = "DeviceDirectoryRegistry-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        let requests = AsyncStream<CheckedContinuation<AuthenticatedSessionSnapshot, any Error>>.makeStream()
+        let requests = AsyncStream<CheckedContinuation<DeviceIrxClientContext, any Error>>.makeStream()
         defer { requests.continuation.finish() }
-        let client = DeviceRegistryDirectoryClient(session: {
+        let client = DeviceIrxClient(context: {
             try await withCheckedThrowingContinuation { requests.continuation.yield($0) }
-        }, teamID: nil, baseURL: URL(string: "http://127.0.0.1:1")!)
+        }, journal: IrxJournal(subsystem: "dev.cmux.tests", category: "directory-cancellation"))
         let directory = makeDirectory(
-            defaults: defaults, registryClient: client
+            defaults: defaults, automaticClient: client
         )
         defer { directory.stop() }
         var calls = requests.stream.makeAsyncIterator()
@@ -123,15 +115,16 @@ struct DeviceDirectoryLifecycleTests {
         directory.stop()
         let newTask = directory.refreshRegistry()
         let newRequest = try #require(await calls.next())
-        oldRequest.resume(throwing: DeviceRegistryDirectoryClient.ListError.notSignedIn)
+        oldRequest.resume(throwing: DeviceLinkError.notConnected)
         await oldTask.value
         #expect(directory.isRefreshingRegistry)
         #expect(!directory.hasLoadedRegistry)
         #expect(directory.registryError == nil)
-        newRequest.resume(throwing: DeviceRegistryDirectoryClient.ListError.notSignedIn)
+        newRequest.resume(throwing: DeviceLinkError.notConnected)
         await newTask.value
         #expect(!directory.isRefreshingRegistry)
         #expect(directory.hasLoadedRegistry)
+        #expect(directory.registryError != nil)
     }
 
     @Test("Cancelling the current registry refresh releases its busy state", .timeLimit(.minutes(5)))
@@ -139,13 +132,13 @@ struct DeviceDirectoryLifecycleTests {
         let suite = "DeviceDirectoryCancel-\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        let requests = AsyncStream<CheckedContinuation<AuthenticatedSessionSnapshot, any Error>>.makeStream()
+        let requests = AsyncStream<CheckedContinuation<DeviceIrxClientContext, any Error>>.makeStream()
         defer { requests.continuation.finish() }
-        let client = DeviceRegistryDirectoryClient(session: {
+        let client = DeviceIrxClient(context: {
             try await withCheckedThrowingContinuation { requests.continuation.yield($0) }
-        }, teamID: nil, baseURL: URL(string: "http://127.0.0.1:1")!)
+        }, journal: IrxJournal(subsystem: "dev.cmux.tests", category: "directory-cancellation"))
         let directory = makeDirectory(
-            defaults: defaults, registryClient: client
+            defaults: defaults, automaticClient: client
         )
         defer { directory.stop() }
         var calls = requests.stream.makeAsyncIterator()
@@ -158,10 +151,33 @@ struct DeviceDirectoryLifecycleTests {
         #expect(!directory.hasLoadedRegistry)
         let retry = directory.refreshRegistry()
         let retriedRequest = try #require(await calls.next())
-        retriedRequest.resume(throwing: DeviceRegistryDirectoryClient.ListError.notSignedIn)
+        retriedRequest.resume(throwing: DeviceLinkError.notConnected)
         await retry.value
         #expect(directory.hasLoadedRegistry)
         #expect(!directory.isRefreshingRegistry)
+        #expect(directory.registryError != nil)
+    }
+
+    @Test("Discovery failure reports the existing error without dropping authenticated rows")
+    func discoveryFailureRetainsAuthenticatedRows() async throws {
+        let suite = "DeviceDirectoryFailure-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let client = DeviceIrxClient(context: { throw DeviceLinkError.notConnected },
+            journal: IrxJournal(subsystem: "dev.cmux.tests", category: "discovery-failure"))
+        let peer = DeviceDiscoveredMac(bindingID: "binding-peer", deviceID: "peer", tag: "test",
+            displayName: "Peer", endpointID: try CmxIrohPeerIdentity(endpointID: String(repeating: "b", count: 64)),
+            pathHints: [], controlPlaneSupportsMacPeers: true)
+        let previous = DeviceDirectoryMerge.merge(.init(authenticatedMacs: [peer],
+            requiresAuthenticatedDiscovery: true, selfInstance: SurfaceDeviceInstanceID(deviceID: "self", tag: "test")))
+        let directory = makeDirectory(defaults: defaults, automaticClient: client)
+        defer { directory.stop() }
+        directory.adopt(.init(records: previous, authenticatedMacs: [peer], hasLoadedRegistry: true))
+        await directory.refreshRegistry().value
+        #expect(directory.records == previous)
+        #expect(directory.records.count == 1)
+        #expect(directory.registryError == String(localized: "devices.registry.failed", defaultValue: "Could not refresh your Macs. Check your connection and try again."))
+        #expect(directory.hasLoadedRegistry && !directory.isRefreshingRegistry)
     }
 
     @Test("Carried registry, previous rows, and pairings cannot admit a Mac without authenticated discovery")
@@ -172,7 +188,7 @@ struct DeviceDirectoryLifecycleTests {
         let peer = SurfaceDeviceInstanceID(deviceID: "peer", tag: "test")
         let pairing = UnpairedDevices()
         pairing.pairedDevices = [.init(instance: peer, displayName: "Peer", routes: [], lastSeenAt: nil)]
-        let registered = DeviceRegistryDirectoryClient.Device(deviceID: peer.deviceID, platform: "mac",
+        let registered = DeviceRegistryDirectoryWire.Device(deviceID: peer.deviceID, platform: "mac",
             displayName: "Peer", isManual: false, lastSeenAt: nil,
             instances: [.init(tag: peer.tag, routes: [], lastSeenAt: nil)])
         let previous = DeviceDirectoryMerge.merge(.init(registry: [registered], paired: pairing.pairedDevices,
@@ -180,7 +196,7 @@ struct DeviceDirectoryLifecycleTests {
         #expect(previous.count == 1, "The legacy fixture must contain a candidate")
         let directory = makeDirectory(defaults: defaults, pairing: pairing)
         defer { directory.stop() }
-        directory.adopt(.init(records: previous, registryDevices: [registered], authenticatedMacs: [], hasLoadedRegistry: true))
+        directory.adopt(.init(records: previous, authenticatedMacs: [], hasLoadedRegistry: true))
         directory.start()
         #expect(directory.records.isEmpty, "Starting remerges under authenticated-only admission")
         await directory.refreshRegistry().value
@@ -210,7 +226,7 @@ struct DeviceDirectoryLifecycleTests {
                     automaticClient: client)
                 // Every directory starts out having discovered the peer once,
                 // standing in for the account directory's authenticated read.
-                directory.adopt(DeviceDirectory.CarriedState(records: [], registryDevices: [],
+                directory.adopt(DeviceDirectory.CarriedState(records: [],
                     authenticatedMacs: [peer], hasLoadedRegistry: true))
                 harness.directories.append(directory)
                 return directory
@@ -301,15 +317,12 @@ struct DeviceDirectoryLifecycleTests {
     private func makeDirectory(
         defaults: UserDefaults,
         teamID: String? = nil,
-        registryClient: DeviceRegistryDirectoryClient? = nil,
         pairing: (any DeviceLinkAuthorizationSource)? = nil,
         automaticClient: DeviceIrxClient? = nil
     ) -> DeviceDirectory {
-        let auth = makeAuth(defaults: defaults)
         return DeviceDirectory(
-            auth: auth, identity: AuthenticatedSessionIdentity(generation: 0, accountID: "test"),
+            identity: AuthenticatedSessionIdentity(generation: 0, accountID: "test"),
             teamID: teamID, pairing: pairing ?? UnpairedDevices(),
-            registryClient: registryClient ?? DeviceRegistryDirectoryClient(session: { throw DeviceRegistryDirectoryClient.ListError.notSignedIn }, teamID: nil, baseURL: URL(string: "http://127.0.0.1:1")!),
             automaticClient: automaticClient,
             selfInstance: SurfaceDeviceInstanceID(deviceID: "self", tag: "test")
         )
