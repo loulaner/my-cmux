@@ -10,10 +10,9 @@ import Testing
 @testable import cmux
 #endif
 
-/// The Devices directory reads two wires: the presence worker's subscribe
-/// socket (presence edges plus the `devices` sync collection) and the durable
-/// registry (`GET /api/devices`). Both must tolerate what a newer worker or an
-/// older Mac emits: unknown frame types, unknown route kinds, missing fields.
+/// Retained presence and registry wire parsers tolerate newer workers and
+/// older Macs: unknown frame types, unknown route kinds, and missing fields.
+/// These protocol tests do not imply an active Mac presence subscription.
 @Suite("Devices: presence and registry wire parsing")
 struct DevicePresenceWireTests {
     private let uuid = "3f2504e0-4f89-11d3-9a0c-0305e82c3301"
@@ -27,31 +26,6 @@ struct DevicePresenceWireTests {
         #expect(try frame(["type": "snapshot"]) == .ignored)
         #expect(try frame(["type": "snapshot", "devices": "invalid"]) == .ignored)
         #expect(try frame(["type": "snapshot", "devices": []]) == .snapshot(devices: []))
-    }
-
-    @Test("Credentialed presence rejects cleartext remote service endpoints")
-    func rejectsCleartextRemotePresence() throws {
-        #expect(DevicePresenceSubscriber.subscribeURL(serviceBaseURL: try #require(URL(string: "http://presence.example.test"))) == nil)
-        #expect(DevicePresenceSubscriber.subscribeURL(serviceBaseURL: try #require(URL(string: "ws://presence.example.test"))) == nil)
-    }
-
-    @Test("My Devices subscribes to the signed-in user's devices, not the selected team's")
-    func subscribesToAccountScopedPresence() throws {
-        let serviceBaseURL = try #require(URL(string: "https://presence.example.test/base/"))
-        let url = try #require(DevicePresenceSubscriber.subscribeURL(serviceBaseURL: serviceBaseURL))
-        let comps = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
-        #expect(comps.scheme == "wss")
-        #expect(comps.path == "/base/v1/presence/subscribe")
-        #expect(comps.queryItems == [URLQueryItem(name: "scope", value: "account")])
-    }
-
-    @Test("An explicit team subscription preserves its URL contract")
-    func explicitTeamSubscriptionURLContract() throws {
-        let serviceBaseURL = try #require(URL(string: "https://presence.example.test/base/"))
-        let url = try #require(DevicePresenceSubscriber.subscribeURL(serviceBaseURL: serviceBaseURL, stream: .team))
-        let comps = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
-        #expect(comps.path == "/base/v1/presence/subscribe")
-        #expect(comps.queryItems == nil, "no scope=account: the team stream is the worker default")
     }
 
     @Test("A snapshot lists every instance and drops only the route entries this build cannot decode")

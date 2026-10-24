@@ -1700,8 +1700,6 @@
 		C51A73000000000000000013 /* CmuxWorkerEntrypoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = C51A73000000000000000014 /* CmuxWorkerEntrypoint.swift */; };
 		E30750000000000000000004 /* CmuxWorkspaceDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30750000000000000000003 /* CmuxWorkspaceDefinition.swift */; };
 		A6AC72080000000000000001 /* CMUXWorkspaceLoadingCLIRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6AC72080000000000000002 /* CMUXWorkspaceLoadingCLIRegressionTests.swift */; };
-		A13296000000000000000102 /* CmuxWorkspacePresence in Frameworks */ = {isa = PBXBuildFile; productRef = A13296000000000000000101 /* CmuxWorkspacePresence */; };
-		A13296000000000000000103 /* CmuxWorkspacePresence in Frameworks */ = {isa = PBXBuildFile; productRef = A13296000000000000000101 /* CmuxWorkspacePresence */; };
 		E3B7A3000000000000000103 /* CmuxWorkspaces in Frameworks */ = {isa = PBXBuildFile; productRef = E3B7A3000000000000000102 /* CmuxWorkspaces */; };
 		0C5C4A9DC94591345C196DA5 /* CmxLocalDeviceFileStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D73D0C8740009F24F1FCFFF /* CmxLocalDeviceFileStorage.swift */; };
 		C0A1E5CE01C0A1E5CE01A001 /* CoalesceLatestPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A1E5CE01C0A1E5CE01A002 /* CoalesceLatestPublisher.swift */; };
@@ -1926,7 +1924,6 @@
 		05B7E14C6F0EB2DF684B7A67 /* DeviceNotificationFeed.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEBBD429354F0DABF7A8879D /* DeviceNotificationFeed.swift */; };
 		07AF27B47199DEC187248FA0 /* DeviceNotificationSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19205912D7B09B4FEFBDE66D /* DeviceNotificationSyncTests.swift */; };
 				DEC1CE000000000000000004 /* DevicePresenceFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000003 /* DevicePresenceFrame.swift */; };
-				DEC1CE000000000000000006 /* DevicePresenceSubscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000005 /* DevicePresenceSubscriber.swift */; };
 				DEC1CE000000000000000040 /* DevicePresenceWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE00000000000000003F /* DevicePresenceWireTests.swift */; };
 				DEC1CE000000000000000008 /* DeviceRegistryDirectoryClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000007 /* DeviceRegistryDirectoryClient.swift */; };
 				DEC1CE000000000000000012 /* DeviceRouteSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000011 /* DeviceRouteSelector.swift */; };
@@ -6493,7 +6490,6 @@
 		CEBBD429354F0DABF7A8879D /* DeviceNotificationFeed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Devices/DeviceNotificationFeed.swift; sourceTree = "<group>"; };
 		19205912D7B09B4FEFBDE66D /* DeviceNotificationSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DeviceNotificationSyncTests.swift"; sourceTree = "<group>"; };
 				DEC1CE000000000000000003 /* DevicePresenceFrame.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DevicePresenceFrame.swift"; sourceTree = "<group>"; };
-				DEC1CE000000000000000005 /* DevicePresenceSubscriber.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DevicePresenceSubscriber.swift"; sourceTree = "<group>"; };
 				DEC1CE00000000000000003F /* DevicePresenceWireTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DevicePresenceWireTests.swift; sourceTree = "<group>"; };
 				DEC1CE000000000000000007 /* DeviceRegistryDirectoryClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DeviceRegistryDirectoryClient.swift"; sourceTree = "<group>"; };
 				DEC1CE000000000000000011 /* DeviceRouteSelector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DeviceRouteSelector.swift"; sourceTree = "<group>"; };
@@ -9258,7 +9254,6 @@
 				CFF12E0000000000000000A3 /* CmuxTestSupport in Frameworks */,
 				A5FB1A13 /* CmuxTextActions in Frameworks */,
 				5E55200000000000000000B3 /* CmuxWindowing in Frameworks */,
-				A13296000000000000000102 /* CmuxWorkspacePresence in Frameworks */,
 				E3B7A3000000000000000103 /* CmuxWorkspaces in Frameworks */,
 				A5001006 /* GhosttyKit.xcframework in Frameworks */,
 				1A0B0C0D0E0F101112132213 /* IrohLib in Frameworks */,
@@ -9349,7 +9344,6 @@
 				A1329A000000000000000103 /* CmuxTerminalSizing in Frameworks */,
 				A5FB1A14 /* CmuxTextActions in Frameworks */,
 				730600040000000000000001 /* CmuxWindowing in Frameworks */,
-				A13296000000000000000103 /* CmuxWorkspacePresence in Frameworks */,
 				1A0B0C0D0E0F101112132214 /* IrohLib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -12116,7 +12110,6 @@
 				9720CD7F02C94F41A07E193D /* CloudTerminalCreationCoordinator.swift */,
 				DEC1CE000000000000000001 /* DevicesFeature.swift */,
 				DEC1CE000000000000000003 /* DevicePresenceFrame.swift */,
-				DEC1CE000000000000000005 /* DevicePresenceSubscriber.swift */,
 				DEC1CE000000000000000007 /* DeviceRegistryDirectoryClient.swift */,
 				DEC1CE000000000000000009 /* DeviceDirectoryRecord.swift */,
 				DEC1CE00000000000000000B /* DeviceDirectoryMerge.swift */,
@@ -14030,7 +14023,6 @@
 				5CA7A1060000000000000002 /* CmuxSurfaceCatalogModel */,
 				5CB7B1060000000000000002 /* CmuxSSHClipboardTrust */,
 				79E4513469FB44C7A3690415 /* CmuxCloudMachines */,
-				A13296000000000000000101 /* CmuxWorkspacePresence */,
 				A1329A000000000000000101 /* CmuxTerminalSizing */,
 				A1329B000000000000000101 /* CmuxTerminalSharing */,
 				A5001261 /* Bonsplit */,
@@ -14187,7 +14179,6 @@
 				C10DC1000000000000000005 /* CmuxCloudResizeCore */,
 				5CB7B1060000000000000003 /* CmuxSSHClipboardTrust */,
 				79E4513469FB44C7A3690415 /* CmuxCloudMachines */,
-				A13296000000000000000101 /* CmuxWorkspacePresence */,
 				A1329A000000000000000101 /* CmuxTerminalSizing */,
 				A1329B000000000000000101 /* CmuxTerminalSharing */,
 				29813FE5A6CBC1019289A251 /* CMUXAuthCore */,
@@ -14301,7 +14292,6 @@
 				5CA7A1060000000000000001 /* XCLocalSwiftPackageReference "CmuxSurfaceCatalogModel" */,
 				5CB7B1060000000000000001 /* XCLocalSwiftPackageReference "CmuxSSHClipboardTrust" */,
 				3915DFE5FE794CDF87D746C9 /* XCLocalSwiftPackageReference "CmuxCloudMachines" */,
-				A13296000000000000000100 /* XCLocalSwiftPackageReference "CmuxWorkspacePresence" */,
 				A1329A000000000000000100 /* XCLocalSwiftPackageReference "CmuxTerminalSizing" */,
 				A1329B000000000000000100 /* XCLocalSwiftPackageReference "CmuxTerminalSharing" */,
 				A5001252 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
@@ -15584,7 +15574,6 @@
 				DEC1CE000000000000000016 /* DeviceLinkTerminalEvents.swift in Sources */,
 				05B7E14C6F0EB2DF684B7A67 /* DeviceNotificationFeed.swift in Sources */,
 				DEC1CE000000000000000004 /* DevicePresenceFrame.swift in Sources */,
-				DEC1CE000000000000000006 /* DevicePresenceSubscriber.swift in Sources */,
 				DEC1CE000000000000000008 /* DeviceRegistryDirectoryClient.swift in Sources */,
 				DEC1CE000000000000000012 /* DeviceRouteSelector.swift in Sources */,
 				DEC1CE000000000000000002 /* DevicesFeature.swift in Sources */,
@@ -19945,7 +19934,6 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = vendor/WireGuardKit;
 		};
-		A13296000000000000000100 /* XCLocalSwiftPackageReference "CmuxWorkspacePresence" */ = {isa = XCLocalSwiftPackageReference; relativePath = Packages/Shared/CmuxWorkspacePresence; };
 		A1329A000000000000000100 /* XCLocalSwiftPackageReference "CmuxTerminalSizing" */ = {isa = XCLocalSwiftPackageReference; relativePath = Packages/Shared/CmuxTerminalSizing; };
 		A1329B000000000000000100 /* XCLocalSwiftPackageReference "CmuxTerminalSharing" */ = {isa = XCLocalSwiftPackageReference; relativePath = Packages/macOS/CmuxTerminalSharing; };
 		3915DFE5FE794CDF87D746C9 /* XCLocalSwiftPackageReference "CmuxCloudMachines" */ = {isa = XCLocalSwiftPackageReference; relativePath = Packages/macOS/CmuxCloudMachines; };
@@ -20422,7 +20410,6 @@
 			package = 7A0CE1000000000000000065 /* XCLocalSwiftPackageReference "WireGuardKit" */;
 			productName = WireGuardKit;
 		};
-		A13296000000000000000101 /* CmuxWorkspacePresence */ = {isa = XCSwiftPackageProductDependency; package = A13296000000000000000100 /* XCLocalSwiftPackageReference "CmuxWorkspacePresence" */; productName = CmuxWorkspacePresence; };
 		A1329A000000000000000101 /* CmuxTerminalSizing */ = {isa = XCSwiftPackageProductDependency; package = A1329A000000000000000100 /* XCLocalSwiftPackageReference "CmuxTerminalSizing" */; productName = CmuxTerminalSizing; };
 		A1329B000000000000000101 /* CmuxTerminalSharing */ = {isa = XCSwiftPackageProductDependency; package = A1329B000000000000000100 /* XCLocalSwiftPackageReference "CmuxTerminalSharing" */; productName = CmuxTerminalSharing; };
 		79E4513469FB44C7A3690415 /* CmuxCloudMachines */ = {isa = XCSwiftPackageProductDependency; package = 3915DFE5FE794CDF87D746C9 /* XCLocalSwiftPackageReference "CmuxCloudMachines" */; productName = CmuxCloudMachines; };

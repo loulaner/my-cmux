@@ -236,7 +236,8 @@ the first production deploy and dogfood.
   presence sockets, selection/visible-row subscriptions, and collaborator
   avatars and names have been removed. Workspace names, directories, terminal
   counts, and local selection events remain. This does not change Direct
-  terminal viewport ownership.
+  terminal viewport ownership. The Mac app and test targets no longer link
+  `CmuxWorkspacePresence`; the shared package source remains in the repository.
 - **Mac device registry publisher (retired in MyCMUX)**: device registration
   POSTs, lease renewals, and PATCH withdrawals have been removed. Directory
   reading clients remain. Existing server records are not deleted or migrated
@@ -248,6 +249,9 @@ the first production deploy and dogfood.
   cancellation guards. Registry and saved pairing data cannot admit a Mac
   without authenticated discovery consent. Settings report online only for a
   genuinely connected local provider; otherwise online status is unknown.
+  The unused legacy `DevicePresenceSubscriber` implementation and its exclusive
+  subscription URL helper have also been removed. Pure presence/sync wire
+  types remain; the remaining Irx control endpoint is unchanged.
 - **Mac Cloud machines list**: MyCMUX has retired the realtime `vms` sync
   socket and stream merge state. The existing REST list remains active under
   its visibility, online, signed-in, and Cloud-enabled gates. Panel show,
@@ -263,10 +267,10 @@ the first production deploy and dogfood.
   (https://github.com/manaflow-ai/cmux/pull/5648) rows, writes pushed routes
   through to the paired-Mac store, and kicks a reconnect when the active Mac
   comes online while the phone is disconnected.
-- **Workspace viewer clients** (`CmuxWorkspacePresence` plus the Mac controller
-  and iOS announcer): use the dedicated viewing protocol described above. They
-  never add workspace identifiers or collaborator metadata to device heartbeat
-  payloads.
+- **Shared workspace viewing protocol** (`CmuxWorkspacePresence`): its source
+  remains available independently of the retired Mac app linkage. The dedicated
+  viewing protocol described above does not add workspace identifiers or
+  collaborator metadata to device heartbeat payloads.
 
 ## Local development
 
