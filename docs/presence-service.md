@@ -237,6 +237,11 @@ the first production deploy and dogfood.
   avatars and names have been removed. Workspace names, directories, terminal
   counts, and local selection events remain. This does not change Direct
   terminal viewport ownership.
+- **Mac device registry publisher (retired in MyCMUX)**: device registration
+  POSTs, lease renewals, and PATCH withdrawals have been removed. Directory
+  reading clients remain. Existing server records are not deleted or migrated
+  by this change; their expiry timing has not been verified. Auth sign-out,
+  browser-session clearing, and Cloud credential revocation remain in place.
 - **Mac Cloud machines list** (`Sources/Cloud/CloudVMSyncSubscriber.swift`,
   owned by `MachinesPanelViewModel`): a second subscribe socket per visible
   machines panel whose `sync.hello` asks only for `vms`, from the cursor and

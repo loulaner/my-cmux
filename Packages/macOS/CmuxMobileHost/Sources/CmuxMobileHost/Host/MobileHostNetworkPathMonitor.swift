@@ -5,9 +5,8 @@ public import Foundation
 /// deduplicated path changes on the main actor.
 ///
 /// The pairing listener stays bound when the Mac moves networks or Tailscale
-/// flips, so the advertised route set (and the team device registry that
-/// ``DeviceRegistryClient`` mirrors from `statusUpdates()`) needs an explicit
-/// trigger to refresh; ``MobileHostService`` owns the republish action and
+/// flips, so the host's advertised routes need an explicit trigger to refresh;
+/// ``MobileHostService`` owns the republish action and
 /// this type owns the observation: one `NWPathMonitor`, a path signature for
 /// duplicate suppression, and nothing else.
 ///

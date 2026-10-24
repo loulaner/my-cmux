@@ -2549,7 +2549,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
                 payload: ["enabled": enabled]
             )
         }
-        DeviceRegistryClient.shared.configure(auth: auth.coordinator)
         self.devicesRegistry = devicesRegistry
         if let devicesRegistry, let computersService {
             computersService.configure(auth: auth.coordinator)

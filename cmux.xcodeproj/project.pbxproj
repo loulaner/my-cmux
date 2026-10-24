@@ -1929,8 +1929,6 @@
 				DEC1CE000000000000000004 /* DevicePresenceFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000003 /* DevicePresenceFrame.swift */; };
 				DEC1CE000000000000000006 /* DevicePresenceSubscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000005 /* DevicePresenceSubscriber.swift */; };
 				DEC1CE000000000000000040 /* DevicePresenceWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE00000000000000003F /* DevicePresenceWireTests.swift */; };
-		DE71CE000000000000000004 /* DeviceRegistryClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE71CE000000000000000003 /* DeviceRegistryClient.swift */; };
-		DE71CE000000000000000002 /* DeviceRegistryClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE71CE000000000000000001 /* DeviceRegistryClientTests.swift */; };
 				DEC1CE000000000000000008 /* DeviceRegistryDirectoryClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000007 /* DeviceRegistryDirectoryClient.swift */; };
 				DEC1CE000000000000000012 /* DeviceRouteSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000011 /* DeviceRouteSelector.swift */; };
 				DEC1CE000000000000000044 /* DeviceRouteSelectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000043 /* DeviceRouteSelectorTests.swift */; };
@@ -6499,8 +6497,6 @@
 				DEC1CE000000000000000003 /* DevicePresenceFrame.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DevicePresenceFrame.swift"; sourceTree = "<group>"; };
 				DEC1CE000000000000000005 /* DevicePresenceSubscriber.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DevicePresenceSubscriber.swift"; sourceTree = "<group>"; };
 				DEC1CE00000000000000003F /* DevicePresenceWireTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DevicePresenceWireTests.swift; sourceTree = "<group>"; };
-		DE71CE000000000000000003 /* DeviceRegistryClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeviceRegistryClient.swift; sourceTree = "<group>"; };
-		DE71CE000000000000000001 /* DeviceRegistryClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceRegistryClientTests.swift; sourceTree = "<group>"; };
 				DEC1CE000000000000000007 /* DeviceRegistryDirectoryClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DeviceRegistryDirectoryClient.swift"; sourceTree = "<group>"; };
 				DEC1CE000000000000000011 /* DeviceRouteSelector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DeviceRouteSelector.swift"; sourceTree = "<group>"; };
 				DEC1CE000000000000000043 /* DeviceRouteSelectorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeviceRouteSelectorTests.swift; sourceTree = "<group>"; };
@@ -9875,7 +9871,6 @@
 				D4C0DE020000000000000002 /* CodeRouterHandoffArmGrantStore.swift */,
 				D4C0DE020000000000000004 /* CodeRouterSocketPeerVerifier.swift */,
 				C0DE60C0000000000000A011 /* CoderouterSocketCommands.swift */,
-				DE71CE000000000000000003 /* DeviceRegistryClient.swift */,
 				D1F0A00100000000000000B4 /* PresenceSettings.swift */,
 				9CEC6F0035B71AE59FA45BA7 /* VMClientSocketCommands.swift */,
 				7A0CE1000000000000000018 /* VMClientSocketCommands+Tunnel.swift */,
@@ -12872,7 +12867,6 @@
 				917300000000000000000002 /* DeferredActionReplacementStackTests.swift */,
 				F9000001A1B2C3D4E5F60718 /* GhosttyEnsureFocusWindowActivationTests.swift */,
 				7269A0027269A0027269A002 /* GhosttyPhysicalInputFocusReassertionTests.swift */,
-				DE71CE000000000000000001 /* DeviceRegistryClientTests.swift */,
 				DE71CE000000000000000005 /* MobileHostNetworkPathRefreshTests.swift */,
 				AA5269A0C0DE0003FACE0003 /* ForeignFirstResponderPolicyTests.swift */,
 				F1C1AA20B7E84D10A1C10001 /* InactivePaneFirstClickFocusTests.swift */,
@@ -15595,7 +15589,6 @@
 				05B7E14C6F0EB2DF684B7A67 /* DeviceNotificationFeed.swift in Sources */,
 				DEC1CE000000000000000004 /* DevicePresenceFrame.swift in Sources */,
 				DEC1CE000000000000000006 /* DevicePresenceSubscriber.swift in Sources */,
-				DE71CE000000000000000004 /* DeviceRegistryClient.swift in Sources */,
 				DEC1CE000000000000000008 /* DeviceRegistryDirectoryClient.swift in Sources */,
 				DEC1CE000000000000000012 /* DeviceRouteSelector.swift in Sources */,
 				DEC1CE000000000000000002 /* DevicesFeature.swift in Sources */,
@@ -18384,7 +18377,6 @@
 				DEC1CE000000000000000046 /* DeviceLinkReconnectPolicyTests.swift in Sources */,
 				07AF27B47199DEC187248FA0 /* DeviceNotificationSyncTests.swift in Sources */,
 				DEC1CE000000000000000040 /* DevicePresenceWireTests.swift in Sources */,
-				DE71CE000000000000000002 /* DeviceRegistryClientTests.swift in Sources */,
 				DEC1CE000000000000000044 /* DeviceRouteSelectorTests.swift in Sources */,
 				DEC1CE00000000000000004A /* DevicesCloudTreeBuilderTests.swift in Sources */,
 				DEC1CE00000000000000004C /* DevicesSidebarModeTests.swift in Sources */,

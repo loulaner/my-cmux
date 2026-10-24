@@ -196,16 +196,12 @@ struct MacAuthComposition {
                 signOutTunnelRoles.roles = VMTunnelManager.storedRoles()
                 AppDelegate.shared?.prepareCloudVMAccessForSignOut()
                 browserAppSession.beginAuthTransition()
-                DeviceRegistryClient.shared.beginSignOut()
                 MobileHostIrxRuntime.shared.beginSignOutPreparation()
             },
             localSignOut: {
                 await browserAppSession.clearCmuxWebSession()
             },
             onSignedOut: { accessToken, refreshToken in
-                await DeviceRegistryClient.shared.withdrawForSignOut(
-                    accessToken: accessToken, refreshToken: refreshToken
-                )
                 let roles = await MainActor.run { signOutTunnelRoles.take() }
                 await VMClient.revokeTunnelRoles(
                     roles,

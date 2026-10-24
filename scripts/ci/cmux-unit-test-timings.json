@@ -487,7 +487,6 @@
   "DeviceLinkFailureTests": 6,
   "DeviceLinkReconnectPolicyTests": 4,
   "DevicePresenceWireTests": 6,
-  "DeviceRegistryClientTests": 2,
   "DeviceRouteSelectorTests": 9,
   "DeviceTerminalMirrorTests": 24,
   "DeviceWorkspaceProjectionTests": 2,
