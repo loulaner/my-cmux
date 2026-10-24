@@ -816,12 +816,6 @@ struct cmuxApp: App {
                 Button(String(localized: "menu.updateLogs.copyFocusLogs", defaultValue: "Copy Focus Logs")) {
                     appDelegate.copyFocusLogs(nil)
                 }
-
-                Divider()
-
-                Button("Trigger Sentry Test Crash") {
-                    appDelegate.triggerSentryTestCrash(nil)
-                }
             }
 #endif
 
