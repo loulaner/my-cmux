@@ -616,7 +616,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         Self.cachedIsRunningUnderXCTest
     }
     private let cmuxThemePreviewReloadScheduler = MainActorDeferredActionScheduler()
-    let workspacePresenceController = WorkspacePresenceController()
     private let sudoApprovalCoordinator: SudoApprovalCoordinator?
 
     @MainActor
@@ -2556,7 +2555,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             computersService.configure(auth: auth.coordinator)
             devicesRegistry.configure(auth: auth.coordinator, catalog: .shared, authorization: computersService)
         }
-        configureWorkspacePresence(auth: auth.coordinator)
         TerminalController.shared.attachAuth(coordinator: auth.coordinator, accountFlow: auth.accountFlow)
         TerminalController.shared.attachBrowserDataImportCoordinator(browserDataImportCoordinator)
         TerminalController.shared.attachCaffeineController(caffeineController)

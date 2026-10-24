@@ -1,7 +1,6 @@
 import AppKit
 import CmuxCloud
 import CmuxSurfaceCatalogModel
-import CmuxWorkspacePresence
 import Foundation
 import Testing
 
@@ -14,15 +13,15 @@ import Testing
 /// Hover text belongs to the cell, not to the hosted SwiftUI content: the
 /// display host never hit-tests, so a `.help()` inside a row view can never be
 /// reached by a pointer. These cover the rows whose secondary information was
-/// only ever attached that way, plus the workspace row whose presence tooltip
-/// was written and then reset inside the same `configure` call.
+/// only ever attached that way, plus workspace rows through
+/// configuration and reuse.
 @MainActor
 @Suite("Cloud rows carry their hover text on the cell", .serialized)
 struct CloudTreeRowToolTipTests {
     @Test("A workspace row off-window still describes itself")
     func workspaceRowHasToolTip() throws {
         let node = Self.workspaceNode()
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(node: node, machineActions: Self.machineActions(), nodeActions: Self.nodeActions())
         let toolTip = try #require(cell.toolTip)
         #expect(toolTip.contains("api-refactor"))
@@ -30,15 +29,13 @@ struct CloudTreeRowToolTipTests {
         #expect(toolTip.contains(CloudTreeRowContentView.count(3)))
     }
 
-    @Test("A workspace row lists its collaborators without dropping its own name")
-    func workspaceRowKeepsPresenceAndName() throws {
+    @Test("A workspace row keeps its name, directory and terminal count")
+    func workspaceRowKeepsIdentityAndDetails() throws {
         let node = Self.workspaceNode()
-        let cell = Self.cell(presence: [Self.participant(name: "Robin")])
+        let cell = Self.cell()
         cell.configure(node: node, machineActions: Self.machineActions(), nodeActions: Self.nodeActions())
-        let toolTip = try #require(cell.toolTip)
-        #expect(toolTip.contains("api-refactor"))
-        #expect(toolTip.contains("Robin"))
-        #expect(cell.accessibilityLabel()?.contains("Robin") == true)
+        #expect(cell.toolTip == "api-refactor\n~/src/api\n" + CloudTreeRowContentView.count(3))
+        #expect(cell.accessibilityLabel() == node.searchableTitle)
     }
 
     @Test("A workspace with nothing to add beyond its name has no hover text")
@@ -53,7 +50,7 @@ struct CloudTreeRowToolTipTests {
                 openIn: nil
             )
         )
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(node: node, machineActions: Self.machineActions(), nodeActions: Self.nodeActions())
         #expect(cell.toolTip == nil)
         #expect(cell.accessibilityLabel() == "workspace 2")
@@ -68,7 +65,7 @@ struct CloudTreeRowToolTipTests {
                 CloudTreePlaceholder(text: "No forwarded ports", style: .dimmed)
             )
         )
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(node: node, machineActions: Self.machineActions(), nodeActions: Self.nodeActions())
         #expect(cell.toolTip == nil)
     }
@@ -76,7 +73,7 @@ struct CloudTreeRowToolTipTests {
     @Test("A terminal row's directory and agent reach the pointer")
     func terminalRowHasToolTip() throws {
         let node = Self.terminalNode()
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(node: node, machineActions: Self.machineActions(), nodeActions: Self.nodeActions())
         let toolTip = try #require(cell.toolTip)
         let expected = CloudTreeTerminalRowContent(row: Self.terminalRow(), style: CloudTreeStyleStore.current).toolTip
@@ -86,7 +83,7 @@ struct CloudTreeRowToolTipTests {
 
     @Test("An untitled terminal says its fallback before its secondary facts")
     func untitledTerminalRowIsLabelled() {
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(
             node: Self.terminalNode(title: "", machine: .local, detail: "/tmp/work"),
             machineActions: Self.machineActions(),
@@ -98,7 +95,7 @@ struct CloudTreeRowToolTipTests {
 
     @Test("A titled terminal with no secondary facts has no redundant hover text")
     func bareTitledTerminalRowHasNoToolTip() {
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(
             node: Self.terminalNode(title: "build", machine: .local),
             machineActions: Self.machineActions(),
@@ -110,7 +107,7 @@ struct CloudTreeRowToolTipTests {
 
     @Test("A titled terminal keeps its secondary facts in hover text and accessibility")
     func titledTerminalRowKeepsDetails() {
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(
             node: Self.terminalNode(title: "build", machine: .local, detail: "/tmp/work"),
             machineActions: Self.machineActions(),
@@ -123,7 +120,7 @@ struct CloudTreeRowToolTipTests {
     @Test("A display row names its transport on hover")
     func displayRowHasToolTip() throws {
         let node = Self.displayNode()
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(node: node, machineActions: Self.machineActions(), nodeActions: Self.nodeActions())
         let toolTip = try #require(cell.toolTip)
         #expect(toolTip.contains(":1"))
@@ -132,7 +129,7 @@ struct CloudTreeRowToolTipTests {
     @Test("A titled port row uses its process name for hover text")
     func portRowHasToolTip() throws {
         let node = Self.portNode()
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(node: node, machineActions: Self.machineActions(), nodeActions: Self.nodeActions())
         let toolTip = try #require(cell.toolTip)
         #expect(toolTip == "vite")
@@ -142,7 +139,7 @@ struct CloudTreeRowToolTipTests {
     @Test("An untitled browser row is still labelled for assistive technology")
     func untitledBrowserRowIsLabelled() throws {
         let node = Self.browserNode(title: "")
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(node: node, machineActions: Self.machineActions(), nodeActions: Self.nodeActions())
         #expect(cell.accessibilityLabel()?.isEmpty == false)
     }
@@ -159,7 +156,7 @@ struct CloudTreeRowToolTipTests {
             title: "Example Domain | docs",
             remoteView: SurfaceRemoteView(tabID: "tab-1", workspace: workspace, name: "Release notes")
         )
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(node: node, machineActions: Self.machineActions(), nodeActions: Self.nodeActions())
         let toolTip = try #require(cell.toolTip)
         #expect(toolTip.contains("Release notes"))
@@ -176,7 +173,7 @@ struct CloudTreeRowToolTipTests {
         case "terminals": .terminalsPool(machine: machine, count: 2)
         default: .portsGroup(machine: machine)
         }
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(
             node: CloudTreeNode(id: kindName, kind: kind),
             machineActions: Self.machineActions(),
@@ -262,7 +259,7 @@ struct CloudTreeRowToolTipTests {
     /// rows under it while saying nothing.
     @Test("A browser row with nothing past its own title has no hover text")
     func bareBrowserRowHasNoToolTip() {
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(
             node: Self.browserNode(title: "Design docs", url: nil),
             machineActions: Self.machineActions(),
@@ -276,7 +273,7 @@ struct CloudTreeRowToolTipTests {
     /// nothing past the row and must stay silent.
     @Test("An untitled browser row with no address does not pop its own placeholder back")
     func bareUntitledBrowserRowHasNoToolTip() {
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(
             node: Self.browserNode(title: "", url: nil),
             machineActions: Self.machineActions(),
@@ -289,7 +286,7 @@ struct CloudTreeRowToolTipTests {
 
     @Test("A port without a process name has no hover text and keeps its port label")
     func barePortRowExplainsOpenAction() {
-        let cell = Self.cell(presence: [])
+        let cell = Self.cell()
         cell.configure(
             node: Self.barePortNode(),
             machineActions: Self.machineActions(),
@@ -297,6 +294,37 @@ struct CloudTreeRowToolTipTests {
         )
         #expect(cell.toolTip == nil)
         #expect(cell.accessibilityLabel() == "Port 3000")
+    }
+
+    @Test("Reusing a detailed workspace cell does not leak hover text or labels")
+    func workspaceCellReuseKeepsOnlyCurrentRowFacts() throws {
+        let cell = Self.cell()
+        let detailed = Self.workspaceNode()
+        let bare = CloudTreeNode(id: "bare", kind: .workspace(
+            machine: .cloud("tooltip-test"),
+            SurfaceRemoteWorkspace(id: "bare", name: "Bare", index: 1, focused: false),
+            terminalCount: 0, hiddenTabCount: 0, openIn: nil
+        ))
+        let local = CloudTreeNode(id: "local", kind: .localWorkspace(
+            CloudTreeLocalWorkspaceRow(workspaceID: UUID(), title: "Local", terminalCount: 0, isSelected: false)
+        ))
+        let terminal = Self.terminalNode(title: "build", machine: .local, detail: "/tmp/current")
+        for node in [bare, local, terminal] {
+            cell.configure(node: detailed, machineActions: Self.machineActions(), nodeActions: Self.nodeActions())
+            #expect(try #require(cell.toolTip).contains("~/src/api"))
+            cell.prepareForReuse()
+            #expect(cell.toolTip == nil)
+            cell.configure(node: node, machineActions: Self.machineActions(), nodeActions: Self.nodeActions())
+            #expect(cell.toolTip?.contains("~/src/api") != true)
+            #expect(cell.accessibilityLabel()?.contains("api-refactor") != true)
+            if node.id == terminal.id {
+                #expect(cell.toolTip == "/tmp/current")
+                #expect(cell.accessibilityLabel() == "build\n/tmp/current")
+            } else {
+                #expect(cell.toolTip == nil)
+                #expect(cell.accessibilityLabel() == node.searchableTitle)
+            }
+        }
     }
 
     // MARK: - Fixtures
@@ -317,12 +345,8 @@ struct CloudTreeRowToolTipTests {
         )
     }
 
-    private static func cell(presence: [WorkspacePresenceParticipant]) -> CloudTreeCellView {
-        CloudTreeCellView(frame: NSRect(x: 0, y: 0, width: 260, height: 24), collaborators: { _, _ in presence })
-    }
-
-    private static func participant(name: String) -> WorkspacePresenceParticipant {
-        WorkspacePresenceParticipant(id: "user-\(name)", displayName: name)
+    private static func cell() -> CloudTreeCellView {
+        CloudTreeCellView(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
     }
 
     private static func workspaceNode() -> CloudTreeNode {

@@ -3,7 +3,6 @@ import CmuxFoundation
 import AppKit
 import CMUXMobileCore
 import CmuxSurfaceCatalogModel
-import CmuxWorkspacePresence
 import SwiftUI
 
 /// Hosts SwiftUI row content inside an `NSOutlineView` cell while leaving every
@@ -26,8 +25,6 @@ final class CloudTreeCellView: NSTableCellView {
     /// AppKit's own accessibility-element setting, restored when a reused
     /// spacer cell shows a real row again.
     private var baseIsAccessibilityElement: Bool?
-    private let presenceObserverID = UUID()
-    private let collaborators: @MainActor (SurfaceMachineID, String) -> [WorkspacePresenceParticipant]
 
     override func accessibilityCustomActions() -> [NSAccessibilityCustomAction]? {
         machineReorderAccessibilityActions?() ?? super.accessibilityCustomActions()
@@ -74,22 +71,9 @@ final class CloudTreeCellView: NSTableCellView {
         }
     }
 
-    override convenience init(frame frameRect: NSRect) {
-        self.init(frame: frameRect, collaborators: { machine, workspaceID in
-            AppDelegate.shared?.workspacePresenceController.collaborators(forCloudMachine: machine, workspaceID: workspaceID) ?? []
-        })
-    }
-
-    init(frame frameRect: NSRect, collaborators: @escaping @MainActor (SurfaceMachineID, String) -> [WorkspacePresenceParticipant]) {
-        self.collaborators = collaborators
+    override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         identifier = Self.identifier
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(workspacePresenceDidChange(_:)),
-            name: .workspacePresenceDidChange,
-            object: nil
-        )
         displayHost.translatesAutoresizingMaskIntoConstraints = false
         addSubview(displayHost)
         // The outline owns the complete disclosure slot and gap. The hosted
@@ -111,50 +95,6 @@ final class CloudTreeCellView: NSTableCellView {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-        let owner = presenceObserverID
-        Task { @MainActor in
-            AppDelegate.shared?.workspacePresenceController.observeCloudWorkspace(machine: nil, workspaceID: nil, owner: owner)
-        }
-    }
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        updatePresenceSubscription()
-    }
-
-    override func viewDidHide() {
-        super.viewDidHide()
-        updatePresenceSubscription()
-    }
-
-    override func viewDidUnhide() {
-        super.viewDidUnhide()
-        updatePresenceSubscription()
-    }
-
-    private func updatePresenceSubscription() {
-        let controller = AppDelegate.shared?.workspacePresenceController
-        if window != nil, superview != nil, !isHiddenOrHasHiddenAncestor,
-           let configuredNode, case .workspace(let machine, let workspace, _, _, _) = configuredNode.kind {
-            controller?.observeCloudWorkspace(machine: machine, workspaceID: workspace.id, owner: presenceObserverID)
-            configureDisplayHost(node: configuredNode, style: configuredStyle)
-        } else {
-            controller?.observeCloudWorkspace(machine: nil, workspaceID: nil, owner: presenceObserverID)
-        }
-    }
-
-    @objc private func workspacePresenceDidChange(_ notification: Notification) {
-        guard let configuredNode, case .workspace = configuredNode.kind else { return }
-        if let scope = notification.userInfo?["scope"] as? WorkspacePresenceScope,
-           case .workspace(let machine, let workspace, _, _, _) = configuredNode.kind,
-           (machine != .cloud(scope.ownerID) || workspace.id != scope.workspaceID) { return }
-        configureDisplayHost(node: configuredNode, style: configuredStyle)
-        displayHost.invalidateIntrinsicContentSize()
-        needsLayout = true
     }
 
     /// Rehosts one immutable tree snapshot and its optional row actions.
@@ -226,7 +166,6 @@ final class CloudTreeCellView: NSTableCellView {
             buttonsHost?.isHidden = true
             buttonsLeadingConstraint?.isActive = false
         }
-        updatePresenceSubscription()
     }
 
     /// New Workspace puts its "+" on the chevron column of the folders under
@@ -278,14 +217,8 @@ final class CloudTreeCellView: NSTableCellView {
             return
         }
         displayHost.passesThrough = true
-        let presenceHeads: [WorkspacePresenceParticipant] = {
-            guard case .workspace(let machine, let workspace, _, _, _) = node.kind else { return [] }
-            return collaborators(machine, workspace.id)
-        }()
         // The one place that assigns hover text and the accessibility label.
-        // Both used to be written twice, here and again in `configure`, and the
-        // second pass reset a workspace row's presence tooltip to nil.
-        let description = CloudTreeRowToolTip.describe(node: node, style: style, presenceHeads: presenceHeads)
+        let description = CloudTreeRowToolTip.describe(node: node, style: style)
         toolTip = description.toolTip
         setAccessibilityLabel(description.accessibilityLabel)
         // A header keeps its icon's clickable spot across reloads: SwiftUI
@@ -295,7 +228,7 @@ final class CloudTreeCellView: NSTableCellView {
         if CloudTreeRowContentView.sectionRefresh(for: node.kind) == nil { displayHost.interactiveRects = [] }
         displayHost.rootView = AnyView(
             CloudTreeRowContentView(
-                kind: node.kind, presenceHeads: presenceHeads, style: style, resources: node.resourceSection,
+                kind: node.kind, style: style, resources: node.resourceSection,
                 onRefresh: Self.sectionRefreshAction(node.kind, configuredNodeActions),
                 onInteractiveFrame: { [weak displayHost] frame in displayHost?.interactiveRects = frame.map { [$0] } ?? [] }
             )
@@ -342,7 +275,6 @@ final class CloudTreeCellView: NSTableCellView {
 
     override func viewDidMoveToSuperview() {
         super.viewDidMoveToSuperview()
-        updatePresenceSubscription()
         updateRowHover()
     }
 
@@ -400,7 +332,6 @@ final class CloudTreeCellView: NSTableCellView {
         configuredNode = nil
         configuredNodeActions = nil
         displayHost.passesThrough = true
-        updatePresenceSubscription()
         toolTip = nil
         hovered = false
         portsStatus?.isHidden = true

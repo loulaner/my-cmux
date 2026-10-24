@@ -372,7 +372,6 @@
   "CloudWorkspaceLayoutTranslatorTests": 15,
   "CloudWorkspaceLiveProjectionTests": 310,
   "CloudWorkspaceMembershipTests": 46,
-  "CloudWorkspacePresenceHeadsTests": 15,
   "CloudWorkspaceProjectionPlanTests": 1,
   "CloudWorkspaceRenameRefreshTests": 900,
   "CloudWorkspaceRenameSurfaceParityTests": 364,

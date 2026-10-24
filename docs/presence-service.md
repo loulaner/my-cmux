@@ -229,10 +229,14 @@ the first production deploy and dogfood.
   route-change uploads, and quit goodbyes have been removed. The historical
   `presenceHeartbeatEnabled` preference no longer enables uploads.
   `Sources/Cloud/PresenceServiceEndpoint.swift` retains URL resolution for
-  `CloudVMSyncSubscriber`, `DeviceDirectory`, `WorkspacePresenceController`,
-  and `MobileHostIrxRuntime`; `presenceServiceURL` / `CMUX_PRESENCE_BASE_URL`
+  `CloudVMSyncSubscriber`, `DeviceDirectory`, and `MobileHostIrxRuntime`; `presenceServiceURL` / `CMUX_PRESENCE_BASE_URL`
   still configure those remaining clients in Debug development builds.
   Release and production-auth builds remain pinned to the production URL.
+- **Mac workspace collaborator presence (retired in MyCMUX)**: workspace
+  presence sockets, selection/visible-row subscriptions, and collaborator
+  avatars and names have been removed. Workspace names, directories, terminal
+  counts, and local selection events remain. This does not change Direct
+  terminal viewport ownership.
 - **Mac Cloud machines list** (`Sources/Cloud/CloudVMSyncSubscriber.swift`,
   owned by `MachinesPanelViewModel`): a second subscribe socket per visible
   machines panel whose `sync.hello` asks only for `vms`, from the cursor and

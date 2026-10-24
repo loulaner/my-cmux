@@ -1,7 +1,6 @@
 import CmuxCloud
 import CmuxFoundation
 import CmuxSurfaceCatalogModel
-import CmuxWorkspacePresence
 import SwiftUI
 enum CloudTreeIconPalette {
     static let workspace = Color.blue
@@ -12,7 +11,6 @@ enum CloudTreeIconPalette {
 }
 struct CloudTreeRowContentView: View {
     let kind: CloudTreeNode.Kind
-    var presenceHeads: [WorkspacePresenceParticipant] = []
     var style: CloudTreeStyle = CloudTreeStyleStore.current
     var resources: CloudTreeMachineResourceSection? = nil
     /// A section header's refresh, and where its icon sits (the header's one clickable spot).
@@ -104,12 +102,7 @@ struct CloudTreeRowContentView: View {
                 icon: "folder.fill",
                 tint: CloudTreeIconPalette.workspace,
                 title: workspace.name,
-                titleWeight: workspace.focused ? .medium : .regular,
-                accessories: {
-                    if !presenceHeads.isEmpty {
-                        SidebarWorkspacePresenceHeadsView(participants: presenceHeads)
-                    }
-                }
+                titleWeight: workspace.focused ? .medium : .regular
             )
         case .localWorkspace(let row):
             CloudTreeLeafRow(

@@ -1,16 +1,13 @@
 import CmuxCloud
 import CmuxSurfaceCatalogModel
-import CmuxWorkspacePresence
 import Foundation
 
 enum CloudTreeRowToolTip {
-    /// Hover text and accessibility label for `node`, including the presence
-    /// heads the cell resolved for a workspace row.
+    /// Hover text and accessibility label for `node`.
     @MainActor
     static func describe(
         node: CloudTreeNode,
-        style: CloudTreeStyle,
-        presenceHeads: [WorkspacePresenceParticipant]
+        style: CloudTreeStyle
     ) -> CloudTreeRowDescription {
         switch node.kind {
         case .machine(let machine, _):
@@ -26,13 +23,10 @@ enum CloudTreeRowToolTip {
             let content = CloudTreeDeviceRowContent(row: row, style: style)
             return .init(toolTip: content.toolTip, accessibilityLabel: content.accessibilityLabel)
         case .workspace(_, let workspace, let terminalCount, _, _):
-            let lines = workspaceLines(workspace, terminalCount: terminalCount, presenceHeads: presenceHeads)
-            let names = WorkspacePresencePolicy.accessibilityLabel(presenceHeads)
+            let lines = workspaceLines(workspace, terminalCount: terminalCount)
             return .init(
                 toolTip: joined(lines, beyond: node.searchableTitle),
-                accessibilityLabel: presenceHeads.isEmpty
-                    ? node.searchableTitle
-                    : "\(node.searchableTitle), \(names)"
+                accessibilityLabel: node.searchableTitle
             )
         case .localWorkspace(let row):
             return .init(
@@ -112,17 +106,13 @@ enum CloudTreeRowToolTip {
     /// two of them apart.
     private static func workspaceLines(
         _ workspace: SurfaceRemoteWorkspace,
-        terminalCount: Int,
-        presenceHeads: [WorkspacePresenceParticipant]
+        terminalCount: Int
     ) -> [String?] {
         var lines: [String?] = [workspace.name, workspace.detail]
         // "0 terminals" is not occupancy, it is the absence of it, and the row
         // already reads as empty. Only a count worth knowing earns a line.
         if terminalCount > 0 {
             lines.append(CloudTreeRowContentView.count(terminalCount))
-        }
-        if !presenceHeads.isEmpty {
-            lines.append(WorkspacePresencePolicy.accessibilityLabel(presenceHeads))
         }
         return lines
     }
