@@ -136,34 +136,5 @@ extension MobileShellComposite {
     }
 
     /// Removes incompatible Mac instances from live presence updates.
-    func compatiblePresenceUpdate(_ update: PresenceUpdate) -> PresenceUpdate? {
-        guard let buildCompatibilityPolicy else { return update }
-        switch update {
-        case .snapshot(var snapshot):
-            snapshot.devices = snapshot.devices.compactMap { device in
-                let instances = device.instances.filter {
-                    buildCompatibilityPolicy.allows(instanceTag: $0.tag)
-                }
-                guard !instances.isEmpty else { return nil }
-                var compatibleDevice = device
-                compatibleDevice.instances = instances
-                compatibleDevice.online = instances.contains(where: \.online)
-                compatibleDevice.lastSeenAt = instances.map(\.lastSeenAt).max() ?? 0
-                return compatibleDevice
-            }
-            return .snapshot(snapshot)
-        case .online(let instance):
-            return buildCompatibilityPolicy.allows(instanceTag: instance.tag)
-                ? .online(instance) : nil
-        case .offline(let instance, let reason):
-            return buildCompatibilityPolicy.allows(instanceTag: instance.tag)
-                ? .offline(instance, reason: reason) : nil
-        case .seen(let deviceId, let tag, let lastSeenAt):
-            return buildCompatibilityPolicy.allows(instanceTag: tag)
-                ? .seen(deviceId: deviceId, tag: tag, lastSeenAt: lastSeenAt) : nil
-        case .routes(let instance):
-            return buildCompatibilityPolicy.allows(instanceTag: instance.tag)
-                ? .routes(instance) : nil
-        }
-    }
+
 }

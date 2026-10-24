@@ -28,20 +28,7 @@ extension MobileShellComposite {
                 Self.taskAttachmentCapability
             )
         }
-        let aliases = pairedMacAliasIDs(
-            for: macDeviceID,
-            instanceTag: instanceTag
-        )
-        if let instanceTag {
-            return aliases.contains {
-                presenceMap.instance(deviceId: $0, tag: instanceTag)?
-                    .capabilities.contains(Self.taskAttachmentCapability) == true
-            }
-        }
-        return aliases.contains {
-            presenceMap.soleRouteAdvertisingInstance(deviceId: $0)?
-                .capabilities.contains(Self.taskAttachmentCapability) == true
-        }
+        return false
     }
 
     /// Uploads one staged task attachment to the selected Mac in 3 MiB chunks.

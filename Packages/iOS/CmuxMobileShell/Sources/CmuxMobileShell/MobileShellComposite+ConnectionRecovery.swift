@@ -102,7 +102,7 @@ extension MobileShellComposite {
             switch trigger {
             case .manual, .connectionMethodChanged:
                 break
-            case .networkChange, .presencePush, .directoryChanged, .foreground, .liveness,
+            case .networkChange, .directoryChanged, .foreground, .liveness,
                  .eventStreamEnded, .subscriptionStartFailed,
                  .transportWriteTimedOut, .automaticBackoffExpired:
                 MobileDebugLog.anchormux(
@@ -116,7 +116,7 @@ extension MobileShellComposite {
             switch trigger {
             case .manual, .networkChange, .foreground, .connectionMethodChanged:
                 clearTransientAutomaticReconnectBackoff(accountID: accountID)
-            case .presencePush, .directoryChanged:
+            case .directoryChanged:
                 guard !automaticIrohReconnectIsBlocked(accountID: accountID) else {
                     return
                 }
@@ -193,7 +193,7 @@ extension MobileShellComposite {
         switch trigger {
         case .manual, .connectionMethodChanged:
             return false
-        case .networkChange, .presencePush, .directoryChanged, .foreground,
+        case .networkChange, .directoryChanged, .foreground,
              .liveness, .eventStreamEnded, .subscriptionStartFailed,
              .transportWriteTimedOut, .automaticBackoffExpired:
             break
@@ -324,7 +324,7 @@ extension MobileShellComposite {
             switch trigger {
             case .liveness, .networkChange:
                 resyncTerminalOutput(reason: trigger.description, restartEventStream: true)
-            case .manual, .presencePush, .directoryChanged, .foreground, .eventStreamEnded,
+            case .manual, .directoryChanged, .foreground, .eventStreamEnded,
                  .subscriptionStartFailed, .transportWriteTimedOut, .automaticBackoffExpired,
                  .connectionMethodChanged:
                 markMacConnectionUnavailableIfNoStore()
@@ -491,8 +491,7 @@ extension MobileShellComposite {
                 let reconnectGenerationBeforeAttempt =
                     self.storedMacReconnectGeneration
                 let reconnectOutcome = await self.reconnectActiveMacOutcome(
-                    stackUserID: stackUserID,
-                    refreshBackupBeforeDial: false
+                    stackUserID: stackUserID
                 )
                 guard !Task.isCancelled,
                       self.connectionRecoveryOwner.isCurrent(attempt) else { return }

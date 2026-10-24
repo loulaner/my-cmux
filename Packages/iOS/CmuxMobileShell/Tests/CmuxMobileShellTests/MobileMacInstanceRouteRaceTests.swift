@@ -7,51 +7,7 @@ import Testing
 
 @MainActor
 @Suite struct MobileMacInstanceRouteRaceTests {
-    @Test func pushedRouteBurstSharesOneBoundedSyncOwner() async {
-        let shell = MobileShellComposite(
-            isSignedIn: true,
-            identityProvider: StaticIdentityProvider(userID: "user-1"),
-            teamIDProvider: { "team-a" }
-        )
-        let scope = MobileShellScopeSnapshot(
-            userID: "user-1",
-            teamID: "team-a",
-            generation: 0
-        )
-        let first = PresenceInstance(
-            deviceId: "mac-a",
-            tag: "feature-a",
-            platform: "mac",
-            online: true,
-            lastSeenAt: 1_000
-        )
-        let second = PresenceInstance(
-            deviceId: "mac-b",
-            tag: "feature-b",
-            platform: "mac",
-            online: true,
-            lastSeenAt: 1_000
-        )
 
-        let firstTask = shell.syncPushedRoutes(
-            from: [first],
-            scope: scope
-        )
-        let firstOperationID = shell.pushedRouteSyncOperationID
-        let secondTask = shell.syncPushedRoutes(
-            from: [second],
-            scope: scope
-        )
-
-        #expect(firstOperationID != nil)
-        #expect(shell.pushedRouteSyncOperationID == firstOperationID)
-        #expect(shell.pushedRouteSyncPendingInstances.count == 2)
-
-        await firstTask?.value
-        await secondTask?.value
-        #expect(shell.pushedRouteSyncTask == nil)
-        #expect(shell.pushedRouteSyncPendingInstances.isEmpty)
-    }
 
     @Test func delayedRegistryAResultCannotOverwriteSameDeviceAfterBCommit() async throws {
         let routeA = try route(id: "a", port: 51_001)
@@ -95,7 +51,7 @@ import Testing
         #expect(current.routes == [routeB])
     }
 
-    @Test func cachedPresenceACannotOverwriteStoreAfterBCommit() async throws {
+    @Test func conditionalRouteACannotOverwriteStoreAfterBCommit() async throws {
         let routeA = try route(id: "a", port: 51_001)
         let pushedA = try route(id: "pushed-a", port: 52_001)
         let routeB = try route(id: "b", port: 51_002)
@@ -122,15 +78,11 @@ import Testing
         )
         let scope = MobileShellScopeSnapshot(userID: "user-1", teamID: "team-a", generation: 0)
 
-        shell.applyPresenceUpdate(.online(PresenceInstance(
-            deviceId: "shared-mac",
-            tag: "feature-a",
-            platform: "mac",
-            online: true,
-            lastSeenAt: 1_000,
-            routes: [pushedA]
-        )), scope: scope)
-        await shell.pushedRouteSyncTask?.value
+        _ = try await pairedStore.upsertRoutesIfAuthorized(
+            macDeviceID: "shared-mac", displayName: "Studio", routes: [pushedA],
+            condition: .matchingInstanceTag("feature-a"), markActive: nil,
+            stackUserID: "user-1", teamID: "team-a", now: Date()
+        )
 
         let current = try #require(await pairedStore.loadAll(
             stackUserID: "user-1", teamID: "team-a"

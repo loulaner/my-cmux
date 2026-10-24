@@ -120,7 +120,7 @@ import Testing
         #expect(Set(store.hiddenComputers.map(\.macDeviceID)) == Set(["mac-old", "mac-fresh"]))
     }
 
-    @Test func presenceRoutesForHiddenDuplicateRefreshOnlyTheEmittingRow() async throws {
+    @Test func localRoutesForHiddenDuplicateRefreshOnlyTheEmittingRow() async throws {
         let pairedStore = DelayedTeamPairedMacStore(
             recordsByTeam: [
                 "team-a": [
@@ -165,20 +165,13 @@ import Testing
             kind: .tailscale,
             endpoint: .hostPort(host: "100.82.214.112", port: 50922)
         )
-        store.applyPresenceUpdate(
-            .online(PresenceInstance(
-                deviceId: "mac-old",
-                tag: "default",
-                platform: "mac",
-                online: true,
-                lastSeenAt: 1_000,
-                routes: [freshRoute]
-            )),
-            scope: MobileShellScopeSnapshot(userID: "user-1", teamID: "team-a", generation: 0)
+        _ = try await pairedStore.upsertRoutesIfAuthorized(
+            macDeviceID: "mac-old", displayName: nil, routes: [freshRoute],
+            condition: .matchingInstanceTag(nil), markActive: nil,
+            stackUserID: "user-1", teamID: "team-a", now: Date(timeIntervalSince1970: 15)
         )
         await pairedStore.waitUntilUpsertCount(1)
 
-        #expect(store.presenceSummary(for: "mac-fresh")?.online == true)
         let duplicateRows = try await pairedStore.loadAll(stackUserID: "user-1", teamID: "team-a")
             .filter { ["mac-old", "mac-fresh"].contains($0.macDeviceID) }
         #expect(duplicateRows.count == 2)
@@ -234,7 +227,7 @@ import Testing
         #expect(restoreTarget?.macDeviceID == "mac-live")
     }
 
-    @Test func presenceRouteWriteFinishingAfterHideKeepsRowFreshAndHidden() async throws {
+    @Test func localRouteWriteFinishingAfterHideKeepsRowFreshAndHidden() async throws {
         let oldRoute = try CmxAttachRoute(
             id: "old",
             kind: .tailscale,
@@ -269,21 +262,17 @@ import Testing
         )
         await store.loadPairedMacs()
 
-        store.applyPresenceUpdate(
-            .online(PresenceInstance(
-                deviceId: "mac-a",
-                tag: "default",
-                platform: "mac",
-                online: true,
-                lastSeenAt: 1_000,
-                routes: [freshRoute]
-            )),
-            scope: MobileShellScopeSnapshot(userID: "user-1", teamID: "team-a", generation: 0)
+        let routeWrite = Task {
+            _ = try await pairedStore.upsertRoutesIfAuthorized(
+            macDeviceID: "mac-a", displayName: nil, routes: [freshRoute],
+            condition: .matchingInstanceTag(nil), markActive: nil,
+            stackUserID: "user-1", teamID: "team-a", now: Date(timeIntervalSince1970: 15)
         )
+        }
         await pairedStore.waitUntilUpsertStarted(macDeviceID: "mac-a")
         await store.hideMac(macDeviceID: "mac-a")
         await pairedStore.releaseUpsert(macDeviceID: "mac-a")
-        await store.pushedRouteSyncTask?.value
+        try await routeWrite.value
 
         let retained = try #require(try await pairedStore.loadAll(
             stackUserID: "user-1",
@@ -295,7 +284,7 @@ import Testing
         #expect(store.hiddenComputers.map(\.macDeviceID) == ["mac-a"])
     }
 
-    @Test func presenceRoutesDoNotFanOutWhenLogicalDuplicatesBothAdvertiseRoutes() async throws {
+    @Test func localRoutesDoNotFanOutWhenLogicalDuplicatesBothAdvertiseRoutes() async throws {
         let oldRoute = try CmxAttachRoute(
             id: "old",
             kind: .tailscale,
@@ -339,54 +328,16 @@ import Testing
         )
         await store.loadPairedMacs()
 
-        store.applyPresenceUpdate(
-            .snapshot(PresenceSnapshot(
-                teamId: "team-a",
-                now: 2_000,
-                heartbeatIntervalMs: 15_000,
-                offlineTimeoutMs: 45_000,
-                devices: [
-                    PresenceDevice(
-                        deviceId: "mac-old",
-                        platform: "mac",
-                        online: true,
-                        lastSeenAt: 1_000,
-                        instances: [
-                            PresenceInstance(
-                                deviceId: "mac-old",
-                                tag: "default",
-                                platform: "mac",
-                                online: true,
-                                lastSeenAt: 1_000,
-                                routes: [oldRoute]
-                            ),
-                        ]
-                    ),
-                    PresenceDevice(
-                        deviceId: "mac-fresh",
-                        platform: "mac",
-                        online: true,
-                        lastSeenAt: 2_000,
-                        instances: [
-                            PresenceInstance(
-                                deviceId: "mac-fresh",
-                                tag: "debug",
-                                platform: "mac",
-                                online: true,
-                                lastSeenAt: 2_000,
-                                routes: [freshRoute]
-                            ),
-                        ]
-                    ),
-                ]
-            )),
-            scope: MobileShellScopeSnapshot(userID: "user-1", teamID: "team-a", generation: 0)
+        _ = try await pairedStore.upsertRoutesIfAuthorized(
+            macDeviceID: "mac-old", displayName: nil, routes: [oldRoute],
+            condition: .matchingInstanceTag(nil), markActive: nil,
+            stackUserID: "user-1", teamID: "team-a", now: Date(timeIntervalSince1970: 15)
         )
-        await store.pushedRouteSyncTask?.value
+        await store.loadPairedMacs(forceRefresh: true)
 
         let duplicateRows = try await pairedStore.loadAll(stackUserID: "user-1", teamID: "team-a")
             .filter { ["mac-old", "mac-fresh"].contains($0.macDeviceID) }
-        #expect(await pairedStore.currentUpsertCount() == 0)
+        #expect(await pairedStore.currentUpsertCount() == 1)
         #expect(duplicateRows.first { $0.macDeviceID == "mac-old" }?.routes == [oldRoute])
         #expect(duplicateRows.first { $0.macDeviceID == "mac-fresh" }?.routes == [freshRoute])
     }

@@ -26,11 +26,9 @@ class WorkspacePresencePublisherRemovedTests(unittest.TestCase):
         selection = shell.split('public var selectedWorkspaceID:', 1)[1].split('\n    }', 1)[0]
         self.assertIn('pendingLastTabRestoreWorkspaceID = selectedWorkspaceID', selection)
         self.assertIn('syncSelectedTerminalForWorkspace()', selection)
-        subscription = shell.split('func evaluatePresenceSubscription()', 1)[1].split('\n    }', 1)[0]
+        subscription = shell.split('func evaluateDirectoryObservation()', 1)[1].split('\n    }', 1)[0]
         for text in ('if isSignedIn, let discovery = personalIrohDiscovery', 'discovery.directoryUpdates()',
-                     'directoryObservationTask?.cancel()', 'if isSignedIn, presence != nil',
-                     'startPresenceSubscription()', 'else if !isSignedIn', 'presenceTask?.cancel()',
-                     'presenceMap = PresenceMap()'):
+                     'directoryObservationTask?.cancel()'):
             self.assertIn(text, subscription)
         self.assertTrue((ROOT / 'Packages/Shared/CmuxWorkspacePresence/Package.swift').is_file())
 
@@ -39,7 +37,7 @@ class WorkspacePresencePublisherRemovedTests(unittest.TestCase):
         resume = routes.split('public func resumeForegroundRefresh()', 1)[1].split('\n    }', 1)[0]
         suspend = routes.split('public func suspendForegroundRefresh()', 1)[1].split('\n    }', 1)[0]
         for text in ('guard foregroundRefreshLifecycleState != .active else { return }',
-                     'foregroundResumeEpoch &+= 1', 'evaluatePresenceSubscription()',
+                     'foregroundResumeEpoch &+= 1', 'evaluateDirectoryObservation()',
                      'startObservingNetworkPathChanges()', 'recoverForegroundConnectionIfNeeded',
                      'resumeSecondaryControlMaintenanceAfterForeground()'):
             self.assertIn(text, resume)

@@ -17,8 +17,8 @@ extension MobileShellComposite {
     /// id, resolved with the same priority as the Computers sheet badge: live
     /// presence first, then the stored instance tag while offline.
     public func pairedMacBuildLabelsByEntryID() -> [String: String] {
-        Self.buildLabelsByEntryID(for: displayPairedMacs) { macDeviceID, instanceTag in
-            presenceSummary(for: macDeviceID, instanceTag: instanceTag)?.buildLabel
+        Self.buildLabelsByEntryID(for: displayPairedMacs) { _, _ in
+            nil
         }
     }
 
@@ -67,28 +67,7 @@ extension MobileShellComposite {
 
     /// Presence across every stored id represented by a visible paired-Mac row.
     /// When `instanceTag` is present, only that tagged app instance contributes.
-    public func presenceSummary(
-        for macDeviceID: String,
-        instanceTag: String? = nil
-    ) -> PresenceMap.DeviceSummary? {
-        let summaries = pairedMacAliasIDs(for: macDeviceID, instanceTag: instanceTag).compactMap {
-            if let instanceTag {
-                presenceMap.instanceSummary(deviceId: $0, tag: instanceTag)
-            } else {
-                presenceMap.soleInstanceSummary(deviceId: $0)
-            }
-        }
-        guard !summaries.isEmpty else { return nil }
-        let online = summaries.contains(where: \.online)
-        let freshest = summaries.max { $0.lastSeenAt < $1.lastSeenAt }
-        let label = summaries.first { $0.online && $0.buildLabel != nil }?.buildLabel
-            ?? freshest?.buildLabel
-        return PresenceMap.DeviceSummary(
-            online: online,
-            lastSeenAt: freshest?.lastSeenAt ?? Date(timeIntervalSince1970: 0),
-            buildLabel: label
-        )
-    }
+
 
     /// Workspace count for one exact pairing row. A legacy untagged workspace
     /// belongs only to the legacy untagged pairing, because there is no build

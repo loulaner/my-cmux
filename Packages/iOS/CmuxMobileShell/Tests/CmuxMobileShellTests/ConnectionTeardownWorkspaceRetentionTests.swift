@@ -22,7 +22,7 @@ struct ConnectionTeardownWorkspaceRetentionTests {
         let store = MobileShellComposite(
             isSignedIn: true,
             connectionState: .connected,
-            presence: IdlePresence(),
+
             identityProvider: StaticIdentityProvider(userID: "user-1"),
             teamIDProvider: { "team-1" },
             reachability: AlwaysOnlineReachability(),

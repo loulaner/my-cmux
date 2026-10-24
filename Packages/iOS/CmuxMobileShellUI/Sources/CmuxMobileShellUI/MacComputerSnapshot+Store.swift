@@ -7,7 +7,7 @@ import Foundation
 
 extension MacComputerSnapshot {
     /// The user's computers as immutable snapshots, sourced from the paired-Mac
-    /// backup (`displayPairedMacs`) — the coalesced set the Computers screen
+    /// local store (`displayPairedMacs`) — the coalesced set the Computers screen
     /// shows and the one ``CMUXMobileShellStore/hideMac`` filters locally.
     /// Shared by the Computers screen and the disconnected reconnect list so
     /// both surfaces show the same deduplicated computers with the same
@@ -35,12 +35,6 @@ extension MacComputerSnapshot {
                     instanceTag: mac.instanceTag
                 )
             }
-            let summary = store.presenceSummary(
-                for: mac.macDeviceID,
-                instanceTag: mac.instanceTag
-            )
-            let presence: DeviceTreePresence? = summary
-                .map { $0.online ? .online : .offline(lastSeenAt: $0.lastSeenAt) }
             // Secondary state is pairing-keyed; the foreground/legacy entry
             // stays under the bare device key, refined to the exact pairing.
             let exactConnectionStatus = connectionStatuses[mac.id]
@@ -69,9 +63,8 @@ extension MacComputerSnapshot {
                 customColor: mac.customColor,
                 customIcon: mac.customIcon,
                 connectionStatus: exactConnectionStatus,
-                presence: presence,
-                buildLabel: summary?.buildLabel
-                    ?? MacBuildChannel().label(bundleID: nil, tag: mac.instanceTag),
+                presence: nil,
+                buildLabel: MacBuildChannel().label(bundleID: nil, tag: mac.instanceTag),
                 routeDescription: method == .direct
                     ? directEndpoint
                     : method.routeKind.flatMap {

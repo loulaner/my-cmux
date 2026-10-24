@@ -585,7 +585,20 @@ extension MobileShellComposite {
             ))
         }
         do {
-            try await pairedMacStore.removeExactScopes(scopes)
+            var firstError: (any Error)?
+            for scope in scopes {
+                do {
+                    try await pairedMacStore.removeExactScope(
+                        macDeviceID: scope.macDeviceID,
+                        instanceTag: scope.instanceTag,
+                        stackUserID: scope.stackUserID,
+                        teamID: scope.teamID
+                    )
+                } catch {
+                    if firstError == nil { firstError = error }
+                }
+            }
+            if let firstError { throw firstError }
         } catch {
             hiddenMacsLog.error(
                 "forget hidden computer row removal failed: \(String(describing: error), privacy: .private)"

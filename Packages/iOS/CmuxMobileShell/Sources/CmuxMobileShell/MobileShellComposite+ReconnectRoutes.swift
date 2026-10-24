@@ -445,7 +445,7 @@ extension MobileShellComposite {
         startObservingNetworkPathChanges()
         // Covers stores constructed already-signed-in (no isSignedIn edge) and
         // restarts a subscription torn down while backgrounded.
-        evaluatePresenceSubscription()
+        evaluateDirectoryObservation()
         let shouldResync = shouldResyncTerminalOutputOnForeground()
         lastBackgroundedAt = nil
         // Persisted connections let the recovery owner probe first. Restarting

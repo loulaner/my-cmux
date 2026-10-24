@@ -152,29 +152,7 @@ extension ReconnectRouteSelectionTests {
         #expect(fixture.factory.attemptedKinds() == [.iroh, .iroh])
     }
 
-    @Test func presenceDuringStartupReconnectDoesNotSupersedeTheActiveDial() async throws {
-        let fixture = try await makeRecoveryOwnerFixture(heldConnectAttempts: [1])
-        defer { fixture.release() }
 
-        let startupReconnect = Task {
-            await fixture.store.reconnectActiveMacIfAvailable(stackUserID: "user-1")
-        }
-        #expect(await fixture.factory.waitForAttemptCount(1))
-        let startupGeneration = fixture.store.storedMacReconnectGeneration
-        #expect(fixture.store.isReconnectingStoredMac)
-
-        fixture.store.recoverMobileConnection(trigger: .presencePush)
-
-        #expect(!fixture.store.connectionRecoveryOwner.isActive)
-        #expect(fixture.store.storedMacReconnectGeneration == startupGeneration)
-        #expect(fixture.factory.attemptedKinds() == [.iroh])
-
-        fixture.factory.releaseHeldConnects()
-        #expect(await startupReconnect.value)
-        #expect(fixture.store.connectionState == .connected)
-        #expect(fixture.store.storedMacReconnectGeneration == startupGeneration)
-        #expect(fixture.factory.attemptedKinds() == [.iroh])
-    }
 
     @Test func manualRetryDuringStartupReconnectReplacesTheActiveDial() async throws {
         try await expectExplicitRecoveryToReplaceStartupDial(trigger: .manual)
@@ -266,35 +244,7 @@ extension ReconnectRouteSelectionTests {
         #expect(failedOwner.phase == .failed(failedAttempt))
     }
 
-    @Test func localPinnedIrohRecoveryDoesNotWaitForBackupRefresh() async throws {
-        let backup = BlockingSecondFetchBackup()
-        let fixture = try await makeRecoveryOwnerFixture(backup: backup)
-        defer {
-            fixture.release()
-            Task { await backup.release() }
-        }
 
-        #expect(await fixture.store.reconnectActiveMacIfAvailable(stackUserID: "user-1"))
-        #expect(try await pollUntil { fixture.store.lastSuccessfulTerminalSubscription != nil })
-        let firstClient = try #require(fixture.store.remoteClient)
-        let backing = try #require(fixture.store.pairedMacStore as? BackingUpPairedMacStore)
-        await backup.blockFutureFetches()
-        let blockedRefresh = Task {
-            await backing.refreshFromBackup(stackUserID: "user-1")
-        }
-        #expect(await backup.waitForBlockedFetch())
-        let first = try #require(fixture.box.get())
-        await first.close()
-
-        let recoveredWithoutServer = try await pollUntil(attempts: 100) {
-            guard let replacement = fixture.store.remoteClient else { return false }
-            return replacement !== firstClient && fixture.store.connectionState == .connected
-        }
-        #expect(recoveredWithoutServer)
-        #expect(fixture.factory.attemptedKinds() == [.iroh, .iroh])
-        await backup.release()
-        await blockedRefresh.value
-    }
 
     @Test func signOutCancelsInFlightIrohRecoveryOwner() async throws {
         let fixture = try await makeRecoveryOwnerFixture(heldConnectAttempts: [2])
@@ -315,52 +265,7 @@ extension ReconnectRouteSelectionTests {
         #expect(!fixture.store.isRecoveringConnection)
     }
 
-    @Test func authenticatedPresenceRetriesFailedEarlyIrohRedial() async throws {
-        let fixture = try await makeRecoveryOwnerFixture()
-        defer { fixture.release() }
 
-        #expect(await fixture.store.reconnectActiveMacIfAvailable(stackUserID: "user-1"))
-        #expect(try await pollUntil { fixture.store.lastSuccessfulTerminalSubscription != nil })
-        let firstClient = try #require(fixture.store.remoteClient)
-        // Keep every post-drop dial failing until the first owner reaches its
-        // terminal failed phase. This avoids coupling the assertion to a
-        // transport ordinal that unrelated requests on the dying client can
-        // legitimately consume before synchronous retirement reaches it.
-        fixture.factory.setConnectsFailing(true)
-        let first = try #require(fixture.box.get())
-        await first.close()
-
-        #expect(try await pollUntil {
-            fixture.store.connectionState == .disconnected
-                && fixture.store.connectionRecoveryFailed
-        })
-        fixture.factory.setConnectsFailing(false)
-        let scope = try #require(
-            await fixture.store.currentScopeSnapshot(userID: "user-1")
-        )
-        fixture.store.applyPresenceUpdate(.online(PresenceInstance(
-            deviceId: "test-mac",
-            tag: "default",
-            platform: "mac",
-            online: true,
-            lastSeenAt: fixture.clock.now.timeIntervalSince1970 * 1_000,
-            routes: [try iroh()]
-        )), scope: scope)
-
-        #expect(try await pollUntil {
-            let subscribeCount = await fixture.router.count(of: "mobile.events.subscribe")
-            return fixture.store.connectionState == .connected
-                && fixture.store.remoteClient !== firstClient
-                && fixture.store.activeRoute?.kind == .iroh
-                && fixture.store.macConnectionStatus == .connected
-                && fixture.store.isRecoveringConnection == false
-                && fixture.store.connectionRecoveryFailed == false
-                && subscribeCount >= 2
-        })
-        let attemptedKinds = fixture.factory.attemptedKinds()
-        #expect(attemptedKinds.count >= 3)
-        #expect(attemptedKinds.allSatisfy { $0 == .iroh })
-    }
 
     @Test func responseTimeoutLeavesTheLiveIrohClientAlone() async throws {
         let fixture = try await makeRecoveryOwnerFixture()
@@ -792,7 +697,6 @@ extension ReconnectRouteSelectionTests {
     }
 
     private func makeRecoveryOwnerFixture(
-        backup: (any PairedMacBackingUp)? = nil,
         heldConnectAttempts: Set<Int> = [],
         firstTransportCloseGate: LivenessTransportCloseGate? = nil,
         observesTransportLiveness: Bool = false,
@@ -819,12 +723,7 @@ extension ReconnectRouteSelectionTests {
             teamID: nil,
             now: clock.now
         )
-        let pairedStore: any MobilePairedMacStoring
-        if let backup {
-            pairedStore = BackingUpPairedMacStore(inner: inner, backup: backup)
-        } else {
-            pairedStore = inner
-        }
+        let pairedStore: any MobilePairedMacStoring = inner
         let store = MobileShellComposite(
             runtime: LivenessTestRuntime(
                 transportFactory: factory,
@@ -1045,50 +944,4 @@ private actor LivenessObservingSequencedTransport: CmxByteTransportLivenessObser
 
 private struct RecoveryConnectFailure: DiagnosticFailureProviding {
     let diagnosticFailureKind: DiagnosticFailureKind
-}
-
-private actor BlockingSecondFetchBackup: PairedMacBackingUp {
-    private var fetchCount = 0
-    private var shouldBlockFetches = false
-    private var released = false
-    private var blocked = false
-    private var releaseWaiters: [CheckedContinuation<Void, Never>] = []
-    private var blockedWaiters: [CheckedContinuation<Void, Never>] = []
-
-    func upload(ops _: [PairedMacBackupOp]) async -> Bool { true }
-    func fetchAll() async -> [PairedMacBackupRecord]? { await fetchSnapshot()?.records }
-
-    func fetchSnapshot() async -> PairedMacBackupSnapshot? {
-        await fetchSnapshot(teamID: nil, expectedUserID: nil)
-    }
-
-    func fetchSnapshot(
-        teamID _: String?,
-        expectedUserID _: String?
-    ) async -> PairedMacBackupSnapshot? {
-        fetchCount += 1
-        if shouldBlockFetches, !released {
-            blocked = true
-            let waiters = blockedWaiters
-            blockedWaiters = []
-            for waiter in waiters { waiter.resume() }
-            await withCheckedContinuation { releaseWaiters.append($0) }
-        }
-        return PairedMacBackupSnapshot(records: [], deletedMacDeviceIDs: [])
-    }
-
-    func waitForBlockedFetch() async -> Bool {
-        if blocked { return true }
-        await withCheckedContinuation { blockedWaiters.append($0) }
-        return true
-    }
-
-    func blockFutureFetches() { shouldBlockFetches = true }
-
-    func release() {
-        released = true
-        let waiters = releaseWaiters
-        releaseWaiters = []
-        for waiter in waiters { waiter.resume() }
-    }
 }

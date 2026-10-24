@@ -6,484 +6,149 @@ import Testing
 
 @testable import CmuxMobileShell
 
+/// Retained local/registry authority contracts, not retired push delivery tests.
 @MainActor
-@Suite struct TaggedBuildPresenceRouteIsolationTests {
+@Suite struct TaggedBuildLocalRouteIsolationTests {
     @Test func tagBRestartCannotRewriteTagARoutesOnTheSameMac() async throws {
-        let original = try route(id: "original", host: "100.64.0.1", port: 50_000)
-        let routeA = try route(id: "a", host: "100.64.0.1", port: 51_001)
-        let routeB = try route(id: "b", host: "100.64.0.2", port: 51_002)
-        let restartedB = try route(id: "b-restart", host: "100.64.0.3", port: 52_002)
-        let restartedA = try route(id: "a-restart", host: "100.64.0.4", port: 52_001)
-        let pairedStore = DelayedTeamPairedMacStore(
-            recordsByTeam: ["team-a": [pairedMac(routes: [original], instanceTag: "feature-a")]],
-            blockedTeams: []
-        )
-        let store = MobileShellComposite(
-            isSignedIn: true,
-            pairedMacStore: pairedStore,
-            identityProvider: StaticIdentityProvider(userID: "user-1"),
-            teamIDProvider: { "team-a" }
-        )
-        await store.loadPairedMacs()
-        store.registryDevices = [RegistryDevice(
-            deviceId: "shared-physical-mac",
-            platform: "mac",
-            displayName: "Studio",
-            lastSeenAt: Date(timeIntervalSince1970: 1),
-            instances: [
-                RegistryAppInstance(
-                    tag: "feature-a",
-                    routes: [original],
-                    lastSeenAt: Date(timeIntervalSince1970: 1)
-                ),
-                RegistryAppInstance(
-                    tag: "feature-b",
-                    routes: [original],
-                    lastSeenAt: Date(timeIntervalSince1970: 1)
-                ),
-            ]
-        )]
-        let accountScope = MobileShellScopeSnapshot(userID: "user-1", teamID: "team-a", generation: 0)
-
-        store.applyPresenceUpdate(
-            snapshot([
-                instance(tag: "feature-a", routes: [routeA]),
-                instance(tag: "feature-b", routes: [routeB]),
-            ]),
-            scope: accountScope
-        )
-        await store.pushedRouteSyncTask?.value
-        #expect(await pairedStore.currentUpsertCount() == 1)
-        #expect(try await storedRoutes(in: pairedStore) == [routeA])
-        let featureARoutes = store.registryDevices.first?.instances
-            .first(where: { $0.tag == "feature-a" })?.routes
-        let featureBRoutes = store.registryDevices.first?.instances
-            .first(where: { $0.tag == "feature-b" })?.routes
-        #expect(featureARoutes == [routeA])
-        #expect(featureBRoutes == [routeB])
-
-        store.applyPresenceUpdate(
-            .offline(instance(tag: "feature-a", online: false, routes: [routeA]), reason: .goodbye),
-            scope: accountScope
-        )
-        store.applyPresenceUpdate(
-            .online(instance(tag: "feature-b", routes: [restartedB])),
-            scope: accountScope
-        )
-        await store.pushedRouteSyncTask?.value
-        #expect(await pairedStore.currentUpsertCount() == 1)
-        #expect(try await storedRoutes(in: pairedStore) == [routeA])
-        let restartedBRoutes = store.registryDevices.first?.instances
-            .first(where: { $0.tag == "feature-b" })?.routes
-        #expect(restartedBRoutes == [restartedB])
-
-        store.applyPresenceUpdate(
-            .online(instance(tag: "feature-a", routes: [restartedA])),
-            scope: accountScope
-        )
-        await store.pushedRouteSyncTask?.value
-        #expect(await pairedStore.currentUpsertCount() == 2)
-        #expect(try await storedRoutes(in: pairedStore) == [restartedA])
-    }
-
-    @Test func unscopedBuildUsesOnlyTheSoleRouteAdvertisingInstance() async throws {
-        let original = try route(id: "original", host: "100.64.0.1", port: 50_000)
-        let routeA = try route(id: "a", host: "100.64.0.1", port: 51_001)
-        let routeB = try route(id: "b", host: "100.64.0.2", port: 51_002)
-        let restartedB = try route(id: "b-restart", host: "100.64.0.3", port: 52_002)
-        let pairedStore = DelayedTeamPairedMacStore(
-            recordsByTeam: ["team-a": [pairedMac(routes: [original])]],
-            blockedTeams: []
-        )
-        let store = MobileShellComposite(
-            isSignedIn: true,
-            pairedMacStore: pairedStore,
-            identityProvider: StaticIdentityProvider(userID: "user-1"),
-            teamIDProvider: { "team-a" }
-        )
-        await store.loadPairedMacs()
-        let accountScope = MobileShellScopeSnapshot(userID: "user-1", teamID: "team-a", generation: 0)
-
-        store.applyPresenceUpdate(
-            snapshot([
-                instance(tag: "feature-a", routes: [routeA]),
-                instance(tag: "feature-b", routes: [routeB]),
-            ]),
-            scope: accountScope
-        )
-        await store.pushedRouteSyncTask?.value
-        #expect(await pairedStore.currentUpsertCount() == 0)
-        #expect(try await storedRoutes(in: pairedStore) == [original])
-
-        store.applyPresenceUpdate(
-            .offline(instance(tag: "feature-a", online: false, routes: [routeA]), reason: .goodbye),
-            scope: accountScope
-        )
-        store.applyPresenceUpdate(
-            .online(instance(tag: "feature-b", routes: [restartedB])),
-            scope: accountScope
-        )
-        await store.pushedRouteSyncTask?.value
-        #expect(await pairedStore.currentUpsertCount() == 1)
-        #expect(try await storedRoutes(in: pairedStore) == [restartedB])
-    }
-
-    @Test func officialBuildUsesStableMacForRoutesAndRecovery() async throws {
-        let original = try route(id: "original", host: "100.64.0.1", port: 50_000)
-        let defaultRoute = try route(id: "stable", host: "100.64.0.2", port: 51_001)
-        let routeB = try route(id: "b", host: "100.64.0.3", port: 51_002)
-        let pairedStore = DelayedTeamPairedMacStore(
-            recordsByTeam: ["team-a": [pairedMac(
-                routes: [original],
-                isActive: true,
-                instanceTag: "default"
-            )]],
-            blockedTeams: []
-        )
-        let store = MobileShellComposite(
-            isSignedIn: true,
-            pairedMacStore: pairedStore,
-            buildCompatibilityPolicy: .official,
-            identityProvider: StaticIdentityProvider(userID: "user-1"),
-            teamIDProvider: { "team-a" },
-            reachability: AlwaysOnlineReachability()
-        )
-        await store.loadPairedMacs()
-        // This scenario is a live post-startup session receiving presence
-        // snapshots: the launch stored-Mac restore has already settled.
-        // Automatic wake-ups arriving BEFORE that first restore defer to it
-        // (`shouldDeferAutomaticRecoveryToFirstStoredMacRestore`), so the
-        // presence-driven recovery below requires the settled launch state.
-        store.didFinishStoredMacReconnectAttempt = true
-        store.registryDevices = [RegistryDevice(
-            deviceId: "shared-physical-mac",
-            platform: "mac",
-            displayName: "Studio",
-            lastSeenAt: Date(timeIntervalSince1970: 1),
-            instances: [
-                RegistryAppInstance(
-                    tag: "default",
-                    routes: [original],
-                    lastSeenAt: Date(timeIntervalSince1970: 1)
-                ),
-                RegistryAppInstance(
-                    tag: "feature-b",
-                    routes: [original],
-                    lastSeenAt: Date(timeIntervalSince1970: 1)
-                ),
-            ]
-        )]
-        let accountScope = MobileShellScopeSnapshot(userID: "user-1", teamID: "team-a", generation: 0)
-
-        store.applyPresenceUpdate(
-            snapshot([
-                instance(tag: "default", routes: [defaultRoute]),
-                instance(tag: "feature-b", routes: [routeB]),
-            ]),
-            scope: accountScope
-        )
-        await store.pushedRouteSyncTask?.value
-
-        #expect(try await storedInstanceTag(in: pairedStore) == "default")
-        #expect(await pairedStore.currentUpsertCount() == 1)
-        #expect(try await storedRoutes(in: pairedStore) == [defaultRoute])
-        let recoveryRan = try await pollUntil(attempts: 50) {
-            store.isRecoveringConnection || store.connectionRecoveryFailed
+        let original = try route("original", 50000)
+        let a = try route("a", 51001)
+        let b = try route("b", 51002)
+        let restartedB = try route("b-restart", 52002)
+        let restartedA = try route("a-restart", 52001)
+        let (local, directory) = try await localStore(rows: [row("mac", "feature-a", original)])
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let registry = LocalRegistryRouteFixture()
+        let shell = MobileShellComposite(isSignedIn: true, pairedMacStore: local, deviceRegistry: registry,
+            identityProvider: StaticIdentityProvider(userID: "user-1"), teamIDProvider: { "team-a" })
+        for (routesA, routesB, expectedWrites) in [(a, b, 1), (a, restartedB, 1), (restartedA, restartedB, 2)] {
+            await registry.setDevices([device("mac", [("feature-a", [routesA]), ("feature-b", [routesB])])])
+            let captured = try #require(await local.activeMac(stackUserID: "user-1", teamID: "team-a"))
+            shell.refreshRoutesFromRegistry(for: captured,
+                scope: MobileShellScopeSnapshot(userID: "user-1", teamID: "team-a", generation: 0))
+            await shell.registryRouteRefreshTask?.value
+            let stored = try #require(await local.activeMac(stackUserID: "user-1", teamID: "team-a"))
+            #expect(stored.instanceTag == "feature-a")
+            #expect(stored.routes == [routesA])
+            #expect(await local.routeWrites.calls.count == expectedWrites)
         }
-        #expect(recoveryRan)
     }
 
-    @Test func explicitEmptyRoutesClearRegistryWithoutErasingPersistedRoutes() async throws {
-        let original = try route(id: "original", host: "100.64.0.1", port: 50_000)
-        let advertised = try route(id: "advertised", host: "100.64.0.2", port: 51_001)
-        let pairedStore = DelayedTeamPairedMacStore(
-            recordsByTeam: ["team-a": [pairedMac(routes: [original], instanceTag: "feature-a")]],
-            blockedTeams: []
-        )
-        let store = MobileShellComposite(
-            isSignedIn: true,
-            pairedMacStore: pairedStore,
-            identityProvider: StaticIdentityProvider(userID: "user-1"),
-            teamIDProvider: { "team-a" }
-        )
-        await store.loadPairedMacs()
-        store.registryDevices = [RegistryDevice(
-            deviceId: "registry-only-mac",
-            platform: "mac",
-            displayName: "Studio",
-            lastSeenAt: Date(timeIntervalSince1970: 1),
-            instances: [RegistryAppInstance(
-                tag: "feature-a",
-                routes: [advertised],
-                lastSeenAt: Date(timeIntervalSince1970: 1)
-            )]
-        )]
-        let accountScope = MobileShellScopeSnapshot(userID: "user-1", teamID: "team-a", generation: 0)
-
-        store.applyPresenceUpdate(
-            .routes(instance(deviceId: "registry-only-mac", tag: "feature-a", routes: [])),
-            scope: accountScope
-        )
-        await store.pushedRouteSyncTask?.value
-
-        #expect(store.registryDevices.first?.instances.first?.routes.isEmpty == true)
-        #expect(await pairedStore.currentUpsertCount() == 0)
-        #expect(try await storedRoutes(in: pairedStore) == [original])
+    @Test func unscopedBuildUsesOnlyTheSoleRouteAdvertisingInstance() throws {
+        let a = try route("a", 51001)
+        let b = try route("b", 51002)
+        let ambiguous = DeviceRegistryRouteIndex(devices: [device("mac", [("feature-a", [a]), ("feature-b", [b])])])
+        #expect(ambiguous.resolve(macDeviceID: "mac", instanceTag: nil) == .ambiguous)
+        let sole = DeviceRegistryRouteIndex(devices: [device("mac", [("feature-a", []), ("feature-b", [b])])])
+        #expect(sole.resolve(macDeviceID: "mac", instanceTag: nil) == .unique([b]))
     }
 
-    @Test func legacyMacWithAmbiguousMultiTagPresenceDoesNotTriggerRecovery() async throws {
-        let original = try route(id: "original", host: "100.64.0.1", port: 50_000)
-        let routeA = try route(id: "a", host: "100.64.0.1", port: 51_001)
-        let routeB = try route(id: "b", host: "100.64.0.2", port: 51_002)
-        let pairedStore = DelayedTeamPairedMacStore(
-            recordsByTeam: ["team-a": [pairedMac(routes: [original], isActive: true)]],
-            blockedTeams: []
-        )
-        let store = MobileShellComposite(
-            isSignedIn: true,
-            pairedMacStore: pairedStore,
-            identityProvider: StaticIdentityProvider(userID: "user-1"),
-            teamIDProvider: { "team-a" },
-            reachability: AlwaysOnlineReachability()
-        )
-        await store.loadPairedMacs()
-        let accountScope = MobileShellScopeSnapshot(userID: "user-1", teamID: "team-a", generation: 0)
+    @Test func officialBuildUsesOnlyDefaultTaggedRegistryRoutes() throws {
+        let stable = try route("stable", 51001)
+        let other = try route("other", 51002)
+        let index = DeviceRegistryRouteIndex(devices: [device("mac", [("default", [stable]), ("feature-b", [other])])])
+        #expect(index.resolve(macDeviceID: "mac", instanceTag: "default") == .unique([stable]))
+    }
 
-        store.applyPresenceUpdate(
-            snapshot([
-                instance(tag: "feature-a", routes: [routeA]),
-                instance(tag: "feature-b", routes: [routeB]),
-            ]),
-            scope: accountScope
-        )
-        await store.pushedRouteSyncTask?.value
+    @Test func emptyRegistryRoutesDoNotSelectPersistedRouteErasure() throws {
+        let original = try route("original", 50000)
+        let index = DeviceRegistryRouteIndex(devices: [device("mac", [("feature-a", [])])])
+        #expect(index.resolve(macDeviceID: "mac", instanceTag: "feature-a") == .missing)
+        #expect(DeviceRegistryService.selectReconnectRoutes(local: [original], registry: []) == nil)
+    }
 
-        #expect(!store.connectionRecoveryFailed)
-        #expect(await pairedStore.currentUpsertCount() == 0)
-        #expect(try await storedRoutes(in: pairedStore) == [original])
+    @Test func ambiguousLegacyRegistryCannotSelectEitherTag() throws {
+        let a = try route("a", 51001)
+        let b = try route("b", 51002)
+        let index = DeviceRegistryRouteIndex(devices: [device("mac", [("feature-a", [a]), ("feature-b", [b])])])
+        #expect(index.resolve(macDeviceID: "mac", instanceTag: nil) == .ambiguous)
     }
 
     @Test func twoPairedMacsUseTheirOwnAuthenticatedTags() async throws {
-        let originalA = try route(id: "original-a", host: "100.64.0.1", port: 50_001)
-        let originalB = try route(id: "original-b", host: "100.64.0.2", port: 50_002)
-        let updatedA = try route(id: "updated-a", host: "100.64.0.3", port: 51_001)
-        let updatedB = try route(id: "updated-b", host: "100.64.0.4", port: 51_002)
-        let noiseA = try route(id: "noise-a", host: "100.64.0.5", port: 52_001)
-        let noiseB = try route(id: "noise-b", host: "100.64.0.6", port: 52_002)
-        let pairedStore = DelayedTeamPairedMacStore(
-            recordsByTeam: ["team-a": [
-                pairedMac(deviceID: "mac-a", routes: [originalA], instanceTag: "feature-a"),
-                pairedMac(deviceID: "mac-b", routes: [originalB], instanceTag: "default"),
-            ]],
-            blockedTeams: []
-        )
-        let store = MobileShellComposite(
-            isSignedIn: true,
-            pairedMacStore: pairedStore,
-            identityProvider: StaticIdentityProvider(userID: "user-1"),
-            teamIDProvider: { "team-a" }
-        )
-        await store.loadPairedMacs()
-        let scope = MobileShellScopeSnapshot(userID: "user-1", teamID: "team-a", generation: 0)
-
-        store.applyPresenceUpdate(.snapshot(PresenceSnapshot(
-            teamId: "team-a",
-            now: 1_000,
-            heartbeatIntervalMs: 15_000,
-            offlineTimeoutMs: 45_000,
-            devices: [
-                presenceDevice(id: "mac-a", instances: [
-                    instance(deviceId: "mac-a", tag: "feature-a", routes: [updatedA]),
-                    instance(deviceId: "mac-a", tag: "default", routes: [noiseA]),
-                ]),
-                presenceDevice(id: "mac-b", instances: [
-                    instance(deviceId: "mac-b", tag: "default", routes: [updatedB]),
-                    instance(deviceId: "mac-b", tag: "feature-a", routes: [noiseB]),
-                ]),
-            ]
-        )), scope: scope)
-        await store.pushedRouteSyncTask?.value
-
-        let stored = try await pairedStore.loadAll(stackUserID: "user-1", teamID: "team-a")
-        #expect(stored.first { $0.macDeviceID == "mac-a" }?.routes == [updatedA])
+        let original = try route("original", 50000)
+        let a = try route("a", 51001)
+        let b = try route("b", 51002)
+        let noiseA = try route("noise-a", 52001)
+        let noiseB = try route("noise-b", 52002)
+        let (local, directory) = try await localStore(rows: [
+            row("mac-a", "feature-a", original), row("mac-b", "default", original),
+        ])
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let registry = LocalRegistryRouteFixture()
+        await registry.setDevices([
+            device("mac-a", [("feature-a", [a]), ("default", [noiseA])]),
+            device("mac-b", [("default", [b]), ("feature-a", [noiseB])]),
+        ])
+        let shell = MobileShellComposite(isSignedIn: true, pairedMacStore: local, deviceRegistry: registry,
+            identityProvider: StaticIdentityProvider(userID: "user-1"), teamIDProvider: { "team-a" })
+        for id in ["mac-a", "mac-b"] {
+            try await local.setActive(macDeviceID: id, stackUserID: "user-1", teamID: "team-a")
+            let captured = try #require(await local.activeMac(stackUserID: "user-1", teamID: "team-a"))
+            shell.refreshRoutesFromRegistry(for: captured,
+                scope: MobileShellScopeSnapshot(userID: "user-1", teamID: "team-a", generation: 0))
+            await shell.registryRouteRefreshTask?.value
+        }
+        let stored = try await local.loadAll(stackUserID: "user-1", teamID: "team-a")
+        #expect(stored.first { $0.macDeviceID == "mac-a" }?.routes == [a])
         #expect(stored.first { $0.macDeviceID == "mac-a" }?.instanceTag == "feature-a")
-        #expect(stored.first { $0.macDeviceID == "mac-b" }?.routes == [updatedB])
+        #expect(stored.first { $0.macDeviceID == "mac-b" }?.routes == [b])
         #expect(stored.first { $0.macDeviceID == "mac-b" }?.instanceTag == "default")
     }
 
-    @Test func snapshotIndexesPairedMacsBeforeScanningManyInstances() async throws {
-        let original = try route(id: "original", host: "100.64.0.1", port: 50_000)
-        let updated = try route(id: "updated", host: "100.64.0.2", port: 51_000)
-        let noise = try route(id: "noise", host: "100.64.0.3", port: 52_000)
-        let pairedStore = DelayedTeamPairedMacStore(
-            recordsByTeam: ["team-a": [pairedMac(
-                deviceID: "paired-mac",
-                routes: [original],
-                instanceTag: "feature-a"
-            )]],
-            blockedTeams: []
-        )
-        let store = MobileShellComposite(
-            isSignedIn: true,
-            pairedMacStore: pairedStore,
-            identityProvider: StaticIdentityProvider(userID: "user-1"),
-            teamIDProvider: { "team-a" }
-        )
-        await store.loadPairedMacs()
-        await pairedStore.resetLoadAllCount()
-        let noiseDevices = (0..<200).map { index in
-            let id = "unpaired-\(index)"
-            return presenceDevice(id: id, instances: [
-                instance(deviceId: id, tag: "feature-a", routes: [noise]),
-            ])
+    @Test func localConditionalWriteUsesRowAddedAfterDisplayCacheLoaded() async throws {
+        let original = try route("original", 50000)
+        let updated = try route("updated", 51000)
+        let pairedStore = DelayedTeamPairedMacStore(recordsByTeam: ["team-a": []], blockedTeams: [])
+        let shell = MobileShellComposite(isSignedIn: true, pairedMacStore: pairedStore,
+            identityProvider: StaticIdentityProvider(userID: "user-1"), teamIDProvider: { "team-a" })
+        await shell.loadPairedMacs()
+        try await pairedStore.upsert(macDeviceID: "mac-b", displayName: "Studio B", routes: [original],
+            instanceTag: "feature-b", markActive: false, stackUserID: "user-1", teamID: "team-a", now: Date())
+        #expect(shell.pairedMacs.isEmpty)
+        let wrote = try await pairedStore.upsertRoutesIfAuthorized(macDeviceID: "mac-b", displayName: nil,
+            routes: [updated], condition: .matchingInstanceTag("feature-b"), markActive: nil,
+            stackUserID: "user-1", teamID: "team-a", now: Date())
+        #expect(wrote)
+        let rows = try await pairedStore.loadAll(stackUserID: "user-1", teamID: "team-a")
+        #expect(rows.first?.routes == [updated])
+        #expect(rows.first?.instanceTag == "feature-b")
+    }
+
+    private func localStore(rows: [MobilePairedMac]) async throws -> (RecordingLocalPairedMacStore, URL) {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let store = RecordingLocalPairedMacStore(inner: try MobilePairedMacStore(databaseURL: directory.appendingPathComponent("paired.sqlite3")))
+        for row in rows {
+            try await store.upsert(macDeviceID: row.macDeviceID, displayName: row.displayName, routes: row.routes,
+                instanceTag: row.instanceTag, markActive: row.isActive, stackUserID: row.stackUserID,
+                teamID: row.teamID, now: row.lastSeenAt)
         }
-        let pairedDevice = presenceDevice(id: "paired-mac", instances: [
-            instance(deviceId: "paired-mac", tag: "feature-a", routes: [updated]),
-        ])
-        let scope = MobileShellScopeSnapshot(
-            userID: "user-1", teamID: "team-a", generation: 0
-        )
-
-        store.applyPresenceUpdate(.snapshot(PresenceSnapshot(
-            teamId: "team-a",
-            now: 1_000,
-            heartbeatIntervalMs: 15_000,
-            offlineTimeoutMs: 45_000,
-            devices: noiseDevices + [pairedDevice]
-        )), scope: scope)
-        await store.pushedRouteSyncTask?.value
-
-        #expect(await pairedStore.currentUpsertCount() == 1)
-        #expect(await pairedStore.currentLoadAllCount() == 2)
-        #expect(try await storedRoutes(in: pairedStore) == [updated])
+        return (store, directory)
     }
 
-    @Test func presenceUsesPairedMacAddedAfterTheDisplayCacheLoaded() async throws {
-        let originalA = try route(id: "original-a", host: "100.64.0.1", port: 50_001)
-        let originalB = try route(id: "original-b", host: "100.64.0.2", port: 50_002)
-        let updatedB = try route(id: "updated-b", host: "100.64.0.3", port: 51_002)
-        let pairedStore = DelayedTeamPairedMacStore(
-            recordsByTeam: ["team-a": [pairedMac(
-                deviceID: "mac-a",
-                routes: [originalA],
-                instanceTag: "feature-a"
-            )]],
-            blockedTeams: []
-        )
-        let store = MobileShellComposite(
-            isSignedIn: true,
-            pairedMacStore: pairedStore,
-            identityProvider: StaticIdentityProvider(userID: "user-1"),
-            teamIDProvider: { "team-a" }
-        )
-        await store.loadPairedMacs()
-        try await pairedStore.upsert(
-            macDeviceID: "mac-b",
-            displayName: "Studio B",
-            routes: [originalB],
-            instanceTag: "feature-b",
-            markActive: false,
-            stackUserID: "user-1",
-            teamID: "team-a",
-            now: Date(timeIntervalSince1970: 3)
-        )
-        let upsertsBeforePresence = await pairedStore.currentUpsertCount()
-        await pairedStore.resetLoadAllCount()
-        let scope = MobileShellScopeSnapshot(
-            userID: "user-1", teamID: "team-a", generation: 0
-        )
-
-        store.applyPresenceUpdate(.snapshot(PresenceSnapshot(
-            teamId: "team-a",
-            now: 1_000,
-            heartbeatIntervalMs: 15_000,
-            offlineTimeoutMs: 45_000,
-            devices: [presenceDevice(id: "mac-b", instances: [
-                instance(deviceId: "mac-b", tag: "feature-b", routes: [updatedB]),
-            ])]
-        )), scope: scope)
-        await store.pushedRouteSyncTask?.value
-
-        #expect(await pairedStore.currentUpsertCount() == upsertsBeforePresence + 1)
-        #expect(await pairedStore.currentLoadAllCount() == 2)
-        let stored = try await pairedStore.loadAll(stackUserID: "user-1", teamID: "team-a")
-        #expect(stored.first { $0.macDeviceID == "mac-b" }?.routes == [updatedB])
+    private func row(_ id: String, _ tag: String, _ route: CmxAttachRoute) -> MobilePairedMac {
+        MobilePairedMac(macDeviceID: id, displayName: "Studio", routes: [route],
+            createdAt: .distantPast, lastSeenAt: .distantPast, isActive: true,
+            stackUserID: "user-1", teamID: "team-a", instanceTag: tag)
     }
 
-    private func route(id: String, host: String, port: Int) throws -> CmxAttachRoute {
-        try CmxAttachRoute(
-            id: id,
-            kind: .tailscale,
-            endpoint: .hostPort(host: host, port: port)
-        )
+    private func route(_ id: String, _ port: Int) throws -> CmxAttachRoute {
+        try CmxAttachRoute(id: id, kind: .tailscale, endpoint: .hostPort(host: "100.64.0.1", port: port))
     }
 
-    private func pairedMac(
-        deviceID: String = "shared-physical-mac",
-        routes: [CmxAttachRoute],
-        isActive: Bool = false,
-        instanceTag: String? = nil
-    ) -> MobilePairedMac {
-        MobilePairedMac(
-            macDeviceID: deviceID,
-            displayName: "Studio",
-            routes: routes,
-            createdAt: Date(timeIntervalSince1970: 1),
-            lastSeenAt: Date(timeIntervalSince1970: 2),
-            isActive: isActive,
-            stackUserID: "user-1",
-            teamID: "team-a",
-            instanceTag: instanceTag
-        )
+    private func device(_ id: String, _ entries: [(String, [CmxAttachRoute])]) -> RegistryDevice {
+        RegistryDevice(deviceId: id, platform: "mac", displayName: "Studio", lastSeenAt: .distantPast,
+            instances: entries.map { RegistryAppInstance(tag: $0.0, routes: $0.1, lastSeenAt: .distantPast) })
     }
+}
 
-    private func instance(
-        deviceId: String = "shared-physical-mac",
-        tag: String,
-        online: Bool = true,
-        routes: [CmxAttachRoute]
-    ) -> PresenceInstance {
-        PresenceInstance(
-            deviceId: deviceId,
-            tag: tag,
-            platform: "mac",
-            online: online,
-            lastSeenAt: 1_000,
-            routes: routes
-        )
-    }
-
-    private func snapshot(_ instances: [PresenceInstance]) -> PresenceUpdate {
-        .snapshot(PresenceSnapshot(
-            teamId: "team-a",
-            now: 1_000,
-            heartbeatIntervalMs: 15_000,
-            offlineTimeoutMs: 45_000,
-            devices: [PresenceDevice(
-                deviceId: "shared-physical-mac",
-                platform: "mac",
-                online: true,
-                lastSeenAt: 1_000,
-                instances: instances
-            )]
-        ))
-    }
-
-    private func presenceDevice(id: String, instances: [PresenceInstance]) -> PresenceDevice {
-        PresenceDevice(
-            deviceId: id,
-            platform: "mac",
-            online: true,
-            lastSeenAt: 1_000,
-            instances: instances
-        )
-    }
-
-    private func storedRoutes(in store: DelayedTeamPairedMacStore) async throws -> [CmxAttachRoute]? {
-        try await store.loadAll(stackUserID: "user-1", teamID: "team-a").first?.routes
-    }
-
-    private func storedInstanceTag(in store: DelayedTeamPairedMacStore) async throws -> String? {
-        try await store.loadAll(stackUserID: "user-1", teamID: "team-a").first?.instanceTag
+private actor LocalRegistryRouteFixture: DeviceRegistryRefreshing {
+    private var devices: [RegistryDevice] = []
+    func setDevices(_ devices: [RegistryDevice]) { self.devices = devices }
+    func listDevices() async -> DeviceRegistryListOutcome { .ok(devices) }
+    func freshRoutes(forMacDeviceID id: String, instanceTag: String?) async -> [CmxAttachRoute]? {
+        switch DeviceRegistryRouteIndex(devices: devices).resolve(macDeviceID: id, instanceTag: instanceTag) {
+        case .unique(let routes): return routes
+        case .missing, .ambiguous: return nil
+        }
     }
 }

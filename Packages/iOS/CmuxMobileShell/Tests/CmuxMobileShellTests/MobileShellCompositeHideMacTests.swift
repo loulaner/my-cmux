@@ -628,7 +628,7 @@ import Testing
         #expect(store.foregroundMacDeviceIDForTesting() == nil)
     }
 
-    @Test func hideKeepsSQLiteRowAndCreatesNoPendingDeleteOrTombstone() async throws {
+    @Test func hideKeepsSQLiteRowAndDoesNotCallLocalDelete() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(
@@ -639,13 +639,8 @@ import Testing
         let inner = try MobilePairedMacStore(
             databaseURL: directory.appendingPathComponent("paired-macs.sqlite3")
         )
-        let backup = FakeBackup()
-        let pendingDeletes = InMemoryPairedMacPendingDeleteStore()
-        let pairedStore = BackingUpPairedMacStore(
-            inner: inner,
-            backup: backup,
-            teamIDProvider: { "team-a" },
-            pendingDeleteStore: pendingDeletes
+        let pairedStore = RecordingLocalPairedMacStore(
+            inner: TeamScopedPairedMacStore(inner: inner, teamIDProvider: { "team-a" })
         )
         try await pairedStore.upsert(
             macDeviceID: "mac-a",
@@ -655,12 +650,12 @@ import Testing
                 kind: .tailscale,
                 endpoint: .hostPort(host: "100.82.214.112", port: 50922)
             )],
+            instanceTag: nil,
             markActive: true,
             stackUserID: "user-1",
             teamID: "team-a",
             now: Date(timeIntervalSince1970: 10)
         )
-        let uploadCountBeforeHide = await backup.uploadedOps().count
         let store = MobileShellComposite(
             isSignedIn: true,
             pairedMacStore: pairedStore,
@@ -676,9 +671,7 @@ import Testing
             stackUserID: "user-1",
             teamID: "team-a"
         ).map(\.macDeviceID) == ["mac-a"])
-        #expect(await pendingDeletes.load(scope: "user-1\u{0}team-a").isEmpty)
-        let hideOps = Array((await backup.uploadedOps()).dropFirst(uploadCountBeforeHide))
-        #expect(hideOps.isEmpty)
+        #expect(await pairedStore.deletes.calls.isEmpty)
         #expect(store.pairedMacs.isEmpty)
         #expect(store.hiddenComputers.map(\.macDeviceID) == ["mac-a"])
     }

@@ -3,7 +3,7 @@ import CmuxMobilePairedMac
 import Foundation
 @testable import CmuxMobileShell
 
-actor DelayedTeamPairedMacStore: MobilePairedMacStoring, PairedMacBackupRefreshing {
+actor DelayedTeamPairedMacStore: MobilePairedMacStoring {
     func authorizeUserTailscaleRoutes(
         macDeviceID: String,
         instanceTag: String?,
@@ -39,19 +39,6 @@ actor DelayedTeamPairedMacStore: MobilePairedMacStoring, PairedMacBackupRefreshi
     private var removeStartedIDs: Set<String> = []
     private var removeStartWaiters: [String: [CheckedContinuation<Void, Never>]] = [:]
     private var removeBlockers: [String: CheckedContinuation<Void, Never>] = [:]
-    private var backupCancellationCallCount = 0
-    private var gatedBackupCancellationCalls: Set<Int> = []
-    private var backupCancellationStartedCalls: Set<Int> = []
-    private var backupCancellationStartWaiters: [Int: [CheckedContinuation<Void, Never>]] = [:]
-    private var backupCancellationBlockers: [Int: CheckedContinuation<Void, Never>] = [:]
-    private var backupCancellationObservedCancellation: [Int: Bool] = [:]
-    private var backupRefreshBlocked = false
-    private var backupRefreshBlockConsumed = false
-    private var backupRefreshStarted = false
-    private var backupRefreshStartWaiters: [CheckedContinuation<Void, Never>] = []
-    private var backupRefreshBlocker: CheckedContinuation<Void, Never>?
-    private var backupRefreshFinished = false
-    private var backupRefreshFinishWaiters: [CheckedContinuation<Void, Never>] = []
 
     init(recordsByTeam: [String: [MobilePairedMac]], blockedTeams: Set<String>) {
         self.recordsByTeam = recordsByTeam
@@ -262,81 +249,6 @@ actor DelayedTeamPairedMacStore: MobilePairedMacStoring, PairedMacBackupRefreshi
         recordsByTeam[key]?.removeAll { $0.macDeviceID == macDeviceID }
     }
     func removeAll() async throws {}
-
-    func refreshFromBackup(stackUserID _: String?) async {
-        backupRefreshStarted = true
-        let waiters = backupRefreshStartWaiters
-        backupRefreshStartWaiters.removeAll()
-        for waiter in waiters { waiter.resume() }
-        if backupRefreshBlocked, !backupRefreshBlockConsumed {
-            backupRefreshBlockConsumed = true
-            await withCheckedContinuation { continuation in
-                backupRefreshBlocker = continuation
-            }
-        }
-        backupRefreshFinished = true
-        let finishWaiters = backupRefreshFinishWaiters
-        backupRefreshFinishWaiters.removeAll()
-        for waiter in finishWaiters { waiter.resume() }
-    }
-
-    func blockBackupRefresh() {
-        backupRefreshBlocked = true
-        backupRefreshBlockConsumed = false
-    }
-
-    func waitUntilBackupRefreshStarted() async {
-        if backupRefreshStarted { return }
-        await withCheckedContinuation { continuation in
-            backupRefreshStartWaiters.append(continuation)
-        }
-    }
-
-    func releaseBackupRefresh() {
-        backupRefreshBlocked = false
-        backupRefreshBlocker?.resume()
-        backupRefreshBlocker = nil
-    }
-
-    func waitUntilBackupRefreshFinished() async {
-        if backupRefreshFinished { return }
-        await withCheckedContinuation { continuation in
-            backupRefreshFinishWaiters.append(continuation)
-        }
-    }
-
-    func cancelInFlightRestores() async {
-        backupCancellationCallCount += 1
-        let call = backupCancellationCallCount
-        backupCancellationStartedCalls.insert(call)
-        let waiters = backupCancellationStartWaiters.removeValue(forKey: call) ?? []
-        for waiter in waiters { waiter.resume() }
-        if gatedBackupCancellationCalls.contains(call) {
-            await withCheckedContinuation { continuation in
-                backupCancellationBlockers[call] = continuation
-            }
-        }
-        backupCancellationObservedCancellation[call] = Task.isCancelled
-    }
-
-    func gateBackupCancellation(call: Int) {
-        gatedBackupCancellationCalls.insert(call)
-    }
-
-    func waitUntilBackupCancellationStarted(call: Int) async {
-        if backupCancellationStartedCalls.contains(call) { return }
-        await withCheckedContinuation { continuation in
-            backupCancellationStartWaiters[call, default: []].append(continuation)
-        }
-    }
-
-    func releaseBackupCancellation(call: Int) {
-        backupCancellationBlockers.removeValue(forKey: call)?.resume()
-    }
-
-    func backupCancellationWasCancelled(call: Int) -> Bool? {
-        backupCancellationObservedCancellation[call]
-    }
 
     func waitUntilLoadStarted(teamID: String?) async {
         let key = teamID ?? ""

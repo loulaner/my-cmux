@@ -57,7 +57,7 @@ import Testing
             runtime: runtime,
             isSignedIn: true,
             pairedMacStore: pairedStore,
-            presence: IdlePresence(),
+
             identityProvider: StaticIdentityProvider(userID: "user-1"),
             teamIDProvider: { "team-a" },
             reachability: AlwaysOnlineReachability(),
@@ -103,7 +103,7 @@ import Testing
             shell.workspacesByMac[MacPairingKey(pairedMac)]?.status
                 == .connected
         )
-        #expect(shell.secondaryAggregationRetryTask != nil)
+        #expect(shell.secondaryAggregationRetryTask == nil)
         #expect(shell.secondaryAggregationRetryMacIDs == [
             pairedMac.macDeviceID,
         ])
@@ -828,7 +828,7 @@ import Testing
             isSignedIn: true,
             connectionState: .connected,
             pairedMacStore: pairedStore,
-            presence: SecondaryAuthorityIdlePresence(),
+
             identityProvider: StaticIdentityProvider(userID: "user-1"),
             teamIDProvider: { "team-a" },
             reachability: AlwaysOnlineReachability()
@@ -887,14 +887,7 @@ import Testing
             supportedHostCapabilities: ["terminal.render_grid.v1"],
             actionCapabilities: .none
         )
-        shell.applyPresenceUpdate(
-            secondaryAuthorityPresenceSnapshot(macAOnline: true),
-            scope: MobileShellScopeSnapshot(
-                userID: "user-1",
-                teamID: "team-a",
-                generation: 0
-            )
-        )
+
 
         let switchTask: Task<Bool, Never>
         if race == .eventRefreshFailure {
@@ -921,13 +914,8 @@ import Testing
         #expect(try await pollUntil {
             await oldRouter.heldRequestCount() == 1
         })
-        shell.applyPresenceUpdate(
-            secondaryAuthorityPresenceSnapshot(macAOnline: false),
-            scope: MobileShellScopeSnapshot(
-                userID: "user-1",
-                teamID: "team-a",
-                generation: 0
-            )
+        try await pairedStore.removeExactScope(
+            macDeviceID: "mac-a", instanceTag: "feature-a", stackUserID: "user-1", teamID: "team-a"
         )
         await oldRouter.releaseAllHeld()
         #expect(await targetRouter.waitForCount(
@@ -1340,52 +1328,4 @@ private func promotionWorkspaceUpdatedEventFrame() throws -> Data {
     return try MobileSyncFrameCodec.encodeFrame(
         JSONSerialization.data(withJSONObject: envelope)
     )
-}
-
-private func secondaryAuthorityPresenceSnapshot(
-    macAOnline: Bool
-) -> PresenceUpdate {
-    func instance(
-        deviceID: String,
-        tag: String,
-        online: Bool
-    ) -> PresenceInstance {
-        PresenceInstance(
-            deviceId: deviceID,
-            tag: tag,
-            platform: "mac",
-            online: online,
-            lastSeenAt: 1_000
-        )
-    }
-    let instances = [
-        instance(
-            deviceID: "mac-a",
-            tag: "feature-a",
-            online: macAOnline
-        ),
-        instance(
-            deviceID: "mac-b",
-            tag: "feature-b",
-            online: true
-        ),
-    ]
-    let devices = Dictionary(grouping: instances, by: \.deviceId)
-        .map { deviceID, deviceInstances in
-            PresenceDevice(
-                deviceId: deviceID,
-                platform: "mac",
-                displayName: deviceID,
-                online: deviceInstances.contains(where: \.online),
-                lastSeenAt: 1_000,
-                instances: deviceInstances
-            )
-        }
-    return .snapshot(PresenceSnapshot(
-        teamId: "team-a",
-        now: 1_000,
-        heartbeatIntervalMs: 15_000,
-        offlineTimeoutMs: 45_000,
-        devices: devices
-    ))
 }

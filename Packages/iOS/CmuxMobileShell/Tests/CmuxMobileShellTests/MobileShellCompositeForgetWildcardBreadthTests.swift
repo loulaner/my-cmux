@@ -225,73 +225,7 @@ private struct EnumerationFailingStore: MobilePairedMacStoring {
     /// sibling — a device can hold up to the discovery snapshot's 256 bindings,
     /// so per-row refreshes turn one forget into hundreds of sequential network
     /// round-trips while the row stays busy.
-    @Test func wildcardForgetRefreshesOnceNotPerSibling() async throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let base = try MobilePairedMacStore(
-            databaseURL: directory.appendingPathComponent("paired-macs.sqlite3")
-        )
-        // Three tagged siblings plus one untagged row of the same device, seeded
-        // raw so no upload traffic muddies the fetch counting. Tagged rows are
-        // seeded FIRST: a tagged upsert CLAIMS an existing untagged row of the
-        // same device, but an untagged upsert never claims a tagged row, so this
-        // order leaves all four rows coexisting.
-        for (index, tag) in ["one", "two", "three"].enumerated() {
-            try await base.upsert(
-                macDeviceID: "mac-a",
-                displayName: "Desk Mac (\(tag))",
-                routes: [try Self.route("100.82.214.11\(index + 3)")],
-                instanceTag: tag,
-                markActive: false,
-                stackUserID: "user-1",
-                teamID: nil,
-                now: Date(timeIntervalSince1970: TimeInterval(index + 1))
-            )
-        }
-        try await base.upsert(
-            macDeviceID: "mac-a",
-            displayName: "Desk Mac",
-            routes: [try Self.route("100.82.214.112")],
-            instanceTag: nil,
-            markActive: false,
-            stackUserID: "user-1",
-            teamID: nil,
-            now: Date(timeIntervalSince1970: 4)
-        )
-        let backup = FakeBackup()
-        let backingUp = BackingUpPairedMacStore(
-            inner: base,
-            backup: backup,
-            teamIDProvider: { nil }
-        )
-        let forget = WildcardRecordingForget()
-        let store = MobileShellComposite(
-            isSignedIn: true,
-            connectionState: .connected,
-            pairedMacStore: backingUp,
-            personalIrohForget: forget,
-            identityProvider: StaticIdentityProvider(userID: "user-1"),
-            teamIDProvider: { nil },
-            hiddenMacStore: InMemoryPairedMacHiddenStore()
-        )
-        await store.loadPairedMacs()
-        await store.hideMac(macDeviceID: "mac-a", instanceTag: nil)
-        let hidden = try #require(store.hiddenComputers.first {
-            $0.macDeviceID == "mac-a" && $0.instanceTag == nil
-        })
-        let fetchesBefore = await backup.fetches()
 
-        let ok = await store.forgetHiddenComputer(hidden)
-
-        #expect(ok)
-        // Every row of the device is gone (breadth), and the whole cleanup
-        // triggered at most ONE list refresh's backup restore, not one per row.
-        let remaining = try await base.loadAll(stackUserID: "user-1", teamID: nil)
-        #expect(!remaining.contains { $0.macDeviceID == "mac-a" })
-        #expect(await backup.fetches() - fetchesBefore <= 1)
-    }
 
     /// The wildcard revoke kills the device's bindings for the WHOLE account,
     /// across teams. Cleanup must match: a same-device row stored under another
@@ -366,80 +300,7 @@ private struct EnumerationFailingStore: MobilePairedMacStoring {
     /// device can carry up to the discovery snapshot's 256 bindings — per-row
     /// flushing turns one tap into minutes of sequential requests after the
     /// broker revoke loop already ran.
-    @Test func wildcardForgetFlushesTombstonesInOneRequestPerDestination() async throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let base = try MobilePairedMacStore(
-            databaseURL: directory.appendingPathComponent("paired-macs.sqlite3")
-        )
-        // Three tagged siblings plus the untagged row, all in ONE team (their
-        // own team is the verified destination), seeded raw. Tagged first so
-        // the untagged upsert cannot be claimed.
-        for (index, tag) in ["one", "two", "three"].enumerated() {
-            try await base.upsert(
-                macDeviceID: "mac-a",
-                displayName: "Desk Mac (\(tag))",
-                routes: [try Self.route("100.82.214.11\(index + 3)")],
-                instanceTag: tag,
-                markActive: false,
-                stackUserID: "user-1",
-                teamID: "team-a",
-                now: Date(timeIntervalSince1970: TimeInterval(index + 1))
-            )
-        }
-        try await base.upsert(
-            macDeviceID: "mac-a",
-            displayName: "Desk Mac",
-            routes: [try Self.route("100.82.214.112")],
-            instanceTag: nil,
-            markActive: false,
-            stackUserID: "user-1",
-            teamID: "team-a",
-            now: Date(timeIntervalSince1970: 4)
-        )
-        let backup = FakeBackup()
-        let backingUp = BackingUpPairedMacStore(
-            inner: base,
-            backup: backup,
-            teamIDProvider: { "team-a" }
-        )
-        let forget = WildcardRecordingForget()
-        let store = MobileShellComposite(
-            isSignedIn: true,
-            connectionState: .connected,
-            pairedMacStore: backingUp,
-            personalIrohForget: forget,
-            identityProvider: StaticIdentityProvider(userID: "user-1"),
-            teamIDProvider: { "team-a" },
-            hiddenMacStore: InMemoryPairedMacHiddenStore()
-        )
-        await store.loadPairedMacs()
-        await store.hideMac(macDeviceID: "mac-a", instanceTag: nil)
-        let hidden = try #require(store.hiddenComputers.first {
-            $0.macDeviceID == "mac-a" && $0.instanceTag == nil
-        })
 
-        let ok = await store.forgetHiddenComputer(hidden)
-
-        #expect(ok)
-        // Every row of the device is gone...
-        let remaining = try await base.loadAll(stackUserID: "user-1", teamID: nil)
-        #expect(!remaining.contains { $0.macDeviceID == "mac-a" })
-        // ...and their four tombstones traveled in ONE request to the one
-        // destination, not one request per row.
-        let deleteBatches = await backup.uploadBatches().filter { batch in
-            batch.contains {
-                switch $0 {
-                case .delete, .deleteInstance: return true
-                default: return false
-                }
-            }
-        }
-        #expect(deleteBatches.count == 1)
-        #expect(deleteBatches.first?.count == 4)
-    }
 
     /// A failed cross-team enumeration is a CLEANUP failure: the account-wide
     /// revoke already succeeded, so silently claiming success would leave
@@ -785,7 +646,8 @@ private struct EnumerationFailingStore: MobilePairedMacStoring {
     /// survive forever and keep the Mac unexpectedly hidden when it
     /// re-registers in that team. The failed row's marker stays as the retry
     /// owner.
-    @Test func partiallyFailedForgetClearsMarkersOfDeletedSiblings() async throws {
+    @Test(arguments: ["partial", "all", "survivor-read", "cancellation"])
+    func partiallyFailedForgetClearsMarkersOfDeletedSiblings(_ failureMode: String) async throws {
         final class TeamBox: @unchecked Sendable {
             private let lock = NSLock()
             private var stored: String?
@@ -831,17 +693,16 @@ private struct EnumerationFailingStore: MobilePairedMacStoring {
         let failing = ExactScopeFailingStore(
             inner: TeamScopedPairedMacStore(inner: base, teamIDProvider: { team.value }),
             failingInstanceTag: nil,
-            failingTeamID: "team-a"
+            failingTeamID: "team-a",
+            failAll: failureMode == "all",
+            failSurvivorRead: failureMode == "survivor-read",
+            failFirstWithCancellation: failureMode == "cancellation"
         )
-        let backingUp = BackingUpPairedMacStore(
-            inner: failing,
-            backup: FakeBackup(),
-            teamIDProvider: { team.value }
-        )
+        let localStore = failing
         let store = MobileShellComposite(
             isSignedIn: true,
             connectionState: .connected,
-            pairedMacStore: backingUp,
+            pairedMacStore: localStore,
             personalIrohForget: forget,
             identityProvider: StaticIdentityProvider(userID: "user-1"),
             teamIDProvider: { team.value },
@@ -859,6 +720,12 @@ private struct EnumerationFailingStore: MobilePairedMacStoring {
         })
 
         let ok = await store.forgetHiddenComputer(hidden)
+        #expect(await failing.attempts.calls == [
+            "mac-a|<nil>|user-1|team-a", "mac-a|<nil>|user-1|team-b"
+        ])
+        let remaining = try await base.loadAllInstances(macDeviceID: "mac-a", stackUserID: "user-1")
+        #expect(remaining.contains { $0.teamID == "team-a" })
+        #expect(remaining.contains { $0.teamID == "team-b" } == (failureMode == "all"))
 
         // Team A's delete failed, so the forget reports failure and team A's
         // hidden entry survives as the retry owner.
@@ -868,7 +735,7 @@ private struct EnumerationFailingStore: MobilePairedMacStoring {
         // Mac re-registering in team B (through the production write seam) is
         // not unexpectedly hidden there.
         team.value = "team-b"
-        try await backingUp.upsert(
+        try await localStore.upsert(
             macDeviceID: "mac-a",
             displayName: "Desk Mac (team B)",
             routes: [try Self.route("100.82.214.113")],
@@ -879,8 +746,8 @@ private struct EnumerationFailingStore: MobilePairedMacStoring {
             now: Date(timeIntervalSince1970: 3)
         )
         await store.loadPairedMacs()
-        #expect(store.pairedMacs.contains { $0.macDeviceID == "mac-a" })
-        #expect(!store.hiddenComputers.contains { $0.macDeviceID == "mac-a" })
+        #expect(store.pairedMacs.contains { $0.macDeviceID == "mac-a" } == (["partial", "cancellation"].contains(failureMode)))
+        #expect(store.hiddenComputers.contains { $0.macDeviceID == "mac-a" } == (!["partial", "cancellation"].contains(failureMode)))
     }
 
     /// A FAILED sibling in another team must keep a durable retry entry. The
@@ -944,11 +811,7 @@ private struct EnumerationFailingStore: MobilePairedMacStoring {
             // next restore anyway; offline, the marker is the only thing
             // standing between the user and a dead-binding ghost with no retry
             // entry.
-            pairedMacStore: BackingUpPairedMacStore(
-                inner: failing,
-                backup: FakeBackup(failNextFetches: 99),
-                teamIDProvider: { team.value }
-            ),
+            pairedMacStore: failing,
             personalIrohForget: forget,
             identityProvider: StaticIdentityProvider(userID: "user-1"),
             teamIDProvider: { team.value },
@@ -989,10 +852,17 @@ private struct ExactScopeFailingStore: MobilePairedMacStoring {
         stackUserID: String?,
         teamID: String?,
         routes: [CmxAttachRoute]
-    ) async throws {}
+    ) async throws {
+        try await inner.authorizeUserTailscaleRoutes(macDeviceID: macDeviceID,
+            instanceTag: instanceTag, stackUserID: stackUserID, teamID: teamID, routes: routes)
+    }
 
     struct ExactScopeError: Error {}
     let inner: any MobilePairedMacStoring
+    let attempts = LocalDeleteRecorder()
+    var failAll = false
+    var failSurvivorRead = false
+    var failFirstWithCancellation = false
     let failingInstanceTag: String?
     let failingTeamID: String?
     let failsByTeam: Bool
@@ -1007,12 +877,18 @@ private struct ExactScopeFailingStore: MobilePairedMacStoring {
     init(
         inner: any MobilePairedMacStoring,
         failingInstanceTag: String?,
-        failingTeamID: String?
+        failingTeamID: String?,
+        failAll: Bool = false,
+        failSurvivorRead: Bool = false,
+        failFirstWithCancellation: Bool = false
     ) {
         self.inner = inner
         self.failingInstanceTag = failingInstanceTag
         self.failingTeamID = failingTeamID
         self.failsByTeam = true
+        self.failAll = failAll
+        self.failSurvivorRead = failSurvivorRead
+        self.failFirstWithCancellation = failFirstWithCancellation
     }
 
     func removeExactScope(
@@ -1021,10 +897,15 @@ private struct ExactScopeFailingStore: MobilePairedMacStoring {
         stackUserID: String?,
         teamID: String?
     ) async throws {
+        await attempts.record("\(macDeviceID)|\(instanceTag ?? "<nil>")|\(stackUserID ?? "<nil>")|\(teamID ?? "<nil>")")
+        if failAll { throw ExactScopeError() }
         let fails = failsByTeam
             ? (instanceTag == failingInstanceTag && teamID == failingTeamID)
             : (instanceTag == failingInstanceTag)
-        if fails { throw ExactScopeError() }
+        if fails {
+            if failFirstWithCancellation { throw CancellationError() }
+            throw ExactScopeError()
+        }
         try await inner.removeExactScope(
             macDeviceID: macDeviceID,
             instanceTag: instanceTag,
@@ -1050,7 +931,8 @@ private struct ExactScopeFailingStore: MobilePairedMacStoring {
     }
 
     func loadAllInstances(macDeviceID: String, stackUserID: String?) async throws -> [MobilePairedMac] {
-        try await inner.loadAllInstances(macDeviceID: macDeviceID, stackUserID: stackUserID)
+        if failSurvivorRead, await !attempts.calls.isEmpty { throw ExactScopeError() }
+        return try await inner.loadAllInstances(macDeviceID: macDeviceID, stackUserID: stackUserID)
     }
 
     func activeMac(stackUserID: String?, teamID: String?) async throws -> MobilePairedMac? {
