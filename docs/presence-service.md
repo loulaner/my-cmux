@@ -225,15 +225,14 @@ the first production deploy and dogfood.
 
 ## Clients
 
-- **Mac sender** (`Sources/Cloud/PresenceHeartbeatClient.swift`): Debug builds
-  default on against the dev instance (dev Stack identity); Release defaults
-  off until the production worker URL ships with its Settings surface. Both
-  are explicitly overridable (`presenceHeartbeatEnabled` +
-  `presenceServiceURL` / `CMUX_PRESENCE_BASE_URL`). Follows the
-  `DeviceRegistryClient` / `PhonePushClient` pattern: same device UUID, same
-  tag, best-effort, never disturbs the Mac. Every beat carries the full
-  current attach-route set, a route change triggers one immediate
-  out-of-cadence beat, and a clean quit sends a goodbye.
+- **Mac heartbeat sender (retired in MyCMUX)**: periodic heartbeats,
+  route-change uploads, and quit goodbyes have been removed. The historical
+  `presenceHeartbeatEnabled` preference no longer enables uploads.
+  `Sources/Cloud/PresenceServiceEndpoint.swift` retains URL resolution for
+  `CloudVMSyncSubscriber`, `DeviceDirectory`, `WorkspacePresenceController`,
+  and `MobileHostIrxRuntime`; `presenceServiceURL` / `CMUX_PRESENCE_BASE_URL`
+  still configure those remaining clients in Debug development builds.
+  Release and production-auth builds remain pinned to the production URL.
 - **Mac Cloud machines list** (`Sources/Cloud/CloudVMSyncSubscriber.swift`,
   owned by `MachinesPanelViewModel`): a second subscribe socket per visible
   machines panel whose `sync.hello` asks only for `vms`, from the cursor and

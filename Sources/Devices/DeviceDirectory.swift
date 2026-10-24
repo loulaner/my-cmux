@@ -96,7 +96,7 @@ final class DeviceDirectory {
         pairing: any DeviceLinkAuthorizationSource,
         registryClient: DeviceRegistryDirectoryClient? = nil,
         automaticClient: DeviceIrxClient? = nil,
-        serviceURL: @escaping @MainActor @Sendable () -> URL? = { PresenceHeartbeatClient.resolvedServiceURL() },
+        serviceURL: @escaping @MainActor @Sendable () -> URL? = { PresenceServiceEndpoint().resolvedServiceURL() },
         makeSubscriber: @escaping @Sendable (URL, @escaping @Sendable () async throws -> DevicePresenceSubscriber.Credentials?) -> DevicePresenceSubscriber = { url, credentials in
             DevicePresenceSubscriber(serviceBaseURL: url, credentials: credentials)
         },

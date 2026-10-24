@@ -33,7 +33,7 @@ final class WorkspacePresenceController {
         self.auth = auth
         authTask?.cancel()
         changesTask?.cancel()
-        if let url = PresenceHeartbeatClient.resolvedServiceURL() {
+        if let url = PresenceServiceEndpoint().resolvedServiceURL() {
             let roster = WorkspacePresenceRoster(transport: WorkspacePresenceWebSocket(baseURL: url))
             self.roster = roster
             let changes = roster.changes()

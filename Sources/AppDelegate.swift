@@ -2440,9 +2440,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         terminationWatchdog.arm()
         // Plain quit detaches local ssh clients; explicit close already killed marked sessions.
         remoteTmuxController.detachAll()
-        // Best-effort presence goodbye; unclean exits are covered by the
-        // service's missed-heartbeat timeout.
-        PresenceHeartbeatClient.shared.appWillTerminate()
         closeAllWebInspectorsBeforeAppTeardown()
         sessionAutosaveCoordinator.stop()
         CloudVMActionLauncher.shared.terminateAll()

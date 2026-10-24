@@ -540,7 +540,7 @@ final class MobileHostIrxRuntime: MobileHostPairingRuntime {
             let compatibility = try LegacyCompatibilityService(
                 configuration: .init(
                     brokerBaseURL: brokerBaseURL,
-                    controlSocketURL: PresenceHeartbeatClient.resolvedServiceURL(),
+                    controlSocketURL: PresenceServiceEndpoint().resolvedServiceURL(),
                     clientNamespace: namespace.rawValue,
                     tag: configuration.tag,
                     platform: .mac,

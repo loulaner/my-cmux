@@ -82,7 +82,7 @@ final class CloudVMSyncSubscriber {
 
     init(
         auth: AuthCoordinator,
-        serviceURL: @escaping @MainActor @Sendable () -> URL? = { PresenceHeartbeatClient.resolvedServiceURL() },
+        serviceURL: @escaping @MainActor @Sendable () -> URL? = { PresenceServiceEndpoint().resolvedServiceURL() },
         makeSubscriber: @escaping SubscriberFactory = CloudVMSyncSubscriber.defaultSubscriber,
         clock: any Clock<Duration> = ContinuousClock()
     ) {

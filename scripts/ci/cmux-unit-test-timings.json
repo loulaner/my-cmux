@@ -798,7 +798,7 @@
   "PortalHitTestingPerformanceTests": 32,
   "PortalTabDragRoutingTests": 63,
   "PostHogAnalyticsPropertiesTests": 369,
-  "PresenceHeartbeatClientTests": 19,
+  "PresenceServiceEndpointTests": 19,
   "ProcessPipeReadCrashRegressionTests": 2,
   "ProcessTerminationGateTests": 1,
   "QuitConfirmationAlertPresenterTests": 99,

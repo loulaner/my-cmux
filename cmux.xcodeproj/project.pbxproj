@@ -2889,8 +2889,8 @@
 		9262420B51295D47DC7065BD /* PortTerminalDeviceLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = C037CA7A6B20B3F495BAB401 /* PortTerminalDeviceLookup.swift */; };
 		B8E9500A0000000000000001 /* PostHogAnalyticsPropertiesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8E9500A0000000000000002 /* PostHogAnalyticsPropertiesTests.swift */; };
 		B7F100060000000000000001 /* PreparedNotificationSound.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7F100060000000000000002 /* PreparedNotificationSound.swift */; };
-		D1F0A00100000000000000B1 /* PresenceHeartbeatClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F0A00100000000000000B2 /* PresenceHeartbeatClient.swift */; };
-		DE71CE00000000000000000A /* PresenceHeartbeatClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE71CE000000000000000009 /* PresenceHeartbeatClientTests.swift */; };
+		E961EAFB6B275592C7977FB4 /* PresenceServiceEndpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8ABAEA1A0153CF3CE266DDE7 /* PresenceServiceEndpoint.swift */; };
+		09D97F6BBD07BAE0231B62D4 /* PresenceServiceEndpointTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDC5BB14919E79D131948949 /* PresenceServiceEndpointTests.swift */; };
 		D1F0A00100000000000000B3 /* PresenceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1F0A00100000000000000B4 /* PresenceSettings.swift */; };
 		C0DEA771000000000000000D /* PricingPlansScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DEA771000000000000000E /* PricingPlansScreen.swift */; };
 		318A10362EFC47DB03BF1D5C /* ProBadgeActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F89797AE49756191CC98B2C1 /* ProBadgeActions.swift */; };
@@ -7457,8 +7457,8 @@
 		C037CA7A6B20B3F495BAB401 /* PortTerminalDeviceLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortTerminalDeviceLookup.swift; sourceTree = "<group>"; };
 		B8E9500A0000000000000002 /* PostHogAnalyticsPropertiesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostHogAnalyticsPropertiesTests.swift; sourceTree = "<group>"; };
 		B7F100060000000000000002 /* PreparedNotificationSound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreparedNotificationSound.swift; sourceTree = "<group>"; };
-		D1F0A00100000000000000B2 /* PresenceHeartbeatClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PresenceHeartbeatClient.swift; sourceTree = "<group>"; };
-		DE71CE000000000000000009 /* PresenceHeartbeatClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresenceHeartbeatClientTests.swift; sourceTree = "<group>"; };
+		8ABAEA1A0153CF3CE266DDE7 /* PresenceServiceEndpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresenceServiceEndpoint.swift; sourceTree = "<group>"; };
+		CDC5BB14919E79D131948949 /* PresenceServiceEndpointTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PresenceServiceEndpointTests.swift"; sourceTree = "<group>"; };
 		D1F0A00100000000000000B4 /* PresenceSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PresenceSettings.swift; sourceTree = "<group>"; };
 		C0DEA771000000000000000E /* PricingPlansScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PricingPlansScreen.swift; sourceTree = "<group>"; };
 		F89797AE49756191CC98B2C1 /* ProBadgeActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProBadgeActions.swift; sourceTree = "<group>"; };
@@ -9888,7 +9888,6 @@
 				D4C0DE020000000000000004 /* CodeRouterSocketPeerVerifier.swift */,
 				C0DE60C0000000000000A011 /* CoderouterSocketCommands.swift */,
 				DE71CE000000000000000003 /* DeviceRegistryClient.swift */,
-				D1F0A00100000000000000B2 /* PresenceHeartbeatClient.swift */,
 				A13296000000000000000201 /* WorkspacePresenceController.swift */,
 				A13296000000000000000202 /* WorkspacePresencePolicy.swift */,
 				A13296000000000000000203 /* WorkspacePresenceScope+App.swift */,
@@ -10055,6 +10054,7 @@
 				B4E85236BC4E03F5BA8B908C /* CoderouterAccountState.swift */,
 				5ECF12C0C620A0999268B8BA /* CloudTuiManualMirrorHandshake.swift */,
 				A986CE6A5E2D281B2CE3C7E1 /* SidebarCloudButtonAction.swift */,
+				8ABAEA1A0153CF3CE266DDE7 /* PresenceServiceEndpoint.swift */,
 			);
 			name = Cloud;
 			path = Cloud;
@@ -12890,7 +12890,6 @@
 				F9000001A1B2C3D4E5F60718 /* GhosttyEnsureFocusWindowActivationTests.swift */,
 				7269A0027269A0027269A002 /* GhosttyPhysicalInputFocusReassertionTests.swift */,
 				DE71CE000000000000000001 /* DeviceRegistryClientTests.swift */,
-				DE71CE000000000000000009 /* PresenceHeartbeatClientTests.swift */,
 				DE71CE000000000000000005 /* MobileHostNetworkPathRefreshTests.swift */,
 				AA5269A0C0DE0003FACE0003 /* ForeignFirstResponderPolicyTests.swift */,
 				F1C1AA20B7E84D10A1C10001 /* InactivePaneFirstClickFocusTests.swift */,
@@ -13923,6 +13922,7 @@
 				745FF9094E4E0023E0EFB065 /* SidebarWorkspaceSnapshotTests.swift */,
 				774F5FF7D4460618C69AC7D7 /* CMUXCLISocketFailureRegressionTests.swift */,
 				1D4BD5979B9ED49CA1A0EBC4 /* MacPairedMacBackupRecordWireTests.swift */,
+				CDC5BB14919E79D131948949 /* PresenceServiceEndpointTests.swift */,
 			);
 			path = cmuxTests;
 			sourceTree = "<group>";
@@ -16231,7 +16231,7 @@
 				B79500060000000000000001 /* PortScanPublicationState.swift in Sources */,
 				9262420B51295D47DC7065BD /* PortTerminalDeviceLookup.swift in Sources */,
 				B7F100060000000000000001 /* PreparedNotificationSound.swift in Sources */,
-				D1F0A00100000000000000B1 /* PresenceHeartbeatClient.swift in Sources */,
+				E961EAFB6B275592C7977FB4 /* PresenceServiceEndpoint.swift in Sources */,
 				D1F0A00100000000000000B3 /* PresenceSettings.swift in Sources */,
 				C0DEA771000000000000000D /* PricingPlansScreen.swift in Sources */,
 				318A10362EFC47DB03BF1D5C /* ProBadgeActions.swift in Sources */,
@@ -18696,7 +18696,7 @@
 					F4100000A1B2C3D4E5F60718 /* PortScannerTests.swift in Sources */,
 					F83620010000000000000001 /* PortScannerTTYFreshnessTests.swift in Sources */,
 				B8E9500A0000000000000001 /* PostHogAnalyticsPropertiesTests.swift in Sources */,
-				DE71CE00000000000000000A /* PresenceHeartbeatClientTests.swift in Sources */,
+				09D97F6BBD07BAE0231B62D4 /* PresenceServiceEndpointTests.swift in Sources */,
 				AC0FCEFB6665CF134634D60B /* ProcessExitWait.swift in Sources */,
 				C47110010000000000000001 /* ProcessPipeReadCrashRegressionTests.swift in Sources */,
 				0A327C88E531C7E407CEF58C /* ProcessSnapshotMeasurement.swift in Sources */,
