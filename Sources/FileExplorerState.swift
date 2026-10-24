@@ -1,5 +1,4 @@
 import AppKit
-import CmuxProductAnalytics
 import SwiftUI
 
 // MARK: - State (visibility toggle)
@@ -61,9 +60,7 @@ final class FileExplorerState: ObservableObject {
     var mode: RightSidebarMode {
         get { storedMode }
         set {
-            let previous = storedMode
             setMode(newValue)
-            if isVisible, storedMode != previous { ProductAnalytics.app.featureUsed(storedMode.productFeature) }
         }
     }
 
@@ -115,10 +112,9 @@ final class FileExplorerState: ObservableObject {
     }
 
     /// The person's show/hide (toggle, shortcut, menu). Narrow-window
-    /// auto-collapse sets `isVisible` directly and is not counted as use.
+    /// auto-collapse sets `isVisible` directly.
     func setVisible(_ nextValue: Bool) {
         guard isVisible != nextValue else { return }
-        if nextValue { ProductAnalytics.app.featureUsed(storedMode.productFeature) }
 
         // Suppress both SwiftUI transactions and AppKit/Core Animation implicit layout changes.
         NSAnimationContext.beginGrouping()

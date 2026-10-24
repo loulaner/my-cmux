@@ -1,7 +1,6 @@
 import AppKit
 import CmuxAppKitSupportUI
 import CmuxCloud
-import CmuxProductAnalytics
 import CmuxFoundation
 import CmuxSettingsUI
 import CmuxSidebar
@@ -361,7 +360,6 @@ struct SidebarCloudButton: View {
             .hintableAccessibilityLabel(title)
             .accessibilityIdentifier("SidebarCloudButton")
             .padding(.leading, SidebarFooterButtonMetrics.cloudLeadingInset)
-            .onAppear { ProductAnalytics.app.track(.cloudButtonShown) }
         }
     }
 }

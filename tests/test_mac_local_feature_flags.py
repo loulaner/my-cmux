@@ -15,13 +15,13 @@ class MacLocalFeatureFlagsTests(unittest.TestCase):
                       'pinsFlagsToLocalValues', 'func start('):
             self.assertNotIn(token, source, token)
 
-    def test_real_local_initialization_keeps_original_gate_and_posthog(self):
+    def test_real_local_initialization_keeps_original_gate_without_posthog(self):
         source = (ROOT / 'Sources/AppDelegate.swift').read_text()
         self.assertIn('if !isRunningUnderXCTest, !ManagedDevicePolicy().isEnforced(.disableTelemetry) {\n            _ = CmuxFeatureFlags.shared\n        }', source)
         for token in ('PostHogAnalytics.shared.startIfNeeded()', 'startProductAnalytics()',
                       'PostHogAnalytics.shared.recordLaunchIdentity()'):
-            self.assertIn(token, source)
-        self.assertIn('PostHogSDK.shared.capture', (ROOT / 'Sources/PostHogAnalytics.swift').read_text())
+            self.assertNotIn(token, source)
+        self.assertFalse((ROOT / 'Sources/PostHogAnalytics.swift').exists())
 
     def test_local_snapshot_and_cloud_markers_remain_real(self):
         source = (ROOT / 'Sources/FeatureFlags.swift').read_text()

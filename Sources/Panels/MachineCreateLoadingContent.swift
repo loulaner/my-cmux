@@ -67,7 +67,6 @@ struct MachineCreateLoadingContent: View {
             ProUpgradePresenter.present(source: .createFailedAtLimit)
         }
         .accessibilityIdentifier("MachineCreateUpgradeButton")
-        .upgradePromptImpression(.createFailedAtLimit)
     }
 
     /// The create hit the plan's machine limit or its shared vCPU and memory

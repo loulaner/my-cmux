@@ -1,5 +1,4 @@
 import CmuxCloud
-import CmuxProductAnalytics
 import AppKit
 import CMUXMobileCore
 import Bonsplit
@@ -45,20 +44,16 @@ enum ProUpgradePresenter {
         return flow.upgradeOffer
     }
 
-    /// Records the click as `cmux_upgrade_entrypoint_opened` (the funnel's
-    /// first client step) and opens pricing.
+    /// Opens pricing with the originating surface attribution.
     ///
     /// - Parameters:
     ///   - source: The surface; it also travels to checkout as `cmux_source`.
-    ///   - analytics: The emitter. Tests pass their own.
-    ///   - open: Opens pricing. Tests pass a no-op.
+    ///   - open: Opens pricing. Tests record the requested source.
     @MainActor
     static func present(
         source: ProUpgradeSource,
-        analytics: ProductAnalytics = .app,
         open: @MainActor (ProUpgradeSource) -> Void = { presentAppPricingWeb(source: $0) }
     ) {
-        analytics.track(.upgradeOpened(source, destination: .pricingPage))
         open(source)
     }
 
@@ -107,10 +102,8 @@ enum ProUpgradePresenter {
     @MainActor
     static func presentCheckout(
         source: ProUpgradeSource,
-        plan: CheckoutPlan = .pro,
-        analytics: ProductAnalytics = .app
+        plan: CheckoutPlan = .pro
     ) {
-        analytics.track(.upgradeOpened(source, plan: plan, destination: .checkout))
         NSWorkspace.shared.open(checkoutURL(source: source, plan: plan))
     }
 

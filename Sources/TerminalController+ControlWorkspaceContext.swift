@@ -3,7 +3,6 @@ import CmuxControlSocket
 import CmuxCore
 import CmuxFoundation
 import CmuxPanes
-import CmuxProductAnalytics
 import CmuxRemoteWorkspace
 import CmuxRemoteSession
 import CmuxWorkspaces
@@ -697,11 +696,6 @@ extension TerminalController: ControlWorkspaceContext {
                     .controlMasterOwnershipUnavailable,
                 data: nil
             )
-        }
-        // `cmux ssh` configures a plain remote workspace; Cloud attaches carry
-        // a managed VM id and are counted by the Cloud events instead.
-        if config.managedCloudVMID == nil {
-            ProductAnalytics.app.featureUsed(.cmuxSSH)
         }
         notifyRemotePTYControllerAvailabilityChanged()
 

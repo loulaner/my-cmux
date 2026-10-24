@@ -80,16 +80,9 @@ extension AppDelegate {
             }
             var accessBecameUnavailable = false
             do {
-                let startedAt = Date()
                 let workspaceID = try await coordinator.createOnResolvedMachine(
                     selection: selection, windowID: windowID, scopeID: scopeID, selectionRevision: revision
                 )
-                if workspaceID != nil {
-                    ProductAnalytics.app.track(.cloudWorkspaceCreated(
-                        machineChoice: .resolved,
-                        duration: DurationBucket(seconds: Date().timeIntervalSince(startedAt))
-                    ))
-                }
                 if workspaceID == nil {
                     accessBecameUnavailable = !coordinator.isAvailable
                         || coordinator.scopeIdentifier != scopeID
@@ -158,12 +151,7 @@ extension AppDelegate {
                     }
                 }
             }
-            let startedAt = Date()
             guard let workspaceID = try await coordinator.createOnMachine(request) else { return }
-            ProductAnalytics.app.track(.cloudWorkspaceCreated(
-                machineChoice: .explicit,
-                duration: DurationBucket(seconds: Date().timeIntervalSince(startedAt))
-            ))
             guard !Task.isCancelled, coordinator.isAvailable, coordinator.scopeIdentifier == scopeID else { return }
             resolvedDestination?.apply(workspaceID: workspaceID)
             selectedWorkspace = self?.focusCreatedCloudWorkspace(
@@ -274,8 +262,7 @@ extension AppDelegate {
             },
             presentIntroduction: { [weak self] in
                 self?.cloudWelcomeWindowController.presentIntroduction(over: window)
-            },
-            analytics: .app
+            }
         ).perform()
     }
 

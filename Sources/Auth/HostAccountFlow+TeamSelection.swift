@@ -29,7 +29,6 @@ extension HostAccountFlow {
                 guard let self else { return }
                 self.teamObservationRevision &+= 1
                 self.syncReceivedInvitationsPolling()
-                self.syncAnalytics()
                 self.observeCoordinator()
             }
         }

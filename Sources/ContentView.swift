@@ -25,7 +25,6 @@ import CmuxSwiftRender
 import CmuxSwiftRenderUI
 import ImageIO
 import Observation
-import CmuxProductAnalytics
 import SwiftUI
 import ObjectiveC
 import UniformTypeIdentifiers
@@ -10315,7 +10314,6 @@ struct ContentView: View {
 
     /// Presents the palette and resets per-presentation launcher availability before rebuilding results.
     private func presentCommandPalette(initialQuery: String) {
-        ProductAnalytics.app.featureUsed(.commandPalette)
         refreshCachedDefaultTerminalStatus(refreshSearchCorpusIfPresented: false)
         commandPaletteFocusRestoreCoordinator.clear()
         let browserTarget = AppDelegate.shared?.focusedBrowserActionTarget(

@@ -291,7 +291,6 @@ struct ProBadgeView: View {
                 // so it's revealed by the widening capsule (clipped) rather
                 // than fading or sliding on its own.
                 Button {
-                    actions.dismissed()
                     withAnimation(.easeOut(duration: 0.15)) {
                         ProBadgeStyleStore.shared.isDismissed = true
                     }
@@ -313,7 +312,6 @@ struct ProBadgeView: View {
             }
             .modifier(ProBadgeCapsule(style: style, isHovered: isHovered))
             .frame(height: 22, alignment: .center)
-            .onAppear { actions.appeared() }
             .onHover { hovering in
                 withAnimation(.easeOut(duration: 0.15)) {
                     isHovered = hovering

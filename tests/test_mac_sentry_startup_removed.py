@@ -39,11 +39,10 @@ class MacSentryStartupRemovedTests(unittest.TestCase):
         for token in ('CmuxMainRunLoopStallMonitor.shared.installIfNeeded()',
                       'CmuxMainThreadTurnProfiler.shared.installIfNeeded()',
                       'uiTestDiagnosticsWriter.write(stage: "didFinishLaunching")',
-                      'PostHogAnalytics.shared.recordLaunchIdentity()',
-                      'if telemetryEnabled && !isRunningUnderXCTest {',
-                      'PostHogAnalytics.shared.startIfNeeded()', 'startProductAnalytics()',
                       '_ = CmuxFeatureFlags.shared', 'GhosttyCrashBreadcrumb.markCleanExit()'):
             self.assertIn(token, source)
+        self.assertNotIn('PostHogAnalytics.', source)
+        self.assertNotIn('startProductAnalytics()', source)
         ring = (ROOT / 'Sources/Mobile/MobileHostDiagnostics.swift').read_text()
         self.assertIn('nonisolated static let log = DiagnosticLog(', ring)
         self.assertIn('role: .macHost', ring)

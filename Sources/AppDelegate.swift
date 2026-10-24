@@ -1,7 +1,6 @@
 import CmuxSSHClipboardTrust
 import CmuxCloud
 import CmuxCloudBannerCore
-import CmuxProductAnalytics
 import CmuxCloudTui
 import CmuxComputerUse
 import CmuxCloudMachines
@@ -844,7 +843,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     private(set) var cloudMachinePinStore: CloudMachinePinStore?
     /// "Introducing cmux cloud", shown once from the first main window.
     private(set) lazy var cloudWelcomeWindowController = CloudWelcomeWindowController()
-    private(set) lazy var cloudActivationCoordinator = CloudActivationCoordinator(prepare: { try await CmuxTuiSurfaceProviderRegistry.shared.prepareForActivation() }, cleanup: { await CmuxTuiSurfaceProviderRegistry.shared.cancelActivationPreparation() }, analytics: .app)
+    private(set) lazy var cloudActivationCoordinator = CloudActivationCoordinator(prepare: { try await CmuxTuiSurfaceProviderRegistry.shared.prepareForActivation() }, cleanup: { await CmuxTuiSurfaceProviderRegistry.shared.cancelActivationPreparation() })
     var cloudWorkspaceCoordinator: CloudWorkspaceCoordinator?
     var cloudWorkspaceOperationController: CloudWorkspaceOperationController?
     var deviceWorkspaceCreationCoordinator: DeviceWorkspaceCreationCoordinator?
@@ -1697,9 +1696,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         let env = ProcessInfo.processInfo.environment
         let telemetryEnabled = TelemetrySettings.enabledForCurrentLaunch
         let isRunningUnderXCTest = MacSentryStartupPolicy.isRunningUnderXCTest(environment: env)
-        if !isRunningUnderXCTest {
-            PostHogAnalytics.shared.recordLaunchIdentity()
-        }
         StartupBreadcrumbLog.append(
             "appDelegate.didFinish.begin",
             fields: [
@@ -1815,12 +1811,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
 #endif
 
-        if telemetryEnabled && !isRunningUnderXCTest {
-            StartupBreadcrumbLog.append("appDelegate.didFinish.posthog.begin")
-            PostHogAnalytics.shared.startIfNeeded()
-            StartupBreadcrumbLog.append("appDelegate.didFinish.posthog.complete")
-        }
-        startProductAnalytics()
         // Initialize local overrides and the off-main snapshot only. Preserve
         // the original startup conditions, including Cloud marker side effects.
         if !isRunningUnderXCTest, !ManagedDevicePolicy().isEnforced(.disableTelemetry) {
@@ -2045,10 +2035,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             windows: activationWindows,
             trigger: .applicationActivation
         )
-        if TelemetrySettings.enabledForCurrentLaunch && !isRunningUnderXCTestCached {
-            refreshProductAnalyticsActivityContext()
-            PostHogAnalytics.shared.trackActive(reason: "didBecomeActive")
-        }
         // A Mac that slept through the reply nudge picks parked replies up here.
 
         guard let notificationStore else { return }
@@ -2553,7 +2539,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             auth: auth.coordinator,
             checkpointRenames: SurfaceCatalog.shared.cloudRenameCoordinator,
             operations: cloudOperations,
-            telemetry: .live(),
+            telemetry: VMClientTelemetry(),
             isCloudEnabled: { CloudMachinesFeature.offMainIsEnabled() }, isCloudAvailable: { CloudMachinesFeature.offMainIsAvailable() }
         )
         TerminalController.shared.cloudTunnel = cloudTunnel
@@ -2645,11 +2631,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
         let task = Task {
             let pendingCrash = await GhosttyCrashBreadcrumb.pendingCrashFromDefaultStorage()
-            if let pendingCrash {
-                // Mirror the previous run's crash into PostHog Error Tracking
-                // so crash rate is comparable by app version (#12717).
-                PostHogAnalytics.shared.captureCrashException(pendingCrash: pendingCrash)
-            }
             return pendingCrash
         }
         pendingCrashScanTask = task

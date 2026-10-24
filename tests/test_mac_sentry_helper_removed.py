@@ -33,11 +33,11 @@ class MacSentryHelperRemovedTests(unittest.TestCase):
         for token in ('initializationLogger.error', 'ghostty_app_tick(app)',
                       'NotificationCenter.default.post(name: .ghosttyDidTick', 'scrollEndTimer'):
             self.assertIn(token, ghostty)
-        cloud = (ROOT / 'Sources/Cloud/VMClientTelemetry+Live.swift').read_text()
-        self.assertIn('capturePostHog:', cloud)
-        self.assertIn('observeRecord:', cloud)
-        self.assertNotIn('captureSentry:', cloud)
-        self.assertNotIn('addBreadcrumb:', cloud)
+        self.assertFalse((ROOT / 'Sources/Cloud/VMClientTelemetry+Live.swift').exists())
+        app = (ROOT / 'Sources/AppDelegate.swift').read_text()
+        self.assertIn('telemetry: VMClientTelemetry()', app)
+        cloud = (ROOT / 'Packages/macOS/CmuxCloud/Sources/CmuxCloud/VMClient/VMClientTelemetry.swift').read_text()
+        self.assertIn('log(record)', cloud)
 
     def test_socket_observation_is_optional_not_authentication(self):
         server = ROOT / 'Packages/macOS/CmuxControlSocket/Sources/CmuxControlSocket/Server'

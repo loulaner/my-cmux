@@ -1,6 +1,5 @@
 import CmuxCloud
 import CmuxCloudResizeCore
-import CmuxProductAnalytics
 import CmuxSurfaceCatalogModel
 import Foundation
 import Observation
@@ -302,13 +301,6 @@ final class NewMachineModel {
             guard let target = upgradePlan(for: memoryMb) else { return }
             selectedUpgradePlanId = target
             showsMaxUpgrade = true
-            PostHogAnalytics.shared.capture("cmux_vm_size_upgrade_prompted", properties: [
-                "requested_memory_mb": memoryMb,
-                "plan": plan?.planId ?? "unknown",
-                "target_plan": target,
-                "source": "mac_new_machine_sheet",
-                "client": "mac"
-            ])
             return
         }
         self.memoryMb = memoryMb
@@ -674,9 +666,6 @@ final class NewMachineModel {
             return
         }
         if supportsAgentUpdates { defaults.set(keepsAgentsUpdated, forKey: Self.keepsAgentsUpdatedDefaultsKey) }
-        // Base and forks send no size (the backend or the source decides it).
-        let sentSize = mode == .newMachine && !isFork && supportsSize
-        ProductAnalytics.app.track(.cloudMachineCreateStarted(memoryGB: sentSize ? memoryMb / 1_024 : nil))
         finish(.submitted)
     }
 
