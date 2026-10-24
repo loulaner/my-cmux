@@ -229,8 +229,8 @@ the first production deploy and dogfood.
   route-change uploads, and quit goodbyes have been removed. The historical
   `presenceHeartbeatEnabled` preference no longer enables uploads.
   `Sources/Cloud/PresenceServiceEndpoint.swift` retains URL resolution for
-  `DeviceDirectory` and `MobileHostIrxRuntime`; `presenceServiceURL` / `CMUX_PRESENCE_BASE_URL`
-  still configure those remaining clients in Debug development builds.
+  `MobileHostIrxRuntime`; `presenceServiceURL` / `CMUX_PRESENCE_BASE_URL`
+  still configure that remaining client in Debug development builds.
   Release and production-auth builds remain pinned to the production URL.
 - **Mac workspace collaborator presence (retired in MyCMUX)**: workspace
   presence sockets, selection/visible-row subscriptions, and collaborator
@@ -242,6 +242,12 @@ the first production deploy and dogfood.
   reading clients remain. Existing server records are not deleted or migrated
   by this change; their expiry timing has not been verified. Auth sign-out,
   browser-session clearing, and Cloud credential revocation remain in place.
+- **Mac device directory presence (retired in MyCMUX)**: the account presence
+  stream and owner-sync state have been removed. Authenticated Mac discovery
+  and REST registry enrichment remain, including their account/team scope and
+  cancellation guards. Registry and saved pairing data cannot admit a Mac
+  without authenticated discovery consent. Settings report online only for a
+  genuinely connected local provider; otherwise online status is unknown.
 - **Mac Cloud machines list**: MyCMUX has retired the realtime `vms` sync
   socket and stream merge state. The existing REST list remains active under
   its visibility, online, signed-in, and Cloud-enabled gates. Panel show,

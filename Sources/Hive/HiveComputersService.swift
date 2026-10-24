@@ -257,7 +257,7 @@ final class HiveComputersService {
                 tag: record.instance.isDefaultTag ? nil : record.instance.tag,
                 isPaired: pairedInstances.contains(record.instance),
                 isOnline: registry.provider(for: record.instance)?.link.isConnected == true
-                    ? true : (directory?.presenceState == .live ? record.isOnline : nil),
+                    ? true : nil,
                 isHidden: registry.preferences?.hiddenMacIDs.contains(record.instance.deviceID) == true,
                 isConnected: registry.provider(for: record.instance)?.link.isConnected == true
             )

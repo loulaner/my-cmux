@@ -6,8 +6,9 @@ import Foundation
 /// `team` stream is the selected team's object. Every subscribe delivers a
 /// snapshot first, then online/offline/seen/routes transitions; the same socket
 /// also serves sync collections after a `sync.hello`: `devices` (where device
-/// owners come from) for ``DeviceDirectory`` on the account stream, `vms` (the
-/// team's Cloud machine list) for ``CloudVMSyncSubscriber`` on the team stream.
+/// owners come from) on the account stream, `vms` (the team's Cloud machine
+/// list) on the team stream. These are shared wire contracts; the Mac directory
+/// and Cloud machines list no longer open presence subscriptions.
 ///
 /// One instance is one session: `subscribe()` opens the socket and yields
 /// parsed frames until the server closes it (streams are deadline-bounded by
