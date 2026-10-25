@@ -74,6 +74,31 @@ class MobileUploadPolicyWiringTests(unittest.TestCase):
         self.assertIn("let result = v2MobileTerminalPasteImage(params: imageParams)", chat)
         self.assertRegex(chat, r"if case \.err = result\s*\{\s*return result\s*\}")
 
+    def test_chat_attachments_refuse_before_lookup_and_recheck_before_clear(self):
+        chat = self.section(
+            self.read("TerminalController+MobileChat.swift"),
+            "func v2MobileChatSend(params: [String: Any]) async -> V2CallResult {",
+            "\n    }",
+        )
+        refusal = (
+            r"if !attachments\.isEmpty, let error = Self\.mobileFileTransferPolicyError\(\)"
+            r"\s*\{\s*return error\s*\}"
+        )
+        before_lookup = chat.split("guard let terminalParams = await mobileChatTerminalParams", 1)[0]
+        self.assertRegex(
+            before_lookup,
+            r'guard !text\.isEmpty \|\| !attachments\.isEmpty else\s*\{\s*'
+            r'return \.err\(code: "invalid_params", message: "Nothing to send", data: nil\)\s*\}'
+            r"\s*" + refusal + r"\s*$",
+        )
+        after_lookups = self.section(
+            chat,
+            "guard let terminalTarget = await mobileChatTerminalTarget(sessionID: sessionID) else {",
+            "let clearResult = clearAgentPrompt(terminalTarget)",
+        )
+        self.assertRegex(after_lookups, r"\]\)\s*\}\s*" + refusal + r"\s*$")
+        self.assertEqual(chat.count("Self.mobileFileTransferPolicyError()"), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
