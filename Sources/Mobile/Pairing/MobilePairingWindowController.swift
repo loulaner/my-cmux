@@ -20,10 +20,6 @@ final class MobilePairingWindowController: ReleasingWindowController {
     /// window behind it; referenced from the Cmd+W regression test.
     static let windowIdentifier = "cmux.mobilePairingWindow"
 
-    private static let screenMargin: CGFloat = 40
-    private var idealContentHeight: CGFloat?
-    private var isUserResizing = false
-
     private override init() {
         super.init()
     }
@@ -44,7 +40,6 @@ final class MobilePairingWindowController: ReleasingWindowController {
         if !window.isVisible {
             window.center()
         }
-        resizeWindowToIdealContentHeight(window)
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
     }
@@ -58,14 +53,8 @@ final class MobilePairingWindowController: ReleasingWindowController {
         let window = NSWindow(contentViewController: hostingController)
         window.title = String(localized: "mobile.direct.title", defaultValue: "iPad Direct Connection")
         window.identifier = NSUserInterfaceItemIdentifier(Self.windowIdentifier)
-        // Resizable so the QR (which fills the window width) can be made even
-        // larger for scanning at a distance.
+        // Let users resize the Direct connection form manually.
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
-        // Tall enough that the title, the manual-entry block, and the whole QR
-        // are visible without scrolling out of the box; the 540x720 default
-        // clipped the heading and pushed Copy IP/Port below the fold in
-        // dogfood. The minimum keeps the QR plus the manual block usable on
-        // small screens.
         window.setContentSize(NSSize(width: 560, height: 800))
         window.contentMinSize = NSSize(width: 480, height: 320)
         window.center()
@@ -74,58 +63,8 @@ final class MobilePairingWindowController: ReleasingWindowController {
 
     override func managedWindowWillClose(_ window: NSWindow) {
         MobileLocalDirectHostController.shared.closePairingWindow()
-        idealContentHeight = nil
-        isUserResizing = false
     }
 
-    func windowWillStartLiveResize(_ notification: Notification) {
-        isUserResizing = true
-    }
-
-    func windowDidEndLiveResize(_ notification: Notification) {
-        isUserResizing = false
-    }
-
-    private func pairingContentHeightDidChange(_ height: CGFloat) {
-        guard height > 0 else { return }
-        idealContentHeight = ceil(height)
-        guard !isUserResizing, let window else { return }
-        resizeWindowToIdealContentHeight(window)
-    }
-
-    /// Keeps the current width and top edge, growing downward until the screen
-    /// margin would be crossed, then shifts the window up just enough to fit.
-    private func resizeWindowToIdealContentHeight(_ window: NSWindow) {
-        guard !isUserResizing,
-              let idealContentHeight,
-              let screen = window.screen ?? NSScreen.main else { return }
-
-        let visibleFrame = screen.visibleFrame.insetBy(
-            dx: 0,
-            dy: Self.screenMargin / 2
-        )
-        let contentChromeHeight = window.frame.height - window.contentLayoutRect.height
-        // setFrame(_:display:) does not enforce contentMinSize, so clamp here
-        // or a small in-flight measurement (e.g. the loading spinner) could
-        // shrink the window below the usable floor.
-        let minContentHeight = window.contentMinSize.height
-        let targetFrameHeight = min(
-            max(idealContentHeight, minContentHeight) + contentChromeHeight,
-            visibleFrame.height
-        )
-        guard targetFrameHeight > 0 else { return }
-
-        var targetFrame = window.frame
-        targetFrame.origin.y = targetFrame.maxY - targetFrameHeight
-        targetFrame.size.height = targetFrameHeight
-        if targetFrame.minY < visibleFrame.minY {
-            targetFrame.origin.y = visibleFrame.minY
-        }
-        if targetFrame.maxY > visibleFrame.maxY {
-            targetFrame.origin.y = visibleFrame.maxY - targetFrameHeight
-        }
-        window.setFrame(targetFrame, display: true)
-    }
 }
 
 /// Workspace-owned pane for the mobile pairing flow.

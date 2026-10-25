@@ -57,7 +57,7 @@ class PairingRetirementTests(unittest.TestCase):
     def test_both_close_entrypoints_delegate_to_direct_host(self):
         source = self.controller_source()
         window_close = self.section(
-            source, "override func managedWindowWillClose", "func windowWillStartLiveResize"
+            source, "override func managedWindowWillClose", "\n    }"
         )
         panel = self.section(
             source, "final class MobilePairingPanel: Panel {", "struct MobilePairingPanelView: View {"
