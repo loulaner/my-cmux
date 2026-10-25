@@ -228,6 +228,7 @@ extension TerminalController {
     /// as `file_stat` run before any bytes are read.
     @MainActor
     func v2MobileWorkspaceChangesFileFetch(params: [String: Any]) async -> V2CallResult {
+        if let error = Self.mobileFileTransferPolicyError() { return error }
         guard let context = mobileWorkspaceChangesContentContext(params: params) else {
             return .err(
                 code: "invalid_params",
@@ -249,6 +250,7 @@ extension TerminalController {
                 offset: offset,
                 length: length
             )
+            if let error = Self.mobileFileTransferPolicyError() { return error }
             return mobileWorkspaceChangesWireResult(
                 chunk.artifactChunk,
                 contentFingerprint: chunk.contentFingerprint

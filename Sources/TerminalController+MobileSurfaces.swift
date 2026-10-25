@@ -328,6 +328,7 @@ extension TerminalController {
     }
 
     func v2MobilePanelArtifactThumbnail(params: [String: Any]) async -> V2CallResult {
+        if let error = Self.mobileFileTransferPolicyError() { return error }
         let resolution = mobilePanelArtifactCanonicalPath(params: params)
         guard let canonicalPath = resolution.canonicalPath else {
             return resolution.failure ?? mobilePanelArtifactInternalError()
@@ -340,6 +341,7 @@ extension TerminalController {
                     maxDimension: maxDimension
                 )
             }.value
+            if let error = Self.mobileFileTransferPolicyError() { return error }
             return mobilePanelArtifactResult(thumbnail)
         } catch ArtifactByteReader.Error.fileNotFound {
             return mobilePanelArtifactFileError(

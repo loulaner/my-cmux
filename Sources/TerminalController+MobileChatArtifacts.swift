@@ -214,15 +214,18 @@ extension TerminalController {
     }
 
     func v2MobileChatArtifactThumbnail(params: [String: Any]) async -> V2CallResult {
+        if let error = Self.mobileFileTransferPolicyError() { return error }
         let resolution = await mobileChatArtifactResolution(params: params, operation: .file)
         guard case .success(let resolved) = resolution else {
             return resolution.failureResult
         }
+        if let error = Self.mobileFileTransferPolicyError() { return error }
         let maxDimension = min(max(v2Int(params, "max_dimension") ?? 512, 64), 1024)
         do {
             let thumbnail = try await Task.detached {
                 try ArtifactByteReader().thumbnail(path: resolved.canonicalPath, maxDimension: maxDimension)
             }.value
+            if let error = Self.mobileFileTransferPolicyError() { return error }
             return ChatArtifactWire.result(thumbnail)
         } catch let error as ArtifactByteReader.Error {
             return mobileArtifactReadFailure(error, path: resolved.requestedPath)

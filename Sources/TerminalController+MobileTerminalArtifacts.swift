@@ -259,10 +259,12 @@ extension TerminalController {
     }
 
     func v2MobileTerminalArtifactThumbnail(params: [String: Any]) async -> V2CallResult {
+        if let error = Self.mobileFileTransferPolicyError() { return error }
         let resolution = await mobileTerminalArtifactContext(params: params, requiresPath: true)
         guard case .success(let context) = resolution else {
             return resolution.failureResult
         }
+        if let error = Self.mobileFileTransferPolicyError() { return error }
         let maxDimension = min(max(v2Int(params, "max_dimension") ?? 512, 64), 1024)
         do {
             let thumbnail = try await Task.detached(priority: .utility) {
@@ -270,6 +272,7 @@ extension TerminalController {
                     try reader.thumbnail(path: canonicalPath, maxDimension: maxDimension)
                 }
             }.value
+            if let error = Self.mobileFileTransferPolicyError() { return error }
             return TerminalArtifactWire.result(thumbnail)
         } catch TerminalArtifactReadContext.Error.forbidden {
             debugLogMobileTerminalArtifactDenial(op: "thumbnail", path: context.requestedPath)
