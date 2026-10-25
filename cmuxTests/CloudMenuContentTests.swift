@@ -10,152 +10,39 @@ import Testing
 @testable import cmux
 #endif
 
-/// The status item and the main-menu Cloud menu render one entry tree. These
-/// tests pin what that tree offers in each account state and that each row
-/// reaches the verb it names.
+/// Shared machine verbs, explicit fleet reads and entry renderers remain
+/// independent of the retired top-level Cloud menus.
 @MainActor
 @Suite("Cloud menus")
 struct CloudMenuContentTests {
-    @Test("Cloud off shows no Cloud rows")
-    func unavailableIsEmpty() {
-        let recorder = Recorder()
-        let context = CloudMenuContext(account: .unavailable)
-        #expect(CloudMenuContent.entries(context, actions: recorder.actions, layout: .mainMenu).isEmpty)
-        #expect(CloudMenuContent.entries(context, actions: recorder.actions, layout: .statusItem).isEmpty)
-    }
-
-    @Test("Signed out offers sign-in, and it reaches the account flow")
-    func signedOutOffersSignIn() throws {
-        let recorder = Recorder()
-        let entries = CloudMenuContent.entries(
-            CloudMenuContext(account: .signedOut(isSigningIn: false)),
-            actions: recorder.actions,
-            layout: .statusItem
-        )
-        #expect(entries.map(\.id) == ["cloud.title", "cloud.signIn"])
-        try Self.perform("cloud.signIn", in: entries)
-        #expect(recorder.log == ["signIn"])
-
-        let signingIn = CloudMenuContent.entries(
-            CloudMenuContext(account: .signedOut(isSigningIn: true)),
-            actions: recorder.actions,
-            layout: .mainMenu
-        )
-        #expect(Self.action("cloud.signIn", in: signingIn)?.isEnabled == false)
-    }
-
-    @Test("Main menu lists the account, create verbs, every machine, tools and sign-out")
-    func mainMenuLayout() throws {
-        let recorder = Recorder()
-        let machines = (0..<12).map { Self.machine("m\($0)") }
-        let entries = CloudMenuContent.entries(
-            CloudMenuContext(account: .signedIn(Self.account(teams: 1)), machines: machines, loadState: .loaded),
-            actions: recorder.actions,
-            layout: .mainMenu
-        )
-        let ids = entries.filter { if case .separator = $0 { return false } else { return true } }.map(\.id)
-        #expect(ids == ["cloud.account", "cloud.newWorkspace", "cloud.newMachine", "cloud.machines.title"]
-            + machines.map { "machine.\($0.id)" }
-            + ["cloud.showMachines", "cloud.dashboard", "cloud.diagnostics", "cloud.signOut"])
-        try Self.perform("cloud.newWorkspace", in: entries)
-        try Self.perform("cloud.newMachine", in: entries)
-        try Self.perform("cloud.signOut", in: entries)
-        #expect(recorder.log == ["newWorkspace", "newMachine", "signOut"])
-    }
-
-    @Test("Status item caps inline machines and links the rest to the sidebar")
-    func statusItemCapsMachines() throws {
-        let recorder = Recorder()
-        let machines = (0..<12).map { Self.machine("m\($0)") }
-        let entries = CloudMenuContent.entries(
-            CloudMenuContext(account: .signedIn(Self.account(teams: 1)), machines: machines, loadState: .loaded),
-            actions: recorder.actions,
-            layout: .statusItem
-        )
-        let machineRows = entries.filter { $0.id.hasPrefix("machine.") }
-        #expect(machineRows.count == CloudMenuContent.statusItemMachineLimit)
-        try Self.perform("cloud.machines.showAll", in: entries)
-        #expect(recorder.log == ["showMachines"])
-        // Account, team and tools live under More Cloud, not inline.
-        let more = try #require(Self.submenu("cloud.more", in: entries))
-        #expect(more.children.contains { $0.id == "cloud.signOut" })
-        #expect(!entries.contains { $0.id == "cloud.signOut" })
-    }
-
-    @Test("Teams appear with the active one checked, and switching calls the account flow")
-    func teamSubmenu() throws {
-        let recorder = Recorder()
-        let entries = CloudMenuContent.entries(
-            CloudMenuContext(account: .signedIn(Self.account(teams: 2)), loadState: .loaded),
-            actions: recorder.actions,
-            layout: .mainMenu
-        )
-        let team = try #require(Self.submenu("cloud.team", in: entries))
-        #expect(team.detail == "Team 0")
-        #expect(Self.action("cloud.team.t0", in: team.children)?.isChecked == true)
-        #expect(Self.action("cloud.team.t1", in: team.children)?.isChecked == false)
-        try Self.perform("cloud.team.t1", in: team.children)
-        #expect(recorder.log == ["team:t1"])
-    }
-
-    @Test("A failed read says why and offers the matching fix")
-    func failedReadOffersFix() throws {
-        let recorder = Recorder()
-        func entries(_ problem: MachinesPanelViewModel.CloudListProblem) -> [CloudMenuEntry] {
-            CloudMenuContent.entries(
-                CloudMenuContext(account: .signedIn(Self.account(teams: 1)), loadState: .failed(problem)),
-                actions: recorder.actions,
-                layout: .mainMenu
-            )
-        }
-        try Self.perform("cloud.problem.signIn", in: entries(.sessionRejected))
-        try Self.perform("cloud.problem.upgrade", in: entries(.requiresPro))
-        try Self.perform("cloud.problem.retry", in: entries(.unreachable))
-        #expect(recorder.log == ["signIn", "upgrade", "retry"])
-    }
-
-    @Test("A loaded empty fleet says so; a first load says Loading")
-    func emptyAndLoading() {
-        let recorder = Recorder()
-        let empty = CloudMenuContent.entries(
-            CloudMenuContext(account: .signedIn(Self.account(teams: 1)), loadState: .loaded),
-            actions: recorder.actions,
-            layout: .mainMenu
-        )
-        #expect(empty.contains { $0.id == "cloud.machines.empty" })
-        let loading = CloudMenuContext(account: .signedIn(Self.account(teams: 1)), loadState: .loading)
-        #expect(CloudMenuContent.machinesTitle(loading).contains("\u{2026}"))
-        #expect(!CloudMenuContent.entries(loading, actions: recorder.actions, layout: .mainMenu).contains { $0.id == "cloud.machines.empty" })
-    }
-
     @Test("Machine submenu offers only verbs the machine honors")
     func machineVerbs() throws {
         let recorder = Recorder()
         var limited = Self.machine("plain")
         limited.capabilities.snapshot = false
         limited.capabilities.fork = false
-        let plainIDs = recorder.actions.machine.submenuEntries(limited).compactMap(Self.actionID)
+        let plainIDs = recorder.machine.submenuEntries(limited).compactMap(Self.actionID)
         #expect(plainIDs == ["machine.plain.openShell", "machine.plain.newWorkspace", "machine.plain.openFullClient",
                              "machine.plain.rename", "machine.plain.status", "machine.plain.delete"])
 
         // Missing or false capability metadata must hide recovery in every
         // menu. An explicit server opt-in routes to the shared CLI action.
         limited.capabilities.restart = true
-        let recoveryEntries = recorder.actions.machine.submenuEntries(limited)
+        let recoveryEntries = recorder.machine.submenuEntries(limited)
         try Self.perform("machine.plain.restart", in: recoveryEntries)
         #expect(recorder.log == ["run:plain:vm restart"])
         recorder.log.removeAll()
         limited.capabilities.restart = false
-        #expect(!recorder.actions.machine.submenuEntries(limited).contains { $0.id == "machine.plain.restart" })
+        #expect(!recorder.machine.submenuEntries(limited).contains { $0.id == "machine.plain.restart" })
 
         // Freestyle: no native fork, but the backend forks through snapshot + create.
         var snapshotForked = Self.machine("snap")
         snapshotForked.capabilities = VMCapabilities(snapshot: true, restore: true, fork: false)
-        #expect(recorder.actions.machine.submenuEntries(snapshotForked).contains { $0.id == "machine.snap.fork" })
+        #expect(recorder.machine.submenuEntries(snapshotForked).contains { $0.id == "machine.snap.fork" })
 
         var desktop = Self.machine("desk", isDesktop: true)
         desktop.privateAddress = "100.64.0.9"
-        let desktopEntries = recorder.actions.machine.submenuEntries(desktop)
+        let desktopEntries = recorder.machine.submenuEntries(desktop)
         #expect(desktopEntries.contains { $0.id == "machine.desk.openDesktop" })
         try Self.perform("machine.desk.copyIP", in: desktopEntries)
         try Self.perform("machine.desk.checkpoint", in: desktopEntries)
@@ -166,7 +53,7 @@ struct CloudMenuContentTests {
 
         var expired = Self.machine("locked")
         expired.freeAccess = .expired
-        let openIDs = recorder.actions.machine.openEntries(expired).compactMap(Self.actionID)
+        let openIDs = recorder.machine.openEntries(expired).compactMap(Self.actionID)
         #expect(openIDs == ["machine.locked.upgrade"])
         #expect(CloudMenuTone(expired) == .locked)
     }
@@ -219,14 +106,15 @@ struct CloudMenuContentTests {
         #expect(MachineRowActions.deleteConfirmationTitle(for: blank) == String(format: format, "vm-opaque-16336"))
     }
 
-    @Test("Status item renders machines with a status dot and dimmed state")
+    @Test("The shared AppKit renderer renders a fixture with a status dot and dimmed detail")
     func appKitRendering() throws {
         let recorder = Recorder()
-        let entries = CloudMenuContent.entries(
-            CloudMenuContext(account: .signedIn(Self.account(teams: 1)), machines: [Self.machine("m0")], loadState: .loaded),
-            actions: recorder.actions,
-            layout: .statusItem
-        )
+        let machine = Self.machine("m0")
+        let entries: [CloudMenuEntry] = [.submenu(CloudMenuSubmenu(
+            id: "machine.\(machine.id)", title: machine.displayName,
+            detail: "Fixture ready", tone: CloudMenuTone(machine),
+            children: recorder.machine.submenuEntries(machine)
+        ))]
         let items = CloudMenuAppKitRenderer.items(entries)
         let row = try #require(items.first { $0.identifier?.rawValue == "machine.m0" })
         #expect(row.image != nil)
@@ -325,20 +213,22 @@ struct CloudMenuContentTests {
         #expect(reads.count == 1)
     }
 
-    @Test("An identical rebuild keeps the status item's rows; a visible change replaces them")
+    @Test("Shared entry signatures preserve identical fixtures and detect visible rename or status changes")
     func signatureTracksVisibleChanges() {
         let recorder = Recorder()
-        func entries(_ machines: [MachineSnapshot]) -> [CloudMenuEntry] {
-            CloudMenuContent.entries(
-                CloudMenuContext(account: .signedIn(Self.account(teams: 1)), machines: machines, loadState: .loaded),
-                actions: recorder.actions,
-                layout: .statusItem
-            )
+        func entries(_ machine: MachineSnapshot, detail: String = "Fixture ready") -> [CloudMenuEntry] {
+            [.submenu(CloudMenuSubmenu(
+                id: "machine.\(machine.id)", title: machine.displayName,
+                detail: detail, tone: CloudMenuTone(machine),
+                children: recorder.machine.submenuEntries(machine)
+            ))]
         }
-        let same = CloudMenuEntry.signature(entries([Self.machine("m0")]))
-        #expect(same == CloudMenuEntry.signature(entries([Self.machine("m0")])))
-        let renamed = MachineSnapshot(id: "m0", provider: "freestyle", image: "cmux-devbox", isDesktop: false, activity: .pending, label: "renamed")
-        #expect(same != CloudMenuEntry.signature(entries([renamed])))
+        let same = CloudMenuEntry.signature(entries(Self.machine("m0")))
+        #expect(same == CloudMenuEntry.signature(entries(Self.machine("m0"))))
+        let renamed = MachineSnapshot(id: "m0", provider: "freestyle", image: "cmux-devbox", isDesktop: false, activity: .ready, label: "renamed")
+        #expect(same != CloudMenuEntry.signature(entries(renamed)))
+        let pending = MachineSnapshot(id: "m0", provider: "freestyle", image: "cmux-devbox", isDesktop: false, activity: .pending)
+        #expect(same != CloudMenuEntry.signature(entries(pending, detail: "Fixture pending")))
     }
 
     // MARK: Fixtures
@@ -356,39 +246,19 @@ struct CloudMenuContentTests {
     final class Recorder {
         var log: [String] = []
 
-        var actions: CloudMenuActions {
-            CloudMenuActions(
-                signIn: { self.log.append("signIn") },
-                signOut: { self.log.append("signOut") },
-                selectTeam: { self.log.append("team:\($0)") },
-                newWorkspace: { self.log.append("newWorkspace") },
-                newMachine: { self.log.append("newMachine") },
-                showMachines: { self.log.append("showMachines") },
-                openDashboard: { self.log.append("dashboard") },
-                showDiagnostics: { self.log.append("diagnostics") },
-                upgrade: { self.log.append("upgrade") },
-                retry: { self.log.append("retry") },
-                machine: CloudMachineMenuVerbs(
-                    openShell: { self.log.append("shell:\($0)") },
-                    newWorkspace: { self.log.append("newWorkspace:\($0)") },
-                    openDesktop: { self.log.append("desktop:\($0)") },
-                    runCommand: { self.log.append("run:\($0):\($1.joined(separator: " "))") },
-                    promptRename: { machine in self.log.append("rename:\(machine.id)") },
-                    copyToPasteboard: { self.log.append("copy:\($0)") },
-                    confirmDelete: { self.log.append("delete:\($0.id)") },
-                    promptUpgrade: { self.log.append("upgradeMachine") },
-                    fork: { self.log.append("fork:\($0.id)") }
-                )
+        var machine: CloudMachineMenuVerbs {
+            CloudMachineMenuVerbs(
+                openShell: { self.log.append("shell:\($0)") },
+                newWorkspace: { self.log.append("newWorkspace:\($0)") },
+                openDesktop: { self.log.append("desktop:\($0)") },
+                runCommand: { self.log.append("run:\($0):\($1.joined(separator: " "))") },
+                promptRename: { machine in self.log.append("rename:\(machine.id)") },
+                copyToPasteboard: { self.log.append("copy:\($0)") },
+                confirmDelete: { self.log.append("delete:\($0.id)") },
+                promptUpgrade: { self.log.append("upgradeMachine") },
+                fork: { self.log.append("fork:\($0.id)") }
             )
         }
-    }
-
-    static func account(teams: Int) -> CloudMenuAccount {
-        CloudMenuAccount(
-            email: "dev@example.com",
-            teams: (0..<teams).map { AccountTeamSummary(id: "t\($0)", displayName: "Team \($0)") },
-            selectedTeamID: "t0"
-        )
     }
 
     static func machine(_ id: String, isDesktop: Bool = false) -> MachineSnapshot {
@@ -406,16 +276,6 @@ struct CloudMenuContentTests {
             case .action(let action) where action.id == id: return action
             case .submenu(let submenu): if let found = action(id, in: submenu.children) { return found }
             default: continue
-            }
-        }
-        return nil
-    }
-
-    static func submenu(_ id: String, in entries: [CloudMenuEntry]) -> CloudMenuSubmenu? {
-        for entry in entries {
-            if case .submenu(let submenu) = entry {
-                if submenu.id == id { return submenu }
-                if let found = self.submenu(id, in: submenu.children) { return found }
             }
         }
         return nil

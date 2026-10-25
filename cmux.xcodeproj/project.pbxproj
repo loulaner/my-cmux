@@ -867,9 +867,7 @@
 		95E93CB008517B3E2ABDC326 /* CloudManualMirrorSocketFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF70B0862D206C62CA5ACF65 /* CloudManualMirrorSocketFixture.swift */; };
 		865554BEE843813A69525FC0 /* CloudManualMirrorStartupRenderingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDD2286462BDC54589245BFF /* CloudManualMirrorStartupRenderingTests.swift */; };
 		C11322A10000000000000001 /* CloudManualMirrorTransportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C11322A20000000000000001 /* CloudManualMirrorTransportTests.swift */; };
-		0EBD4FE75B6A5B18E6F0F71D /* CloudMenuContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03E5F492610421C2D48474B6 /* CloudMenuContent.swift */; };
 		F284C2BA21F3AB687A94D749 /* CloudMenuContentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ECDB7FADBB365A2212F1BB0 /* CloudMenuContentTests.swift */; };
-		58D9993D66D29992F3DE7A7B /* CloudMenuEntriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58EEEE4ED164EBC1BD173EE8 /* CloudMenuEntriesView.swift */; };
 		011FABDE1C2CBB93D6800140 /* CloudMenuEntry+AppKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173AE6A7FD97654C130B7BC4 /* CloudMenuEntry+AppKit.swift */; };
 		69C7494695F97E12190FCBD8 /* CloudMenuEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8ACB13AE3FBA6BD011A6EFA5 /* CloudMenuEntry.swift */; };
 		3F25AF9CF5649A2B447734CC /* CloudMenuModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C0532E8633357781BA4293 /* CloudMenuModel.swift */; };
@@ -1881,8 +1879,6 @@
 		B05553C10000000000000001 /* DetachedFolderPathLookupCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B05553C10000000000000002 /* DetachedFolderPathLookupCache.swift */; };
 		B0555303B0555303B0555303 /* DetachedFolderPathLookupCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0555304B0555304B0555304 /* DetachedFolderPathLookupCacheTests.swift */; };
 		21E7C7D21E08EE7353716AEF /* DetectedSSHSession+Workspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3215707A3AC7512495F685AA /* DetectedSSHSession+Workspace.swift */; };
-		CDEFAC0300DEBACE00000004 /* DevBackendStartup+Status.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEFAC0300DEBACE00000003 /* DevBackendStartup+Status.swift */; };
-		CDEFAC0300DEBACE00000002 /* DevBackendStartup.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDEFAC0300DEBACE00000001 /* DevBackendStartup.swift */; };
 				DEC1CE00000000000000000E /* DeviceDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE00000000000000000D /* DeviceDirectory.swift */; };
 		544A4A15A4FB5A6243834ABB /* DeviceDirectoryIdentityIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18FE0EAB7C182A6C89D1F0E2 /* DeviceDirectoryIdentityIndex.swift */; };
 				DECE17900000000000000002 /* DeviceDirectoryLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DECE17900000000000000001 /* DeviceDirectoryLifecycleTests.swift */; };
@@ -5553,9 +5549,7 @@
 		EF70B0862D206C62CA5ACF65 /* CloudManualMirrorSocketFixture.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CloudManualMirrorSocketFixture.swift; sourceTree = "<group>"; };
 		FDD2286462BDC54589245BFF /* CloudManualMirrorStartupRenderingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloudManualMirrorStartupRenderingTests.swift"; sourceTree = "<group>"; };
 		C11322A20000000000000001 /* CloudManualMirrorTransportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudManualMirrorTransportTests.swift; sourceTree = "<group>"; };
-		03E5F492610421C2D48474B6 /* CloudMenuContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudMenuContent.swift; sourceTree = "<group>"; };
 		0ECDB7FADBB365A2212F1BB0 /* CloudMenuContentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloudMenuContentTests.swift"; sourceTree = "<group>"; };
-		58EEEE4ED164EBC1BD173EE8 /* CloudMenuEntriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudMenuEntriesView.swift; sourceTree = "<group>"; };
 		173AE6A7FD97654C130B7BC4 /* CloudMenuEntry+AppKit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloudMenuEntry+AppKit.swift"; sourceTree = "<group>"; };
 		8ACB13AE3FBA6BD011A6EFA5 /* CloudMenuEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudMenuEntry.swift; sourceTree = "<group>"; };
 		A7C0532E8633357781BA4293 /* CloudMenuModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudMenuModel.swift; sourceTree = "<group>"; };
@@ -6434,8 +6428,6 @@
 		B05553C10000000000000002 /* DetachedFolderPathLookupCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetachedFolderPathLookupCache.swift; sourceTree = "<group>"; };
 		B0555304B0555304B0555304 /* DetachedFolderPathLookupCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetachedFolderPathLookupCacheTests.swift; sourceTree = "<group>"; };
 		3215707A3AC7512495F685AA /* DetectedSSHSession+Workspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RemoteTui/DetectedSSHSession+Workspace.swift"; sourceTree = "<group>"; };
-		CDEFAC0300DEBACE00000003 /* DevBackendStartup+Status.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DevBackendStartup+Status.swift"; sourceTree = "<group>"; };
-		CDEFAC0300DEBACE00000001 /* DevBackendStartup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DevBackendStartup.swift"; sourceTree = "<group>"; };
 				DEC1CE00000000000000000D /* DeviceDirectory.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DeviceDirectory.swift"; sourceTree = "<group>"; };
 		18FE0EAB7C182A6C89D1F0E2 /* DeviceDirectoryIdentityIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Devices/DeviceDirectoryIdentityIndex.swift"; sourceTree = SOURCE_ROOT; };
 				DECE17900000000000000001 /* DeviceDirectoryLifecycleTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeviceDirectoryLifecycleTests.swift; sourceTree = "<group>"; };
@@ -9842,8 +9834,6 @@
 				7A0CE1000000000000000052 /* Tunnel */,
 				7A0CE1000000000000000708 /* PortForward */,
 				90586458CDCDE7700CEDE927 /* MachineRowActions.swift */,
-				CDEFAC0300DEBACE00000001 /* DevBackendStartup.swift */,
-				CDEFAC0300DEBACE00000003 /* DevBackendStartup+Status.swift */,
 				333CFD2BE68E128395477836 /* CloudTreeRowHeight.swift */,
 				FB831845720B2F8256DC58DA /* CloudTreePlaceholderContent.swift */,
 				68672B3C63D4E348AFA4DEF7 /* MachinesPanelViewModel.swift */,
@@ -9951,8 +9941,6 @@
 				ED2C0C087F0298473CB156E7 /* MachinesPanelViewModel+MachineDeletion.swift */,
 				E3AF26EAE918E646929A4B58 /* CloudTreeOutlineView+RestoreState.swift */,
 				BBB754F8A2E5D01449E118AC /* CloudMachineMenuVerbs.swift */,
-				03E5F492610421C2D48474B6 /* CloudMenuContent.swift */,
-				58EEEE4ED164EBC1BD173EE8 /* CloudMenuEntriesView.swift */,
 				173AE6A7FD97654C130B7BC4 /* CloudMenuEntry+AppKit.swift */,
 				8ACB13AE3FBA6BD011A6EFA5 /* CloudMenuEntry.swift */,
 				A7C0532E8633357781BA4293 /* CloudMenuModel.swift */,
@@ -15102,8 +15090,6 @@
 				C10DC1000000000000000011 /* CloudMachinesFeature+FeatureFlags.swift in Sources */,
 				A1B2C3D4E5F6071827364951 /* CloudMachineSurfacePresentation.swift in Sources */,
 				C11324810000000000000001 /* CloudManualMirrorMaterialization.swift in Sources */,
-				0EBD4FE75B6A5B18E6F0F71D /* CloudMenuContent.swift in Sources */,
-				58D9993D66D29992F3DE7A7B /* CloudMenuEntriesView.swift in Sources */,
 				011FABDE1C2CBB93D6800140 /* CloudMenuEntry+AppKit.swift in Sources */,
 				69C7494695F97E12190FCBD8 /* CloudMenuEntry.swift in Sources */,
 				3F25AF9CF5649A2B447734CC /* CloudMenuModel.swift in Sources */,
@@ -15503,8 +15489,6 @@
 				A5001F000000000000000001 /* DetachedFolderDragIcon.swift in Sources */,
 				B05553C10000000000000001 /* DetachedFolderPathLookupCache.swift in Sources */,
 				21E7C7D21E08EE7353716AEF /* DetectedSSHSession+Workspace.swift in Sources */,
-				CDEFAC0300DEBACE00000004 /* DevBackendStartup+Status.swift in Sources */,
-				CDEFAC0300DEBACE00000002 /* DevBackendStartup.swift in Sources */,
 				DEC1CE00000000000000000E /* DeviceDirectory.swift in Sources */,
 				544A4A15A4FB5A6243834ABB /* DeviceDirectoryIdentityIndex.swift in Sources */,
 				DEC1CE00000000000000000C /* DeviceDirectoryMerge.swift in Sources */,

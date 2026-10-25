@@ -689,16 +689,6 @@ struct CloudWireGuardHubTests {
     }
 
     @Test
-    func developmentBackendDeadlineWinsOverAHeartbeatStream() async throws {
-        await #expect(throws: URLError.self) {
-            _ = try await DevBackendStartup.withDeadline(.milliseconds(1)) {
-                try await Task.sleep(for: .seconds(30))
-                return true
-            }
-        }
-    }
-
-    @Test
     func spawnFailureSurfacesAsHubError() async throws {
         let h = makeHarness(backoff: [])
         h.spawner.failNextSpawn = true
