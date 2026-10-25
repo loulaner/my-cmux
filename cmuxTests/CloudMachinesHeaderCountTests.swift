@@ -39,26 +39,6 @@ struct CloudMachinesHeaderCountTests {
         #expect(CloudTreeRowContentView.groupCount(for: .cloudMachinesSection(canCreateMachine: true)) == nil)
     }
 
-    // The header still measures both team-name layout candidates. Measuring
-    // their ideal widths needs no accessibility client, unlike reading the
-    // SwiftUI tree.
-    @Test("Narrow Cloud headers move machine actions into one overflow menu")
-    func narrowHeaderCollapsesMachineActions() async throws {
-        let inline = try await idealRowWidth(.inline, teamName: Self.longTeamName)
-        #expect(inline > Self.barContentWidth(220),
-                "The inline row (\(inline)pt) fits a 220pt sidebar, so the overflow menu never shows")
-    }
-
-    @Test("A wide Cloud header keeps its action row stable")
-    func wideHeaderKeepsActionRowStable() async throws {
-        let inline = try await idealRowWidth(.inline, teamName: "Team A")
-        #expect(inline <= Self.barContentWidth(420),
-                "The header action row (\(inline)pt) overflows a 420pt sidebar")
-        let overflow = try await idealRowWidth(.overflowMenu, teamName: "Team A")
-        #expect(overflow <= inline,
-                "The overflow menu should be no wider than the inline action row")
-    }
-
     @Test("A free plan at its limit turns orange and names the upgrade", arguments: [
         (1, "Your plan includes 1 machine. Upgrade to create more."),
         (50, "Your plan includes 50 machines. Upgrade to create more."),
@@ -199,30 +179,21 @@ struct CloudMachinesHeaderCountTests {
                 "The count was clipped: \(narrow.count) at 160pt, \(roomy.count) at 380pt")
     }
 
-    @Test("An empty status adds no row under the Cloud toolbar")
-    func emptyStatusAddsNoGap() {
-        let height = headerHeight { EmptyView() }
-        #expect(abs(height - RightSidebarChromeMetrics.secondaryBarHeight) <= 0.5,
-                "Header is \(height)pt; the toolbar alone is \(RightSidebarChromeMetrics.secondaryBarHeight)pt")
-    }
-
-    @Test("An idle fleet status adds no row under the Cloud toolbar")
+    @Test("An idle fleet status has no height")
     func idleFleetStatusAddsNoGap() {
-        let height = headerHeight { fleetStatus() }
-        #expect(abs(height - RightSidebarChromeMetrics.secondaryBarHeight) <= 0.5,
-                "Header is \(height)pt; the toolbar alone is \(RightSidebarChromeMetrics.secondaryBarHeight)pt")
+        let height = NSHostingView(rootView: fleetStatus()).fittingSize.height
+        #expect(abs(height) <= 0.5,
+                "Idle fleet status is \(height)pt")
     }
 
-    @Test("Persistent list status and tree errors keep their row", arguments: ["listStatus", "treeError"])
+    @Test("Persistent list status and tree errors keep the status component visible", arguments: ["listStatus", "treeError"])
     func fleetStatusStillShows(message: String) {
-        let height = headerHeight {
-            fleetStatus(
-                listStatus: message == "listStatus" ? .reconnecting : nil,
-                treeError: message == "treeError" ? "Cloud tree unavailable" : nil
-            )
-        }
-        #expect(height >= RightSidebarChromeMetrics.secondaryBarHeight + 8,
-                "The \(message) row is missing: header is \(height)pt")
+        let height = NSHostingView(rootView: fleetStatus(
+            listStatus: message == "listStatus" ? .reconnecting : nil,
+            treeError: message == "treeError" ? "Cloud tree unavailable" : nil
+        )).fittingSize.height
+        #expect(height >= 8,
+                "The \(message) status component is missing: height is \(height)pt")
     }
 
     private func fleetStatus(
@@ -231,14 +202,6 @@ struct CloudMachinesHeaderCountTests {
         MachinesCloudStatus(listStatus: listStatus, listError: nil,
                             treeError: treeError, onDismissStale: { _ in }, onDismissTreeError: { _ in },
                             performListStatusAction: { _ in })
-    }
-
-    private func headerHeight<Status: View>(@ViewBuilder status: @escaping () -> Status) -> CGFloat {
-        NSHostingView(rootView: CloudTeamPickerHeader(
-            accountFlow: nil, presentation: nil, chromeBackgroundColor: .windowBackgroundColor,
-            isRefreshing: false, onRefresh: {}, onNewMachine: {},
-            status: status
-        )).fittingSize.height
     }
 
     /// The mounted header cell only; never makes a fresh one that would read current state.
@@ -291,26 +254,6 @@ struct CloudMachinesHeaderCountTests {
         guard let first = columns.first, let last = columns.last else { return nil }
         let scale = CGFloat(width) / view.bounds.width
         return CGFloat(first) / scale...CGFloat(last + 1) / scale
-    }
-
-    private static let longTeamName = "Team with a long name for the narrow Cloud sidebar"
-
-    /// The width the header's `ViewThatFits` gets inside a sidebar `width` points wide.
-    private static func barContentWidth(_ width: CGFloat) -> CGFloat {
-        width - 2 * RightSidebarChromeMetrics.barHorizontalPadding
-    }
-
-    /// The ideal width of one candidate header row, the size `ViewThatFits` compares.
-    private func idealRowWidth(_ actions: CloudHeaderMachineActions, teamName: String) async throws -> CGFloat {
-        _ = NSApplication.shared
-        let flow = try await HostAccountFlow.makeForTeamChangeTests(client: TeamChangeAuthClient(firstTeamName: teamName))
-        let header = CloudTeamPickerHeader(
-            accountFlow: flow, presentation: nil, chromeBackgroundColor: .windowBackgroundColor,
-            isRefreshing: false, onRefresh: {}, onNewMachine: {},
-            status: { EmptyView() }
-        )
-        let row = NSHostingView(rootView: header.actionsRow(actions, picker: CloudTeamPickerPresentation()).fixedSize())
-        return row.fittingSize.width
     }
 
     private func headerCell(usage: CloudMachinesUsage) -> CloudTreeCellView {
