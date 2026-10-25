@@ -2582,6 +2582,7 @@
 		F2100000000000000000000D /* MobileBrowserWireEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1100000000000000000000D /* MobileBrowserWireEncoder.swift */; };
 		FB306C4A24E5F51F8F8E87D3 /* MobileDirectAcceptanceTerminal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 371813451F992E61AE68D2C6 /* MobileDirectAcceptanceTerminal.swift */; };
 		B77061324D1708292860392B /* MobileDirectMacAcceptanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AE9C2AB10BA7E1254217100 /* MobileDirectMacAcceptanceTests.swift */; };
+		E5C4BFAB127536812CFC4A47 /* MobileFileTransferPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 607A4FF2F8D6FAC84C6EB1CD /* MobileFileTransferPolicyTests.swift */; };
 		C1A070000000000000000001 /* MobileHostAuthorizationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A070000000000000000011 /* MobileHostAuthorizationSupport.swift */; };
 		6AA2F2E8BEB19ED6B8E125DB /* MobileHostAuthorizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD519CFE74530A46DF0925D /* MobileHostAuthorizationTests.swift */; };
 		C1A071000000000000000002 /* MobileHostConnectionEventLaneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A071000000000000000012 /* MobileHostConnectionEventLaneTests.swift */; };
@@ -7102,6 +7103,7 @@
 		F1100000000000000000000D /* MobileBrowserWireEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileBrowserWireEncoder.swift; sourceTree = "<group>"; };
 		371813451F992E61AE68D2C6 /* MobileDirectAcceptanceTerminal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MobileDirectAcceptanceTerminal.swift"; sourceTree = "<group>"; };
 		7AE9C2AB10BA7E1254217100 /* MobileDirectMacAcceptanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MobileDirectMacAcceptanceTests.swift"; sourceTree = "<group>"; };
+		607A4FF2F8D6FAC84C6EB1CD /* MobileFileTransferPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MobileFileTransferPolicyTests.swift"; sourceTree = "<group>"; };
 		C1A070000000000000000011 /* MobileHostAuthorizationSupport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MobileHostAuthorizationSupport.swift; sourceTree = "<group>"; };
 		9BD519CFE74530A46DF0925D /* MobileHostAuthorizationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MobileHostAuthorizationTests.swift; sourceTree = "<group>"; };
 		C1A071000000000000000012 /* MobileHostConnectionEventLaneTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MobileHostConnectionEventLaneTests.swift; sourceTree = "<group>"; };
@@ -13778,6 +13780,7 @@
 				1D4BD5979B9ED49CA1A0EBC4 /* MacPairedMacBackupRecordWireTests.swift */,
 				CDC5BB14919E79D131948949 /* PresenceServiceEndpointTests.swift */,
 				596FEC1D39F600E76CC47CD8 /* MacAuthCompositionLaunchOptionsTests.swift */,
+				607A4FF2F8D6FAC84C6EB1CD /* MobileFileTransferPolicyTests.swift */,
 			);
 			path = cmuxTests;
 			sourceTree = "<group>";
@@ -18410,6 +18413,7 @@
 					C0DE70520000000000000002 /* MenuBarProfilingLauncherTests.swift in Sources */,
 				FB306C4A24E5F51F8F8E87D3 /* MobileDirectAcceptanceTerminal.swift in Sources */,
 				B77061324D1708292860392B /* MobileDirectMacAcceptanceTests.swift in Sources */,
+				E5C4BFAB127536812CFC4A47 /* MobileFileTransferPolicyTests.swift in Sources */,
 				6AA2F2E8BEB19ED6B8E125DB /* MobileHostAuthorizationTests.swift in Sources */,
 				C1A071000000000000000002 /* MobileHostConnectionEventLaneTests.swift in Sources */,
 				C1A071000000000000000003 /* MobileHostConnectionLifecycleTests.swift in Sources */,

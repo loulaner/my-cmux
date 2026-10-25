@@ -16561,6 +16561,7 @@ class TerminalController {
     /// local clipboard-image paste does, so the running TUI (e.g. Claude Code)
     /// attaches the image from the path.
     func v2MobileTerminalPasteImage(params: [String: Any]) -> V2CallResult {
+        if let error = Self.mobileFileTransferPolicyError() { return error }
         guard let base64 = v2RawString(params, "image_base64"),
               let imageData = Data(base64Encoded: base64), !imageData.isEmpty else {
             return .err(code: "invalid_params", message: "Missing or invalid image_base64", data: nil)
