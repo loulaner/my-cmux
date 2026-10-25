@@ -3,12 +3,17 @@ import CmuxControlSocket
 import Foundation
 
 extension TerminalController {
-    /// Returns the shared refusal before any mobile file upload work begins.
+    /// The refusal for a mobile file transfer already denied by policy.
+    static var mobileFileTransferDisabledResult: V2CallResult {
+        return .err(code: "file_transfer_disabled", message: ManagedFileTransferPolicy.disabledMessage, data: nil)
+    }
+
+    /// Returns the shared refusal before any mobile file transfer work begins.
     static func mobileFileTransferPolicyError(
         isDisabled: Bool = ManagedFileTransferPolicy.isDisabled
     ) -> V2CallResult? {
         guard isDisabled else { return nil }
-        return .err(code: "file_transfer_disabled", message: ManagedFileTransferPolicy.disabledMessage, data: nil)
+        return mobileFileTransferDisabledResult
     }
 
     /// Handles one `mobile.task.attachment.upload` chunk.

@@ -1,3 +1,4 @@
+import CmuxCloud
 import CMUXMobileCore
 import CmuxAgentChat
 import CmuxControlSocket
@@ -241,6 +242,7 @@ extension TerminalController {
         params: [String: Any],
         executionContext: MobileHostRPCExecutionContext? = nil
     ) async -> V2CallResult {
+        if let error = Self.mobileFileTransferPolicyError() { return error }
         let resolution = mobilePanelArtifactCanonicalPath(params: params)
         guard let canonicalPath = resolution.canonicalPath else {
             return resolution.failure ?? mobilePanelArtifactInternalError()
@@ -271,7 +273,10 @@ extension TerminalController {
                     length: length
                 )
             }.value
+            if let error = Self.mobileFileTransferPolicyError() { return error }
             return mobilePanelArtifactResult(chunk)
+        } catch where ManagedFileTransferPolicy.isRefusal(error) {
+            return Self.mobileFileTransferDisabledResult
         } catch let error as MobileHostIrohArtifactTransferRegistry.Error {
             switch error.issueFailure {
             case .fileNotFound:

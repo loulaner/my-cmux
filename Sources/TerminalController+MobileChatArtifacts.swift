@@ -1,3 +1,4 @@
+import CmuxCloud
 import CmuxAgentChat
 import CmuxMobileHost
 import CmuxSettings
@@ -151,10 +152,12 @@ extension TerminalController {
         params: [String: Any],
         executionContext: MobileHostRPCExecutionContext? = nil
     ) async -> V2CallResult {
+        if let error = Self.mobileFileTransferPolicyError() { return error }
         let resolution = await mobileChatArtifactResolution(params: params, operation: .file)
         guard case .success(let resolved) = resolution else {
             return resolution.failureResult
         }
+        if let error = Self.mobileFileTransferPolicyError() { return error }
         let offset = max(0, Int64(v2Int(params, "offset") ?? 0))
         let length = ChatArtifactTransferPolicy.defaultPolicy
             .clampedChunkLength(v2Int(params, "length"))
@@ -179,7 +182,10 @@ extension TerminalController {
             let chunk = try await Task.detached {
                 try ArtifactByteReader().fetch(path: resolved.canonicalPath, offset: offset, length: length)
             }.value
+            if let error = Self.mobileFileTransferPolicyError() { return error }
             return ChatArtifactWire.result(chunk)
+        } catch where ManagedFileTransferPolicy.isRefusal(error) {
+            return Self.mobileFileTransferDisabledResult
         } catch let error as MobileHostIrohArtifactTransferRegistry.Error {
             switch error.issueFailure {
             case .fileNotFound:

@@ -1,4 +1,5 @@
 import CMUXMobileCore
+import CmuxCloud
 import CmuxAgentChat
 import CmuxIrohTransport
 @testable import CmuxMobileHost
@@ -539,6 +540,77 @@ extension MobileHostAuthorizationTests {
         )
     }
 
+    @Test func testArtifactPolicyRefusesBeforeInvalidIssueAndClaim() async throws {
+        let registry = MobileHostIrohArtifactTransferRegistry(isFileTransferDisabled: { true })
+        let peer = try irohPeer(endpointCharacter: "a")
+        do {
+            _ = try await registry.issue(canonicalPath: "/nonexistent-policy-fixture", peer: peer)
+            Issue.record("Disabled issue must refuse before path access")
+        } catch {
+            #expect(ManagedFileTransferPolicy.isRefusal(error))
+        }
+        do {
+            _ = try await registry.claim(resourceID: CmxIrohResourceID("artifact:unknown"), offset: 0, peer: peer)
+            Issue.record("Disabled claim must refuse before resource lookup")
+        } catch {
+            #expect(ManagedFileTransferPolicy.isRefusal(error))
+        }
+    }
+
+    @Test func testArtifactPolicyCheckerReadsEveryDecision() async throws {
+        let policy = MobileArtifactPolicyTestSwitch()
+        let registry = MobileHostIrohArtifactTransferRegistry(isFileTransferDisabled: { policy.disabled })
+        for disabled in [true, false, true, false] {
+            policy.setDisabled(disabled)
+            do {
+                try await registry.checkFileTransferPolicy()
+                #expect(!disabled)
+            } catch {
+                #expect(disabled)
+                #expect(ManagedFileTransferPolicy.isRefusal(error))
+            }
+        }
+    }
+
+    @Test func testArtifactPolicyPausePreservesClaimBudgetAndScope() async throws {
+        let fixture = try MobileHostIrohArtifactFixture(contents: Data("abcdef".utf8))
+        defer { fixture.remove() }
+        let policy = MobileArtifactPolicyTestSwitch()
+        let clock = MobileHostIrohArtifactTestClock(now: Date(timeIntervalSince1970: 1_700_000_000))
+        let resourceID = try CmxIrohResourceID("artifact:policy-budget")
+        let registry = MobileHostIrohArtifactTransferRegistry(
+            timeToLive: 60, now: { clock.now }, resourceID: { resourceID },
+            isFileTransferDisabled: { policy.disabled }
+        )
+        let peer = try irohPeer(endpointCharacter: "a")
+        let otherPeer = try irohPeer(endpointCharacter: "b")
+        _ = try await registry.issue(canonicalPath: fixture.path, peer: peer)
+        policy.setDisabled(true)
+        for _ in 0..<10 {
+            do {
+                _ = try await registry.claim(resourceID: resourceID, offset: 0, peer: peer)
+                Issue.record("Paused claims must refuse without consuming budget")
+            } catch {
+                #expect(ManagedFileTransferPolicy.isRefusal(error))
+            }
+        }
+        policy.setDisabled(false)
+        await #expect(throws: MobileHostIrohArtifactTransferRegistry.Error.peerMismatch) {
+            try await registry.claim(resourceID: resourceID, offset: 0, peer: otherPeer)
+        }
+        for _ in 0..<8 {
+            let lease = try await registry.claim(resourceID: resourceID, offset: 0, peer: peer)
+            await registry.release(lease)
+        }
+        await #expect(throws: MobileHostIrohArtifactTransferRegistry.Error.resumeLimitExceeded) {
+            try await registry.claim(resourceID: resourceID, offset: 0, peer: peer)
+        }
+        clock.advance(by: 61)
+        await #expect(throws: MobileHostIrohArtifactTransferRegistry.Error.expired) {
+            try await registry.claim(resourceID: resourceID, offset: 0, peer: peer)
+        }
+    }
+
     @Test func testIrohArtifactDescriptorRejectsSpecialFilesWithoutBlocking() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
             "cmux-iroh-artifact-fifo-\(UUID().uuidString)",
@@ -794,6 +866,18 @@ extension MobileHostAuthorizationTests {
             identityGeneration: 1
         )
         return .irohAdmission(CmxIrohAdmittedPeer(peer: peer))
+    }
+}
+
+// The synchronous @Sendable policy closure needs a lock-protected test-only value.
+private final class MobileArtifactPolicyTestSwitch: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+
+    var disabled: Bool { lock.withLock { value } }
+
+    func setDisabled(_ disabled: Bool) {
+        lock.withLock { value = disabled }
     }
 }
 

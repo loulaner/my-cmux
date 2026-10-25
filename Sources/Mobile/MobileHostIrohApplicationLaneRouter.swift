@@ -1,4 +1,5 @@
 import CMUXMobileCore
+import CmuxCloud
 import CmuxAgentChat
 import CmuxIrohTransport
 import CmuxIrxTransport
@@ -130,6 +131,7 @@ actor MobileHostIrohArtifactTransferRegistry {
     private static let maximumSerialClaimCount = 8
     private static let defaultTimeToLive: TimeInterval = 5 * 60
 
+    private let isFileTransferDisabled: @Sendable () -> Bool
     private let timeToLive: TimeInterval
     private let now: @Sendable () -> Date
     private let resourceID: @Sendable () throws -> CmxIrohResourceID
@@ -146,17 +148,26 @@ actor MobileHostIrohArtifactTransferRegistry {
                 .replacingOccurrences(of: "-", with: "")
                 .lowercased()
             return try CmxIrohResourceID("artifact:\(token)")
-        }
+        },
+        isFileTransferDisabled: @escaping @Sendable () -> Bool = { ManagedFileTransferPolicy.isDisabled }
     ) {
         self.timeToLive = max(1, timeToLive)
         self.now = now
         self.resourceID = resourceID
+        self.isFileTransferDisabled = isFileTransferDisabled
+    }
+
+    func checkFileTransferPolicy() throws {
+        if isFileTransferDisabled() {
+            throw ManagedFileTransferPolicy.refusalError()
+        }
     }
 
     func issue(
         canonicalPath: String,
         peer: CmxIrohAdmittedPeer
     ) throws -> ChatArtifactLaneDescriptor {
+        try checkFileTransferPolicy()
         let currentTime = now()
         pruneExpired(at: currentTime)
         guard entries.count < Self.maximumEntryCount else {
@@ -191,6 +202,7 @@ actor MobileHostIrohArtifactTransferRegistry {
         offset: UInt64,
         peer: CmxIrohAdmittedPeer
     ) throws -> Lease {
+        try checkFileTransferPolicy()
         let currentTime = now()
         guard var entry = entries[resourceID] else { throw Error.unknownResource }
         guard entry.expiresAt > currentTime else {
@@ -409,6 +421,7 @@ struct MobileHostIrohArtifactLaneHandler: MobileHostIrohArtifactLaneHandling {
         }
 
         do {
+            try await registry.checkFileTransferPolicy()
             let reader = try MobileHostIrohArtifactDispatchReader(path: lease.canonicalPath)
             defer { reader.close() }
             guard try reader.snapshot() == lease.identity else {
@@ -420,6 +433,7 @@ struct MobileHostIrohArtifactLaneHandler: MobileHostIrohArtifactLaneHandling {
             var readOffset = lease.offset
             while readOffset < totalSize {
                 try Task.checkCancellation()
+                try await registry.checkFileTransferPolicy()
                 let remainingByteCount = totalSize - readOffset
                 let readByteCount = Int(min(
                     UInt64(Self.chunkByteCount),
@@ -433,6 +447,7 @@ struct MobileHostIrohArtifactLaneHandler: MobileHostIrohArtifactLaneHandling {
                     throw MobileHostIrohArtifactTransferRegistry.Error.invalidFile
                 }
                 try Task.checkCancellation()
+                try await registry.checkFileTransferPolicy()
                 try await stream.sendStream.send(data)
                 readOffset += UInt64(data.count)
             }
@@ -440,6 +455,7 @@ struct MobileHostIrohArtifactLaneHandler: MobileHostIrohArtifactLaneHandling {
             guard try reader.snapshot() == lease.identity else {
                 throw MobileHostIrohArtifactTransferRegistry.Error.invalidFile
             }
+            try await registry.checkFileTransferPolicy()
             try await stream.sendStream.finish()
         } catch is CancellationError {
             await stream.sendStream.reset(errorCode: 0)
