@@ -524,14 +524,6 @@ struct MachinesPanelView: View {
                 Text(String(localized: "machines.empty.title", defaultValue: "No machines yet"))
                     .cmuxFont(size: 13, weight: .semibold)
                     .foregroundColor(.primary.opacity(0.85))
-                Text(String(
-                    localized: "machines.empty.subtitle",
-                    defaultValue: "A machine is a persistent cloud computer. It keeps your files forever and costs nothing while it sleeps."
-                ))
-                .cmuxFont(size: 12)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 28)
                 Button {
                     requestNewMachine()
                 } label: {
@@ -541,19 +533,7 @@ struct MachinesPanelView: View {
                 .cloudProminentButtonStyle()
                 .controlSize(.small)
                 .padding(.top, 2)
-                if let plan = viewModel.plan, !plan.isPaidPlan {
-                    // The upgrade nudge under the create button: same Pro flow
-                    // as the header count's at-limit tooltip and the ＋ at the ceiling.
-                    Button {
-                        ProUpgradePresenter.present(source: .machinesPanelUpgradeNudge)
-                    } label: {
-                        Text(upgradeNudgeLabel(plan))
-                            .cmuxFont(size: 11)
-                            .foregroundColor(.secondary.opacity(0.7))
-                            .underline()
-                    }
-                    .buttonStyle(.plain)
-                } else if let plan = viewModel.plan {
+                if let plan = viewModel.plan, plan.isPaidPlan {
                     Text(planIncludesLabel(plan))
                         .cmuxFont(size: 11)
                         .foregroundColor(.secondary.opacity(0.7))
@@ -567,29 +547,6 @@ struct MachinesPanelView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityIdentifier("CloudMachinesEmptyState")
         .cloudErrorCopyMenu(String(localized: "cloud.operation.failedAction", defaultValue: "This operation did not complete. Check the machine state before you try it again."))
-    }
-
-    /// Free plans: "Upgrade to use more than 1 machine" — the ceiling plus the
-    /// way past it in one line. A plan with no machines at all has no ceiling
-    /// to cite: upgrading is what grants access in the first place (the paid
-    /// allowance itself is stated on /pricing, not guessed here).
-    private func upgradeNudgeLabel(_ plan: MachinePlanSnapshot) -> String {
-        guard let maxActiveVms = plan.maxActiveVms, maxActiveVms > 0 else {
-            return String(
-                localized: "machines.empty.upgrade.none",
-                defaultValue: "Subscribe to cmux Pro to create Cloud machines"
-            )
-        }
-        if plan.isSingleMachinePlan {
-            return String(
-                localized: "machines.empty.upgrade.single",
-                defaultValue: "Upgrade to use more than 1 machine"
-            )
-        }
-        return String(
-            format: String(localized: "machines.empty.upgrade", defaultValue: "Upgrade to use more than %d machines"),
-            maxActiveVms
-        )
     }
 
     /// Paid plans: "Your plan includes 5 machines" under the create button,

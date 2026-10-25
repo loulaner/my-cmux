@@ -29,7 +29,6 @@ struct MachinesPanelBanners: View {
             MachinesFreeAccessBanner(
                 text: text,
                 isExpired: plan.freeAccessBanner == .expired,
-                windowDays: plan.freeAccessWindowDays,
                 backgroundColor: chromeBackgroundColor,
                 onDismiss: {
                     bannerDismissals.dismiss(id: "machines.free-access", signature: plan.freeAccessBanner.dismissalSignature)
