@@ -183,8 +183,8 @@ final class MachinesPanelModelTests: XCTestCase {
         XCTAssertEqual(RightSidebarMode.from(cliArgument: "vms"), .machines)
         XCTAssertTrue(RightSidebarMode.machines.canOpenAsPane)
 
-        // Availability follows the Cloud VM UI flag, independent of feed/dock.
-        XCTAssertTrue(
+        // The historical mode remains decodable, independent of current Cloud capabilities.
+        XCTAssertFalse(
             RightSidebarMode.machines.isAvailable(feedEnabled: false, machinesEnabled: true)
         )
         XCTAssertFalse(
@@ -192,7 +192,7 @@ final class MachinesPanelModelTests: XCTestCase {
         )
         XCTAssertEqual(
             RightSidebarMode.availableModes(feedEnabled: false, machinesEnabled: true),
-            [.files, .find, .sessions, .dock, .machines]
+            [.files, .find, .sessions, .dock]
         )
         XCTAssertEqual(
             RightSidebarMode.availableModes(feedEnabled: false, machinesEnabled: false),

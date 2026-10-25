@@ -1,6 +1,6 @@
 import CmuxCloud
 import AppKit
-import CmuxCloud
+import CmuxSettingsUI
 
 extension AppDelegate {
     @MainActor
@@ -13,15 +13,14 @@ extension AppDelegate {
         return true
     }
 
-    /// Reveals the active window's Cloud panel and requests its team menu.
+    /// Navigates to Account settings, where the existing Active Team picker lives.
     @MainActor
     @discardableResult
     func openCloudTeamPicker(
         preferredWindow: NSWindow? = nil,
         debugSource: String
     ) -> Bool {
-        guard CloudMachinesFeature.isEnabled,
-              RightSidebarMode.machines.isAvailable() else {
+        guard CloudMachinesFeature.isEnabled else {
             let alert = NSAlert()
             alert.messageText = String(localized: "command.auth.teamPicker.title", defaultValue: "Open Team Picker")
             alert.informativeText = CloudMachinesFeature.disabledMessage
@@ -35,47 +34,25 @@ extension AppDelegate {
             return false
         }
 
-        guard let context = preferredRegisteredMainWindowContext(preferredWindow: preferredWindow),
-              let state = context.fileExplorerState else {
-            NSSound.beep()
-            return false
-        }
-
-        state.mode = .machines
-        state.setVisible(true)
-        _ = focusRightSidebarInActiveMainWindow(
-            mode: .machines,
-            focusFirstItem: false,
-            preferredWindow: context.window ?? preferredWindow
-        )
-        state.cloudTeamPickerPresentation.isPresented = auth?.accountFlow.isAuthenticated == true
+        SettingsWindowPresenter.show(navigationTarget: .account)
+        SettingsNavigationRequest.post(.account, anchorID: "setting:account:account", highlight: true)
 #if DEBUG
         cmuxDebugLog("cloud.teamPicker.open source=\(debugSource)")
 #endif
         return true
     }
 
-    /// Reveals the active window's Cloud panel and opens the Invite popover
-    /// on its header button. Shared by the palette, the socket and
-    /// ``HostAccountFlow/showTeamInvite(preferredWindow:)``.
+    /// Opens the existing invitation composer in Account settings.
     @MainActor
     @discardableResult
     func openCloudTeamInvite(preferredWindow: NSWindow? = nil, debugSource: String) -> Bool {
-        guard CloudMachinesFeature.isEnabled, RightSidebarMode.machines.isAvailable(),
-              let context = preferredRegisteredMainWindowContext(preferredWindow: preferredWindow),
-              let state = context.fileExplorerState else {
+        guard CloudMachinesFeature.isEnabled,
+              let flow = auth?.accountFlow,
+              flow.isAuthenticated, flow.confirmedTeamID != nil else {
             NSSound.beep()
             return false
         }
-        state.mode = .machines
-        state.setVisible(true)
-        _ = focusRightSidebarInActiveMainWindow(
-            mode: .machines,
-            focusFirstItem: false,
-            preferredWindow: context.window ?? preferredWindow
-        )
-        state.cloudTeamPickerPresentation.isPresented = false
-        state.cloudTeamPickerPresentation.isInvitePresented = auth?.accountFlow.isAuthenticated == true
+        flow.showTeamMembers(focusInvite: true)
 #if DEBUG
         cmuxDebugLog("cloud.teamInvite.open source=\(debugSource)")
 #endif

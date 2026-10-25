@@ -10,6 +10,13 @@ enum RightSidebarMode: String, CaseIterable, Codable, Sendable {
     case machines
     case customSidebar = "custom-sidebar"
 
+    /// Historical identifiers remain decodable but cannot open new tools.
+    var isRetired: Bool { self == .machines }
+
+    static var retiredToolMessage: String {
+        String(localized: "rightSidebar.tool.retired", defaultValue: "This sidebar tool is no longer available.")
+    }
+
     var label: String {
         switch self {
         case .files: return String(localized: "rightSidebar.mode.files", defaultValue: "Files")

@@ -163,6 +163,11 @@ final class HiveComputersService {
     }
 
     func open(_ id: String) async {
+        if RightSidebarMode.machines.isRetired {
+            error = RightSidebarMode.retiredToolMessage
+            publish()
+            return
+        }
         guard let instance = SurfaceDeviceInstanceID(wireValue: id),
               let provider = registry.provider(for: instance),
               isPaired(instance) || provider.link.isConnected else { return }

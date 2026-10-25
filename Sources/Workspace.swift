@@ -2327,12 +2327,9 @@ extension Workspace {
             return filePreviewPanel.id
         case .rightSidebarTool:
             guard let mode = snapshot.rightSidebarTool?.mode,
-                  mode.canOpenAsPane,
-                  mode.isAvailable(),
-                  let toolPanel = newRightSidebarToolSurface(
+                  let toolPanel = restoreRightSidebarToolSurface(
                     inPane: paneId,
-                    mode: mode,
-                    focus: false
+                    mode: mode
                   ) else {
                 return nil
             }
@@ -10950,6 +10947,25 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
     ) -> RightSidebarToolPanel? {
         guard !isRetiredFromOwningTabManager else { return nil }
         guard mode.canOpenAsPane, mode.isAvailable() else { return nil }
+        return createRightSidebarToolSurface(inPane: paneId, mode: mode, focus: focus, targetIndex: targetIndex)
+    }
+
+    /// Only session restoration may retain a retired tool's historical panel.
+    private func restoreRightSidebarToolSurface(
+        inPane paneId: PaneID,
+        mode: RightSidebarMode
+    ) -> RightSidebarToolPanel? {
+        guard mode.canOpenAsPane, mode.isAvailable() || mode.isRetired else { return nil }
+        return createRightSidebarToolSurface(inPane: paneId, mode: mode, focus: false)
+    }
+
+    private func createRightSidebarToolSurface(
+        inPane paneId: PaneID,
+        mode: RightSidebarMode,
+        focus: Bool?,
+        targetIndex: Int? = nil
+    ) -> RightSidebarToolPanel? {
+        guard !isRetiredFromOwningTabManager else { return nil }
         let shouldFocusNewTab = focus ?? (bonsplitController.focusedPaneId == paneId)
         let previousFocusedPanelId = focusedPanelId
         let previousHostedView = focusedTerminalInputTarget()?.panel.hostedView

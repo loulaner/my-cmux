@@ -29,7 +29,7 @@ struct DevicesSidebarModeTests {
         defaults.set(true, forKey: DevicesCatalogSection().incomingAccessEnabled.userDefaultsKey)
         #expect(!DevicesFeature.isDiscoveryEnabled(defaults: defaults))
         #expect(!MobileRemoteControlPolicy.allowsIncomingAccess(defaults: defaults))
-        #expect(RightSidebarMode.availableModes(defaults: defaults).contains(.machines))
+        #expect(!RightSidebarMode.availableModes(defaults: defaults).contains(.machines))
     }
 
     @Test("Enabling Cloud alone does not opt a fresh install into Mac discovery or hosting")
@@ -69,7 +69,7 @@ struct DevicesSidebarModeTests {
         #expect(!MobileRemoteControlPolicy.allowsIncomingAccess(defaults: defaults, cloudEnabled: enabled))
     }
 
-    @Test("Device aliases open the same Cloud sidebar")
+    @Test("Device aliases retain the historical Cloud mode")
     func cliArgument() {
         #expect(RightSidebarMode.from(cliArgument: "devices") == .machines)
         #expect(RightSidebarMode.from(cliArgument: "device") == .machines)
@@ -81,14 +81,27 @@ struct DevicesSidebarModeTests {
         #expect(RightSidebarMode.machines.canOpenAsPane)
     }
 
-    @Test("Cloud availability gates both machine sources")
+    @Test(arguments: [false, true], [false, true])
+    func retirementIgnoresFeatureInputs(feed: Bool, machines: Bool) {
+        for devices in [false, true] {
+            #expect(RightSidebarMode.machines.isRetired)
+            #expect(!RightSidebarMode.machines.isAvailable(feedEnabled: feed, machinesEnabled: machines, devicesEnabled: devices))
+            #expect(RightSidebarMode.feed.isAvailable(feedEnabled: feed, machinesEnabled: machines, devicesEnabled: devices) == feed)
+            for mode in [RightSidebarMode.files, .find, .sessions, .dock] {
+                #expect(!mode.isRetired)
+                #expect(mode.isAvailable(feedEnabled: feed, machinesEnabled: machines, devicesEnabled: devices))
+            }
+        }
+    }
+
+    @Test("Retired Cloud mode stays unavailable for either machine source")
     func availability() {
-        #expect(RightSidebarMode.machines.isAvailable(feedEnabled: true, machinesEnabled: true, devicesEnabled: false))
+        #expect(!RightSidebarMode.machines.isAvailable(feedEnabled: true, machinesEnabled: true, devicesEnabled: false))
         #expect(!RightSidebarMode.machines.isAvailable(feedEnabled: false, machinesEnabled: false, devicesEnabled: true))
         #expect(RightSidebarMode.machines.isAvailable(feedEnabled: false, machinesEnabled: false) == false, "callers that predate Devices see it hidden")
         #expect(
             RightSidebarMode.availableModes(feedEnabled: false, machinesEnabled: true, devicesEnabled: true)
-                == [.files, .find, .sessions, .dock, .machines]
+                == [.files, .find, .sessions, .dock]
         )
         #expect(
             RightSidebarMode.availableModes(feedEnabled: true, machinesEnabled: false, devicesEnabled: true)
@@ -96,7 +109,7 @@ struct DevicesSidebarModeTests {
         )
         #expect(
             RightSidebarMode.availableModes(feedEnabled: false, machinesEnabled: true)
-                == [.files, .find, .sessions, .dock, .machines]
+                == [.files, .find, .sessions, .dock]
         )
     }
 

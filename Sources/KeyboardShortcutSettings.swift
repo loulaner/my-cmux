@@ -515,7 +515,7 @@ enum KeyboardShortcutSettings {
             case .switchRightSidebarToDock:
                 return KeyboardShortcutSettings.rightSidebarPositionalDefaultShortcut(for: .dock)
             case .switchRightSidebarToMachines:
-                return KeyboardShortcutSettings.rightSidebarPositionalDefaultShortcut(for: .machines)
+                return .unbound
             case .triggerFlash:
                 return StoredShortcut(key: "h", command: true, shift: true, option: false, control: false)
             case .nextSidebarTab:

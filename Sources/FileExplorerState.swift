@@ -81,7 +81,9 @@ final class FileExplorerState: ObservableObject {
         self.storedCustomSidebarName = customSidebarName
         let storedMode = RightSidebarMode.from(cliArgument: defaults.string(forKey: Self.modeKey) ?? "") ?? .files
         self.storedMode = Self.visibleMode(storedMode, defaults: defaults)
-        defaults.set(self.storedMode.rawValue, forKey: Self.modeKey)
+        if !storedMode.isRetired {
+            defaults.set(self.storedMode.rawValue, forKey: Self.modeKey)
+        }
     }
 
     /// Re-lands the sidebar on a tab the mode bar shows. Unlike an explicit
@@ -90,6 +92,11 @@ final class FileExplorerState: ObservableObject {
     /// hidden tab.
     func refreshModeAvailability(defaults: UserDefaults? = nil) {
         let defaults = defaults ?? self.defaults
+        if let persistedMode = RightSidebarMode.from(cliArgument: defaults.string(forKey: Self.modeKey) ?? ""),
+           persistedMode.isRetired {
+            storedMode = Self.visibleMode(persistedMode, defaults: defaults)
+            return
+        }
         setMode(Self.visibleMode(storedMode, defaults: defaults), defaults: defaults)
     }
 
@@ -136,6 +143,7 @@ final class FileExplorerState: ObservableObject {
     }
 
     private func setMode(_ mode: RightSidebarMode, defaults: UserDefaults? = nil) {
+        guard !mode.isRetired else { return }
         let defaults = defaults ?? self.defaults
         let nextMode = Self.availableMode(mode, defaults: defaults)
         guard storedMode != nextMode else {

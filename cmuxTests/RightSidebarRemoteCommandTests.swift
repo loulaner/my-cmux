@@ -59,6 +59,17 @@ extension TerminalControllerSocketSecurityTests {
         #expect(modePayload["mode"] as? String == "sessions")
 
         #expect(TerminalController.shared.handleSocketLine("right_sidebar set unknown").hasPrefix("ERROR:"))
+        let panels = tabManager.tabs.map { Set($0.panels.keys) }
+        for alias in ["cloud", "machines", "devices"] {
+            fileExplorerState.setVisible(false)
+            let response = TerminalController.shared.handleSocketLine("right_sidebar set \(alias)")
+            #expect(response.hasPrefix("ERROR"))
+            let mode = RightSidebarMode.machines
+            #expect(response == String(localized: "rightSidebar.remote.error.modeUnavailable", defaultValue: "ERROR: Right sidebar mode '\(mode.rawValue)' is not available"))
+            #expect(fileExplorerState.mode == .sessions)
+            #expect(!fileExplorerState.isVisible)
+            #expect(tabManager.tabs.map { Set($0.panels.keys) } == panels)
+        }
     }
 
     @Test func v1CommandsRejectCustomSidebarNames() throws {

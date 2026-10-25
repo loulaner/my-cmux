@@ -61,8 +61,9 @@ final class NewCloudWorkspaceShortcutTests {
     // Explicit cleanup keeps shared settings restored before the serialized test finishes.
     private func restoreState() {
         for suite in preferenceSuites { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
-        KeyboardShortcutSettings.resetShortcut(for: .newCloudWorkspace)
-        KeyboardShortcutSettings.resetShortcut(for: .newCloudMachine)
+        for action in [KeyboardShortcutSettings.Action.newCloudWorkspace, .newCloudMachine, .switchRightSidebarToMachines] {
+            KeyboardShortcutSettings.resetShortcut(for: action)
+        }
         if let originalFileStore {
             KeyboardShortcutSettings.settingsFileStore = originalFileStore
         }
@@ -124,7 +125,7 @@ final class NewCloudWorkspaceShortcutTests {
 
     @Test func testSettingsPackageActionStaysAligned() throws {
         defer { restoreState() }
-        for action in [KeyboardShortcutSettings.Action.newCloudWorkspace, .newCloudMachine] {
+        for action in [KeyboardShortcutSettings.Action.newCloudWorkspace, .newCloudMachine, .switchRightSidebarToMachines] {
             let settingsAction = try #require(ShortcutAction(rawValue: action.rawValue))
             #expect(settingsAction.displayName == action.label)
             #expect(settingsAction.group == .workspace)
@@ -137,7 +138,7 @@ final class NewCloudWorkspaceShortcutTests {
     @Test func storedRetiredBindingNeverExecutes() throws {
         defer { restoreState() }
         let rebound = StoredShortcut(key: "k", command: true, shift: true, option: false, control: false)
-        for action in [KeyboardShortcutSettings.Action.newCloudWorkspace, .newCloudMachine] {
+        for action in [KeyboardShortcutSettings.Action.newCloudWorkspace, .newCloudMachine, .switchRightSidebarToMachines] {
             KeyboardShortcutSettings.setShortcut(rebound, for: action)
             let data = try #require(UserDefaults.standard.data(forKey: action.defaultsKey))
             #expect(try JSONDecoder().decode(StoredShortcut.self, from: data) == rebound)

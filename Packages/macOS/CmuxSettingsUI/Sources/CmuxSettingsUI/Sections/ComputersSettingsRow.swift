@@ -39,11 +39,6 @@ struct ComputersSettingsRow: View {
                 }
                 .accessibilityLabel(String(localized: "devices.show", defaultValue: "Show in My Devices"))
                 .accessibilityIdentifier("SettingsComputerVisibility.\(computer.id)")
-            } else if computer.isConnected {
-                Button(String(localized: "settings.computers.open", defaultValue: "Open")) {
-                    Task { await actions.open(computer.id) }
-                }
-                .disabled(!discoveryEnabled)
             }
             Menu {
                 Button(computer.isHidden

@@ -384,7 +384,7 @@ public extension ShortcutAction {
     /// Raw identifiers remain available for persisted configuration compatibility.
     var isRetired: Bool {
         switch self {
-        case .newCloudWorkspace, .newCloudMachine: return true
+        case .newCloudWorkspace, .newCloudMachine, .switchRightSidebarToMachines: return true
         default: return false
         }
     }

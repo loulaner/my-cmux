@@ -267,15 +267,7 @@ struct RightSidebarToolPanelView: View {
                     .frame(width: 0, height: 0)
             )
         case .machines:
-            if isVisibleInUI, RightSidebarMode.machines.isAvailable() {
-                MachinesPanelView(
-                    chromeBackgroundColor: resolvedChromeBackgroundColor,
-                    machinePinStore: AppDelegate.shared?.cloudMachinePinStore,
-                    tabManager: tabManager,
-                    activationCoordinator: AppDelegate.shared?.cloudActivationCoordinator
-                        ?? CloudActivationCoordinator.unconfigured()
-                )
-            }
+            RetiredRightSidebarToolContent()
         case .feed, .dock, .customSidebar:
             EmptyView()
         }
@@ -387,5 +379,16 @@ final class RightSidebarToolFocusAnchorView: NSView {
             current = view.superview
         }
         return superview
+    }
+}
+
+/// Read-only content for historical panels whose tool has been retired.
+struct RetiredRightSidebarToolContent: View {
+    var body: some View {
+        Text(RightSidebarMode.retiredToolMessage)
+            .foregroundStyle(.secondary)
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityIdentifier("RightSidebarToolRetired")
     }
 }

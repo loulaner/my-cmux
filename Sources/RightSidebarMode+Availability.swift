@@ -29,7 +29,7 @@ extension RightSidebarMode {
     static func availableModes(defaults: UserDefaults = .standard) -> [RightSidebarMode] {
         var modes = availableModes(
             feedEnabled: RightSidebarBetaFeatureSettings.isFeedEnabled(defaults: defaults),
-            machinesEnabled: CloudMachinesFeature.offMainIsAvailable(),
+            machinesEnabled: false,
             devicesEnabled: false
         )
         if CmuxExtensionSidebarSelection.customSidebarsEnabled(defaults: defaults),
@@ -54,13 +54,14 @@ extension RightSidebarMode {
     }
 
     func isAvailable(defaults: UserDefaults = .standard) -> Bool {
+        guard !isRetired else { return false }
         if self == .customSidebar {
             return CmuxExtensionSidebarSelection.customSidebarsEnabled(defaults: defaults)
                 && FileExplorerState.persistedCustomSidebarName(defaults: defaults) != nil
         }
         return isAvailable(
             feedEnabled: RightSidebarBetaFeatureSettings.isFeedEnabled(defaults: defaults),
-            machinesEnabled: CloudMachinesFeature.offMainIsAvailable(),
+            machinesEnabled: false,
             devicesEnabled: false
         )
     }
@@ -96,6 +97,7 @@ extension RightSidebarMode {
         machinesEnabled: Bool,
         devicesEnabled: Bool = false
     ) -> Bool {
+        guard !isRetired else { return false }
         switch self {
         case .files, .find, .sessions:
             return true

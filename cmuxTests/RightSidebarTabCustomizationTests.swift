@@ -61,7 +61,7 @@ final class RightSidebarTabCustomizationTests: XCTestCase {
         XCTAssertTrue(RightSidebarTabPreferences.setHidden(true, mode: .find, defaults: defaults))
         XCTAssertEqual(
             RightSidebarMode.visibleModes(defaults: defaults),
-            [.files, .sessions, .feed, .dock, .machines]
+            [.files, .sessions, .feed, .dock]
         )
     }
 
@@ -186,26 +186,25 @@ final class RightSidebarTabCustomizationTests: XCTestCase {
 
     // MARK: - Positional shortcut defaults
 
-    /// With Feed and Dock hidden through the regular tab-visibility controls,
-    /// Cloud is the 4th visible tab, so ctrl+4 must focus it.
-    func testCloudDefaultsToControlFourWhenFeedAndDockAreHidden() {
+    /// Historical Cloud configuration does not add a visible tab or bind a digit.
+    func testRetiredCloudStaysUnboundWhenFeedAndDockAreHidden() {
         enableMachinesGate()
         XCTAssertTrue(RightSidebarTabPreferences.setHidden(true, mode: .feed, defaults: defaults))
         XCTAssertTrue(RightSidebarTabPreferences.setHidden(true, mode: .dock, defaults: defaults))
         XCTAssertEqual(
             RightSidebarMode.visibleModes(defaults: defaults),
-            [.files, .find, .sessions, .machines]
+            [.files, .find, .sessions]
         )
         XCTAssertEqual(
             KeyboardShortcutSettings.rightSidebarPositionalDefaultShortcut(for: .machines, defaults: defaults),
-            StoredShortcut(key: "4", command: false, shift: false, option: false, control: true)
+            .unbound
         )
     }
 
-    func testAllTabsVisibleKeepsHistoricDigits() {
+    func testAvailableTabsKeepTheirDigits() {
         enableAllModeGates()
         let expected: [(RightSidebarMode, String)] = [
-            (.files, "1"), (.find, "2"), (.sessions, "3"), (.feed, "4"), (.dock, "5"), (.machines, "6"),
+            (.files, "1"), (.find, "2"), (.sessions, "3"), (.feed, "4"), (.dock, "5"),
         ]
         for (mode, digit) in expected {
             XCTAssertEqual(
@@ -229,16 +228,16 @@ final class RightSidebarTabCustomizationTests: XCTestCase {
         )
     }
 
-    func testReorderMovesDigitsWithTheTabs() {
+    func testRetiredCloudReorderCannotStealFilesDigit() {
         enableAllModeGates()
         RightSidebarTabPreferences.move(.machines, offset: -5, defaults: defaults)
         XCTAssertEqual(
             KeyboardShortcutSettings.rightSidebarPositionalDefaultShortcut(for: .machines, defaults: defaults),
-            StoredShortcut(key: "1", command: false, shift: false, option: false, control: true)
+            .unbound
         )
         XCTAssertEqual(
             KeyboardShortcutSettings.rightSidebarPositionalDefaultShortcut(for: .files, defaults: defaults),
-            StoredShortcut(key: "2", command: false, shift: false, option: false, control: true)
+            StoredShortcut(key: "1", command: false, shift: false, option: false, control: true)
         )
     }
 
@@ -261,4 +260,37 @@ final class RightSidebarTabCustomizationTests: XCTestCase {
         RightSidebarTabPreferences.setHidden(true, mode: .feed, defaults: defaults)
         wait(for: [expectation], timeout: 1)
     }
+    func testRetiredSelectionSurvivesInitRefreshAndRejectedSelection() {
+        for raw in ["machines", "cloud", "vms", "devices", "device", "macs"] {
+            defaults.set(raw, forKey: "rightSidebar.mode")
+            let state = FileExplorerState(defaults: defaults)
+            XCTAssertEqual(state.mode, .files)
+            XCTAssertEqual(defaults.string(forKey: "rightSidebar.mode"), raw)
+            state.refreshModeAvailability()
+            XCTAssertEqual(state.mode, .files)
+            XCTAssertEqual(defaults.string(forKey: "rightSidebar.mode"), raw)
+            state.mode = .machines
+            XCTAssertEqual(state.mode, .files)
+            XCTAssertEqual(defaults.string(forKey: "rightSidebar.mode"), raw)
+            state.mode = .find
+            XCTAssertEqual(state.mode, .find)
+            XCTAssertEqual(defaults.string(forKey: "rightSidebar.mode"), "find")
+            state.mode = .machines
+            XCTAssertEqual(state.mode, .find)
+            XCTAssertEqual(defaults.string(forKey: "rightSidebar.mode"), "find")
+        }
+    }
+
+    func testRetiredSelectionRefreshUsesVisibleFallbackWithoutRewritingPreferences() {
+        defaults.set("machines", forKey: "rightSidebar.mode")
+        defaults.set(["files"], forKey: RightSidebarTabPreferences.hiddenKey)
+        defaults.set(["machines", "find", "files"], forKey: RightSidebarTabPreferences.orderKey)
+        let before = defaults.dictionaryRepresentation()
+        let state = FileExplorerState(defaults: defaults)
+        XCTAssertEqual(state.mode, .find)
+        state.refreshModeAvailability()
+        XCTAssertEqual(state.mode, .find)
+        XCTAssertEqual(defaults.dictionaryRepresentation() as NSDictionary, before as NSDictionary)
+    }
+
 }

@@ -2,7 +2,7 @@ import CmuxSettings
 import Testing
 
 struct RetiredCloudShortcutTests {
-    @Test(arguments: [ShortcutAction.newCloudWorkspace, .newCloudMachine])
+    @Test(arguments: [ShortcutAction.newCloudWorkspace, .newCloudMachine, .switchRightSidebarToMachines])
     func retiredBindingsNeverExecute(action: ShortcutAction) {
         let single = StoredShortcut(first: ShortcutStroke(key: "k", command: true, shift: true))
         let chord = StoredShortcut(first: ShortcutStroke(key: "b", control: true), second: ShortcutStroke(key: "c"))
@@ -33,7 +33,7 @@ struct RetiredCloudShortcutTests {
     }
 
     @Test func historicalIdentifiersAndMetadataRemainIntact() {
-        for (raw, name) in [("newCloudWorkspace", "New Cloud Workspace"), ("newCloudMachine", "New Cloud Machine")] {
+        for (raw, name) in [("newCloudWorkspace", "New Cloud Workspace"), ("newCloudMachine", "New Cloud Machine"), ("switchRightSidebarToMachines", "Show Sidebar Cloud")] {
             let action = ShortcutAction(rawValue: raw)
             #expect(action?.rawValue == raw)
             #expect(action?.isRetired == true)
@@ -41,7 +41,7 @@ struct RetiredCloudShortcutTests {
             #expect(action?.group == .workspace)
             #expect(ShortcutAction.allCases.contains { $0.rawValue == raw })
         }
-        #expect(Set(ShortcutAction.allCases.filter(\.isRetired)) == Set([.newCloudWorkspace, .newCloudMachine]))
+        #expect(Set(ShortcutAction.allCases.filter(\.isRetired)) == Set([.newCloudWorkspace, .newCloudMachine, .switchRightSidebarToMachines]))
     }
 
     @Test(arguments: [ShortcutAction.newTab, .newBrowserWorkspace, .newSurface])
