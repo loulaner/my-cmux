@@ -17,11 +17,6 @@ final class DeviceSurfaceProviderRegistry {
     let preferences: DevicesPreferencesModel?
     /// Every link's state history, for Cloud Diagnostics and the persisted journal.
     let diagnostics: DeviceLinkDiagnostics
-    /// Posted by ``reveal(instance:)``; the mounted Devices panel consumes the
-    /// pending request on it (userInfo `instance`: the wire value).
-    static let revealDeviceNotification = Notification.Name("cmux.devices.revealDevice")
-    private(set) var pendingReveal: SurfaceDeviceInstanceID?
-    private var pendingWindowReveals: [UUID: SurfaceDeviceInstanceID] = [:]
 
     private var catalog: SurfaceCatalog?
     private var auth: AuthCoordinator?
@@ -205,28 +200,6 @@ final class DeviceSurfaceProviderRegistry {
         }
         directory.start()
         reconcile()
-    }
-
-    /// Settings › Devices "Open": show this device's row in the Devices tab,
-    /// expanded and selected, even if it was collapsed. Never opens a terminal.
-    /// The panel consumes the request when it is (or becomes) mounted, so the
-    /// caller may switch the sidebar mode first and reveal right after.
-    func reveal(instance: SurfaceDeviceInstanceID, windowID: UUID? = nil) {
-        if let windowID { pendingWindowReveals[windowID] = instance }
-        else { pendingReveal = instance }
-        notificationCenter.post(
-            name: Self.revealDeviceNotification,
-            object: nil,
-            userInfo: ["instance": instance.wireValue]
-        )
-    }
-
-    func takePendingReveal(windowID: UUID? = nil) -> SurfaceDeviceInstanceID? {
-        if let windowID, let instance = pendingWindowReveals.removeValue(forKey: windowID) {
-            return instance
-        }
-        defer { pendingReveal = nil }
-        return pendingReveal
     }
 
     /// A pairing was added or removed: every link re-evaluates its grant.

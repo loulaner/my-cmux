@@ -113,18 +113,6 @@ struct DevicesSidebarModeTests {
         )
     }
 
-    @Test("Reveal requests stay scoped to their target window")
-    @MainActor
-    func revealRequestsAreWindowScoped() {
-        let registry = DeviceSurfaceProviderRegistry()
-        let first = UUID()
-        let second = UUID()
-        let instance = SurfaceDeviceInstanceID(deviceID: "mac-a", tag: "default")
-        registry.reveal(instance: instance, windowID: first)
-        #expect(registry.takePendingReveal(windowID: second) == nil)
-        #expect(registry.takePendingReveal(windowID: first) == instance)
-    }
-
     @Test("Managed discovery policy overrides the discovery preference")
     func featureGate() {
         let defaults = makeDefaults()

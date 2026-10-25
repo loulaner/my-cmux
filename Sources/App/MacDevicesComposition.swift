@@ -46,9 +46,7 @@ struct MacDevicesComposition {
                 DevicesFeature.isEnabled && ManagedIrohNetworkingPolicy.isEnabled
             }
         )
-        let computers = HiveComputersService(registry: registry, openSidebar: { instance in
-            AppDelegate.shared?.openDevicesSidebarAndReveal(instance: instance, registry: registry)
-        })
+        let computers = HiveComputersService(registry: registry)
         self.defaultsStore = store
         self.registry = registry
         self.computers = computers

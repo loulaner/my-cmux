@@ -13,7 +13,6 @@ final class HiveComputersService {
     static let didChangeNotification = Notification.Name("cmux.computers.pairingsDidChange")
 
     private let registry: DeviceSurfaceProviderRegistry
-    private let openSidebar: @MainActor (SurfaceDeviceInstanceID) -> RightSidebarRemoteApplyResult?
     private let fixedSelfInstance: SurfaceDeviceInstanceID?
     private var selfInstance: SurfaceDeviceInstanceID {
         fixedSelfInstance ?? SurfaceDeviceInstanceID(deviceID: MobileHostIdentity.deviceID(), tag: MobileHostIdentity.instanceTag())
@@ -21,12 +20,10 @@ final class HiveComputersService {
 
     init(
         registry: DeviceSurfaceProviderRegistry,
-        selfInstance: SurfaceDeviceInstanceID? = nil,
-        openSidebar: @escaping @MainActor (SurfaceDeviceInstanceID) -> RightSidebarRemoteApplyResult?
+        selfInstance: SurfaceDeviceInstanceID? = nil
     ) {
         self.registry = registry
         self.fixedSelfInstance = selfInstance
-        self.openSidebar = openSidebar
     }
 
     private var controller: HivePairingController?
@@ -162,33 +159,8 @@ final class HiveComputersService {
         publish()
     }
 
-    func open(_ id: String) async {
-        if RightSidebarMode.machines.isRetired {
-            error = RightSidebarMode.retiredToolMessage
-            publish()
-            return
-        }
-        guard let instance = SurfaceDeviceInstanceID(wireValue: id),
-              let provider = registry.provider(for: instance),
-              isPaired(instance) || provider.link.isConnected else { return }
-        let scope = identity
-        guard DevicesFeature.isEnabled else {
-            error = Self.disabledMessage
-            publish()
-            return
-        }
-        if let provider = registry.provider(for: instance) {
-            await provider.refresh(force: true)
-        }
-        guard identity == scope else { return }
-        await registry.preferences?.setHidden(instance, hidden: false)
-        guard let result = openSidebar(instance) else { return }
-        switch result {
-        case .failure(let message):
-            error = message
-        case .ok, .state:
-            error = nil
-        }
+    func open(_ _: String) async {
+        error = RightSidebarMode.retiredToolMessage
         publish()
     }
 
