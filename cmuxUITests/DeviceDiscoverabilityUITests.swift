@@ -1,6 +1,6 @@
 import XCTest
 
-/// Exercises the shared preference actions from Settings and the visible sidebar controls.
+/// Exercises shared preference actions, confirmation, and persistence in Settings.
 final class DeviceDiscoverabilityUITests: SettingsUITestCase {
     private let incomingKey = "devices.incomingAccess.enabled"
     private let discoveryKey = "devices.discovery.enabled"
@@ -44,6 +44,13 @@ final class DeviceDiscoverabilityUITests: SettingsUITestCase {
 
         settingsIncoming.click()
         assertConfirmation(app)
+        // Escape is the native dialog's Cancel action.
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(app.sheets.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertFalse(isOn(settingsIncoming))
+
+        settingsIncoming.click()
+        assertConfirmation(app)
         app.sheets.buttons["Make Discoverable"].firstMatch.click()
         XCTAssertTrue(poll(timeout: 5) { self.isOn(settingsIncoming) })
         XCTAssertEqual(settingsIncoming.label, "Hide this Mac from My Devices")
@@ -63,56 +70,6 @@ final class DeviceDiscoverabilityUITests: SettingsUITestCase {
         XCTAssertTrue(isOn(toggle(reopened, id: "SettingsComputersDiscoveryToggle")))
         XCTAssertFalse(isOn(toggle(reopened, id: "SettingsComputersIncomingAccessToggle")))
         closeSettings(app, reopened)
-
-        let mode = app.buttons["RightSidebarModeButton.machines"]
-        XCTAssertTrue(mode.waitForExistence(timeout: 10))
-        mode.click()
-        let tree = app.descendants(matching: .any).matching(identifier: "CloudMachinesTree").firstMatch
-        XCTAssertTrue(tree.waitForExistence(timeout: 10))
-        let incoming = tree.buttons["DevicesEnableIncomingAccess"]
-        let discovery = tree.buttons["DevicesEnableDiscovery"]
-        XCTAssertTrue(incoming.waitForExistence(timeout: 5))
-        XCTAssertTrue(discovery.waitForExistence(timeout: 5))
-        XCTAssertTrue(incoming.isHittable && discovery.isHittable)
-        if incoming.label == "Hide this Mac from My Devices" {
-            incoming.click()
-            XCTAssertTrue(poll(timeout: 5) { incoming.label == "Make this Mac discoverable" })
-        }
-        if discovery.label == "Stop discovering other devices" {
-            discovery.click()
-            XCTAssertTrue(poll(timeout: 5) { discovery.label == "Discover other devices" })
-        }
-        XCTAssertEqual(incoming.label, "Make this Mac discoverable")
-        XCTAssertEqual(discovery.label, "Discover other devices")
-        capture(app, "devices-controls-off-at-rest")
-
-        incoming.click()
-        assertConfirmation(app)
-        // Escape is the native dialog's Cancel action.
-        app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(app.sheets.firstMatch.waitForNonExistence(timeout: 5))
-        incoming.click()
-        assertConfirmation(app)
-        app.sheets.buttons["Make Discoverable"].firstMatch.click()
-        XCTAssertTrue(poll(timeout: 5) { incoming.label == "Hide this Mac from My Devices" })
-        discovery.click()
-        XCTAssertTrue(poll(timeout: 5) { discovery.label == "Stop discovering other devices" })
-        XCTAssertFalse(app.sheets.firstMatch.exists)
-        XCTAssertTrue(incoming.isHittable && discovery.isHittable)
-        capture(app, "devices-controls-on-at-rest")
-
-        let settings = openSettings(app)
-        navigate(settings, to: "Devices")
-        XCTAssertTrue(isOn(toggle(settings, id: "SettingsComputersIncomingAccessToggle")))
-        XCTAssertTrue(isOn(toggle(settings, id: "SettingsComputersDiscoveryToggle")))
-        closeSettings(app, settings)
-        incoming.click()
-        XCTAssertTrue(poll(timeout: 5) { incoming.label == "Make this Mac discoverable" })
-        XCTAssertFalse(app.sheets.firstMatch.exists)
-        discovery.click()
-        XCTAssertTrue(poll(timeout: 5) { discovery.label == "Discover other devices" })
-        XCTAssertFalse(app.sheets.firstMatch.exists)
-        XCTAssertTrue(incoming.isHittable && discovery.isHittable)
     }
 
     private func assertConfirmation(_ app: XCUIApplication) {

@@ -10,15 +10,6 @@
       "wait": 1.5
     },
     {
-      "click": "RightSidebarModeButton.machines"
-    },
-    {
-      "wait": 1.2
-    },
-    {
-      "shot": "10-right-sidebar-cloud"
-    },
-    {
       "menu": [
         "Help",
         "Cloud Sidebar Spacing Lab…"
