@@ -1587,7 +1587,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             AuthDebugLog().log("auth.callback did not complete sign-in")
             return false
         }
-        await NativePricingPlanRefresh.refreshForProWelcomeChecklist()
         return true
     }
 

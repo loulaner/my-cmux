@@ -192,60 +192,18 @@ struct AppWebThemeSnapshot: Equatable {
     }
 }
 
-/// Presents the one-time "Welcome to cmux Pro" checklist after a user becomes
-/// Pro. The checklist is a chromeless in-app web page (`/app-pro-welcome`)
-/// shown in the same dedicated workspace surface as the pricing page, so it
-/// matches how upgrade/pricing already appears. Automatic presentation is
-/// gated on Pro status and a persisted seen-flag; manual and debug entrypoints
-/// call `present()` directly.
+/// Presents the "Welcome to cmux Pro" checklist from explicit manual entrypoints.
+/// The chromeless in-app page (`/app-pro-welcome`) uses a dedicated workspace
+/// that is reused for subsequent presentations.
 enum ProWelcomeChecklistPresenter {
-    static let seenDefaultsKey = "cmux.pro.welcomeChecklist.seen"
-
     /// Tracks the dedicated welcome workspace so repeated presentations reuse
     /// and focus it instead of spawning a duplicate workspace each time.
     @MainActor
     static var workspaceReuseState = ProUpgradeWorkspaceReuseState()
 
-    static func shouldPresentAutomatically(isPro: Bool, seen: Bool) -> Bool {
-        isPro && !seen
-    }
-
-    /// Whether the automatic checklist could plausibly be shown, ignoring the
-    /// Pro status that only a network fetch can determine. Lets callers skip
-    /// the `/api/billing/plan` fetch entirely when the checklist is already
-    /// seen.
-    static func canPresentAutomatically(
-        defaults: UserDefaults = .standard
-    ) -> Bool {
-        !defaults.bool(forKey: seenDefaultsKey)
-    }
-
-    static func consumeAutomaticPresentation(
-        isPro: Bool,
-        defaults: UserDefaults
-    ) -> Bool {
-        let seen = defaults.bool(forKey: seenDefaultsKey)
-        guard shouldPresentAutomatically(isPro: isPro, seen: seen) else {
-            return false
-        }
-        defaults.set(true, forKey: seenDefaultsKey)
-        return true
-    }
-
     @MainActor
     static func present() {
         ProUpgradePresenter.presentProWelcomeWeb()
-    }
-
-    @MainActor
-    static func presentIfNewlyPro(isPro: Bool, defaults: UserDefaults = .standard) {
-        guard consumeAutomaticPresentation(
-            isPro: isPro,
-            defaults: defaults
-        ) else {
-            return
-        }
-        present()
     }
 }
 

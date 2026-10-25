@@ -317,22 +317,8 @@ private final class NativePricingPlanStore: ObservableObject {
                     return
                 }
                 self?.state = loadedState
-                Self.presentWelcomeChecklistIfPro(loadedState)
             }
         }
-    }
-
-    static func refreshForProWelcomeChecklist() async {
-        // Skip the authenticated /api/billing/plan fetch when the checklist can't be shown
-        // because the checklist has already been seen.
-        guard ProWelcomeChecklistPresenter.canPresentAutomatically() else { return }
-        let loadedState = await loadPlanState()
-        presentWelcomeChecklistIfPro(loadedState)
-    }
-
-    private static func presentWelcomeChecklistIfPro(_ state: NativePricingPlanLoadState) {
-        guard case let .loaded(snapshot) = state else { return }
-        ProWelcomeChecklistPresenter.presentIfNewlyPro(isPro: snapshot.isPro)
     }
 
     private static func loadPlanState() async -> NativePricingPlanLoadState {
@@ -375,13 +361,6 @@ private final class NativePricingPlanStore: ObservableObject {
         } catch {
             return .failed(String(localized: "pricing.native.status.unavailable", defaultValue: "Billing status unavailable"))
         }
-    }
-}
-
-enum NativePricingPlanRefresh {
-    @MainActor
-    static func refreshForProWelcomeChecklist() async {
-        await NativePricingPlanStore.refreshForProWelcomeChecklist()
     }
 }
 

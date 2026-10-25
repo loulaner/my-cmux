@@ -580,52 +580,6 @@ struct AuthEnvironmentTests {
         #expect(state.workspaceId == nil)
     }
 
-    @Test("Pro welcome checklist automatic presentation requires Pro plan and unseen defaults")
-    func proWelcomeChecklistAutomaticPresentationRequiresAllGates() {
-        #expect(ProWelcomeChecklistPresenter.shouldPresentAutomatically(isPro: true, seen: false))
-        #expect(!ProWelcomeChecklistPresenter.shouldPresentAutomatically(isPro: false, seen: false))
-        #expect(!ProWelcomeChecklistPresenter.shouldPresentAutomatically(isPro: true, seen: true))
-    }
-
-    @Test("Pro welcome checklist consume gate persists once only")
-    func proWelcomeChecklistConsumeGatePersistsOnceOnly() throws {
-        let suiteName = "cmuxTests.proWelcomeChecklist.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer {
-            defaults.removePersistentDomain(forName: suiteName)
-        }
-
-        #expect(defaults.bool(forKey: ProWelcomeChecklistPresenter.seenDefaultsKey) == false)
-        #expect(ProWelcomeChecklistPresenter.consumeAutomaticPresentation(
-            isPro: true,
-            defaults: defaults
-        ))
-        #expect(defaults.bool(forKey: ProWelcomeChecklistPresenter.seenDefaultsKey))
-        #expect(!ProWelcomeChecklistPresenter.consumeAutomaticPresentation(
-            isPro: true,
-            defaults: defaults
-        ))
-    }
-
-    @Test("Pro welcome checklist consume gate does not persist when blocked")
-    func proWelcomeChecklistConsumeGateDoesNotPersistWhenBlocked() throws {
-        let suiteName = "cmuxTests.proWelcomeChecklist.blocked.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer {
-            defaults.removePersistentDomain(forName: suiteName)
-        }
-
-        #expect(!ProWelcomeChecklistPresenter.consumeAutomaticPresentation(
-            isPro: false,
-            defaults: defaults
-        ))
-        #expect(!defaults.bool(forKey: ProWelcomeChecklistPresenter.seenDefaultsKey))
-
-        #expect(ProWelcomeChecklistPresenter.canPresentAutomatically(defaults: defaults))
-        #expect(ProWelcomeChecklistPresenter.consumeAutomaticPresentation(isPro: true, defaults: defaults))
-        #expect(!ProWelcomeChecklistPresenter.canPresentAutomatically(defaults: defaults))
-    }
-
     @MainActor
     @Test("Pro upgrade workspace focus fails for a windowless tracked context")
     func proUpgradeWorkspaceFocusFailsForWindowlessTrackedContext() {
