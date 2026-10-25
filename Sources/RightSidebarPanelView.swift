@@ -485,8 +485,7 @@ struct RightSidebarPanelView: View {
                     devicesModel: devicesModel,
                     tabManager: tabManager,
                     teamPickerPresentation: fileExplorerState.cloudTeamPickerPresentation,
-                    activationCoordinator: cloudActivationCoordinator,
-                    coderouterStore: tabManager.coderouterAccountStore
+                    activationCoordinator: cloudActivationCoordinator
                 )
             case .customSidebar:
                 customSidebarPanel

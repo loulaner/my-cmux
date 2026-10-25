@@ -14,7 +14,7 @@ struct CloudTreeBuildInputs: Equatable {
     var includeLocalMachine = CloudTreeNodeBuilder.includesLocalMachine
     var source: CloudTreeMachineSource = .cloud
     var devicesSection: CloudTreeDevicesSection = .init()
-    var coderouter = CloudTreeCoderouterSection()
+    var coderouter: CloudTreeCoderouterSection? = nil
     var showsCloudVPNWarning = false
     var canCreateCloudMachine = false
     var cloudMachinesUsage: CloudMachinesUsage? = nil

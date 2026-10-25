@@ -12,6 +12,23 @@ import Testing
 @Suite("Cloud tree availability and expansion")
 struct CloudTreeAvailabilityTests {
     @Test
+    func defaultTreeOmitsCodeRouterWhileExplicitSectionStillRenders() {
+        let device = SurfaceMachineID.device(SurfaceDeviceInstanceID(deviceID: "fixture-device", tag: "test"))
+        let snapshot = SurfaceCatalogSnapshot(machines: [machineInfo(.local), machineInfo(.cloud("fixture")), machineInfo(device)], resources: [], projections: [])
+        let plain = CloudTreeNodeBuilder.nodes(machines: [], snapshot: snapshot, localWorkspaces: [], includeLocalMachine: true, source: .cloudWithDevicesSection)
+        #expect(!CloudTreeNodeBuilder.flattened(plain).contains { $0.id.hasPrefix("coderouter-section") })
+        #expect(plain.contains { $0.id == "cloud-machines-section" })
+        #expect(plain.contains { $0.id == "devices-section" })
+        #expect(CloudTreeNodeBuilder.flattened(plain).contains { if case .localMachine = $0.kind { return true }; return false })
+        #expect(CloudTreeNodeBuilder.flattened(plain).contains { $0.id == CloudTreeNodeBuilder.nodeID(machine: device) })
+        let account = CloudTreeNode.CoderouterAccount(id: "fixture-account", provider: .codex, label: "Fixture", state: "active")
+        let explicit = CloudTreeNodeBuilder.nodes(machines: [], snapshot: snapshot, localWorkspaces: [], includeLocalMachine: true, source: .cloudWithDevicesSection, coderouter: .init(accounts: [account]))
+        #expect(explicit.last?.id == "coderouter-section")
+        #expect(CloudTreeNodeBuilder.flattened(explicit).contains { $0.id == "coderouter-section/codex/account/fixture-account" })
+        #expect(CloudTreeNodeBuilder.flattened(Array(explicit.dropLast())).map(\.id) == CloudTreeNodeBuilder.flattened(plain).map(\.id))
+    }
+
+    @Test
     func testCloudTreeSleepingAndBrokenMachinesShowOnePlaceholder() {
         let asleep = CloudTreeNodeBuilder.nodes(
             machines: [machineSnapshot(id: "quiet-owl", image: "cmuxd-ws:tooling-20260509f")],
@@ -20,8 +37,7 @@ struct CloudTreeAvailabilityTests {
         )
         // The link placeholder leads; Ports stays reachable, and Resources is
         // always the final machine section.
-        // The Coderouter section always closes the tree (#17233).
-        #expect(CloudTreeNodeBuilder.flattened(asleep).map(\.id) == ["machine:quiet-owl", "machine:quiet-owl/placeholder", "machine:quiet-owl/ports", "machine:quiet-owl/ports/status", "machine:quiet-owl/resources", "machine:quiet-owl/resources/cpu", "machine:quiet-owl/resources/memory", "machine:quiet-owl/resources/disk", "machine:quiet-owl/resources/usage", "coderouter-section", "coderouter-section/codex", "coderouter-section/claude", "coderouter-section/opencode-go"])
+        #expect(CloudTreeNodeBuilder.flattened(asleep).map(\.id) == ["machine:quiet-owl", "machine:quiet-owl/placeholder", "machine:quiet-owl/ports", "machine:quiet-owl/ports/status", "machine:quiet-owl/resources", "machine:quiet-owl/resources/cpu", "machine:quiet-owl/resources/memory", "machine:quiet-owl/resources/disk", "machine:quiet-owl/resources/usage"])
         if case .placeholder(_, let placeholder) = asleep[0].children[0].kind { #expect(placeholder.style == .dimmed) } else { Issue.record("Unexpected node kind") }
         if case .placeholder(_, let ports) = asleep[0].children[1].children[0].kind { #expect(ports.style == .dimmed) } else { Issue.record("Unexpected node kind") }
 
@@ -45,7 +61,7 @@ struct CloudTreeAvailabilityTests {
             snapshot: SurfaceCatalogSnapshot(machines: [machineInfo(.cloud("ghost"))], resources: [], projections: []),
             localWorkspaces: []
         )
-        #expect(catalogOnly.map(\.id) == ["machine:ghost", "coderouter-section"])
+        #expect(catalogOnly.map(\.id) == ["machine:ghost"])
     }
 
     @Test

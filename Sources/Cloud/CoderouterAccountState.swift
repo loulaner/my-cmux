@@ -1,5 +1,4 @@
 import Foundation
-import Observation
 
 /// The signed-in account and cmux team a CodeRouter account snapshot belongs to.
 struct CoderouterAccountScope: Hashable {
@@ -210,49 +209,5 @@ final class CoderouterCLIOperationLane {
         }
         tail = task
         return task
-    }
-}
-
-/// Owns CodeRouter sidebar state for the lifetime of one sidebar surface.
-///
-/// `MachinesPanelView` is remounted when the right-sidebar mode changes. The
-/// account snapshot and the CLI lane must therefore outlive that view together:
-/// otherwise a new read can overlap a removal that the old view started, and
-/// the new view loses the tombstone that keeps a stale account hidden.
-@MainActor
-@Observable
-final class CoderouterAccountStore {
-    var state = CoderouterAccountState()
-    var isRefreshing = false
-    var refreshRequest = 0
-    @ObservationIgnored let lane = CoderouterCLIOperationLane.shared
-
-    @ObservationIgnored private var scopeChangeObserver: NSObjectProtocol?
-
-    init() {
-        scopeChangeObserver = NotificationCenter.default.addObserver(
-            forName: .cmuxCloudTeamScopeDidChange,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.resetForTeamScopeChange()
-            }
-        }
-    }
-
-    deinit {
-        if let scopeChangeObserver {
-            NotificationCenter.default.removeObserver(scopeChangeObserver)
-        }
-    }
-
-    /// Clears retained rows even while the Machines view is unmounted. The
-    /// store owner must invalidate the snapshot before the next scope can be
-    /// rendered, then request a read when the panel mounts again.
-    func resetForTeamScopeChange() {
-        state.resetForTeamScopeChange()
-        isRefreshing = true
-        refreshRequest &+= 1
     }
 }

@@ -16,7 +16,7 @@ extension CloudTreeNodeBuilder {
         includeLocalMachine: Bool = CloudTreeNodeBuilder.includesLocalMachine,
         source: CloudTreeMachineSource = .cloud,
         devicesSection: CloudTreeDevicesSection = .init(),
-        coderouter: CloudTreeCoderouterSection = .init(),
+        coderouter: CloudTreeCoderouterSection? = nil,
         showsCloudVPNWarning: Bool = false,
         canCreateCloudMachine: Bool = false,
         cloudMachinesUsage: CloudMachinesUsage? = nil,
@@ -139,9 +139,10 @@ extension CloudTreeNodeBuilder {
                 section: devicesSection
             ))
         }
-        // Keep CodeRouter immediately below My Devices so account management
-        // stays alongside the two account-scoped machine sections.
-        nodes.append(coderouterNode(coderouter))
+        // Explicit sections retain their position below My Devices.
+        if let coderouter {
+            nodes.append(coderouterNode(coderouter))
+        }
         return nodes
     }
 
