@@ -328171,55 +328171,55 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enable iOS pairing"
+            "value": "Legacy Account Pairing"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "iOS ペアリングを有効にする"
+            "value": "旧アカウントペアリング"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "iOS 配对"
+            "value": "旧版账号配对"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "iOS-Kopplung"
+            "value": "Legacy-Kontokopplung"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jumelage iOS"
+            "value": "Ancien jumelage par compte"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "اقتران iOS"
+            "value": "الاقتران القديم عبر الحساب"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Emparejamiento de iOS"
+            "value": "Vinculación antigua por cuenta"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "iOS 配對"
+            "value": "舊版帳號配對"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "iOS 페어링"
+            "value": "이전 계정 페어링"
           }
         }
       }
@@ -328289,55 +328289,55 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mobile Pairing"
+            "value": "Direct Connection"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "モバイルペアリング"
+            "value": "直接接続"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "移动设备配对"
+            "value": "直连"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mobilgeräte koppeln"
+            "value": "Direktverbindung"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jumelage mobile"
+            "value": "Connexion directe"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "اقتران الأجهزة المحمولة"
+            "value": "اتصال مباشر"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vinculación móvil"
+            "value": "Conexión directa"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "行動裝置配對"
+            "value": "直連"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "모바일 페어링"
+            "value": "직접 연결"
           }
         }
       }
@@ -328407,55 +328407,55 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sign in to cmux on your iPhone with the same account and it connects automatically. No QR code is needed."
+            "value": "Connect your Mac and iPhone or iPad to the same Tailscale network, then approve the device on your Mac. Direct connections do not require a cmux account."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "iPhoneのcmuxに同じアカウントでサインインすると、自動的に接続されます。QRコードは不要です。"
+            "value": "MacとiPhoneまたはiPadを同じTailscaleネットワークに接続し、Macでデバイスを承認してください。直接接続にcmuxアカウントは不要です。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在 iPhone 上使用同一账户登录 cmux，即可自动连接。无需二维码。"
+            "value": "将 Mac 和 iPhone 或 iPad 连接到同一个 Tailscale 网络，然后在 Mac 上批准该设备。直连无需 cmux 账号。"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Melden Sie sich in cmux auf Ihrem iPhone mit demselben Konto an, dann verbindet es sich automatisch. Ein QR-Code ist nicht nötig."
+            "value": "Verbinden Sie Ihren Mac und Ihr iPhone oder iPad mit demselben Tailscale-Netzwerk und genehmigen Sie dann das Gerät auf Ihrem Mac. Direktverbindungen erfordern kein cmux-Konto."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connectez-vous à cmux sur votre iPhone avec le même compte et la connexion se fait automatiquement. Aucun code QR n’est nécessaire."
+            "value": "Connectez votre Mac et votre iPhone ou iPad au même réseau Tailscale, puis autorisez l’appareil sur votre Mac. Les connexions directes ne nécessitent pas de compte cmux."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "سجّل الدخول إلى cmux على iPhone بالحساب نفسه وسيتصل تلقائيًا. لا حاجة إلى رمز QR."
+            "value": "وصّل جهاز Mac وiPhone أو iPad بشبكة Tailscale نفسها، ثم وافق على الجهاز على Mac. لا تتطلب الاتصالات المباشرة حساب cmux."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Inicie sesión en cmux en su iPhone con la misma cuenta y se conectará automáticamente. No se necesita ningún código QR."
+            "value": "Conecta tu Mac y tu iPhone o iPad a la misma red Tailscale y luego autoriza el dispositivo en tu Mac. Las conexiones directas no requieren una cuenta de cmux."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "在 iPhone 上以相同帳戶登入 cmux，即會自動連線。不需要 QR 碼。"
+            "value": "將 Mac 和 iPhone 或 iPad 連接到同一個 Tailscale 網路，然後在 Mac 上核准該裝置。直連無需 cmux 帳號。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "iPhone의 cmux에 동일한 계정으로 로그인하면 자동으로 연결됩니다. QR 코드는 필요하지 않습니다."
+            "value": "Mac과 iPhone 또는 iPad를 같은 Tailscale 네트워크에 연결한 다음 Mac에서 기기를 승인하세요. 직접 연결에는 cmux 계정이 필요하지 않습니다."
           }
         }
       }
@@ -329115,55 +329115,55 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apply saves the port for the next pairing start. Current connections continue. To use the new port, turn iOS Pairing off and on. If the port is unavailable, cmux chooses an available port."
+            "value": "Apply saves the port for the next legacy pairing start. Current connections continue. To use the new port, turn Legacy Account Pairing off and on. If the port is unavailable, cmux chooses an available port."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Anwenden speichert den Port für den nächsten Kopplungsstart. Bestehende Verbindungen bleiben erhalten. Um den neuen Port zu verwenden, schalten Sie die iOS-Kopplung aus und wieder ein. Ist der Port nicht verfügbar, wählt cmux einen verfügbaren Port."
+            "value": "Anwenden speichert den Port für den nächsten Start der Legacy-Kopplung. Bestehende Verbindungen bleiben erhalten. Um den neuen Port zu verwenden, schalten Sie die Legacy-Kontokopplung aus und wieder ein. Ist der Port nicht verfügbar, wählt cmux einen verfügbaren Port."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Appliquer enregistre le port pour le prochain démarrage du jumelage. Les connexions actuelles restent actives. Pour utiliser le nouveau port, désactivez puis réactivez le jumelage iOS. Si le port est indisponible, cmux en choisit un disponible."
+            "value": "Appliquer enregistre le port pour le prochain démarrage de l’ancien jumelage. Les connexions actuelles restent actives. Pour utiliser le nouveau port, désactivez puis réactivez l’ancien jumelage par compte. Si le port est indisponible, cmux en choisit un disponible."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يحفظ تطبيق المنفذ لبدء الاقتران القادم. تستمر الاتصالات الحالية. لاستخدام المنفذ الجديد، أوقف اقتران iOS ثم شغّله مجددًا. إذا لم يكن المنفذ متاحًا، يختار cmux منفذًا متاحًا."
+            "value": "يحفظ زر «تطبيق» المنفذ لبدء الاقتران القديم التالي. تستمر الاتصالات الحالية. لاستخدام المنفذ الجديد، أوقف «الاقتران القديم عبر الحساب» ثم شغّله مجددًا. إذا لم يكن المنفذ متاحًا، يختار cmux منفذًا متاحًا."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aplicar guarda el puerto para el próximo inicio de la vinculación. Las conexiones actuales continúan. Para usar el nuevo puerto, desactiva y vuelve a activar la vinculación con iOS. Si el puerto no está disponible, cmux elige uno disponible."
+            "value": "Aplicar guarda el puerto para el próximo inicio de la vinculación antigua. Las conexiones actuales continúan. Para usar el nuevo puerto, desactiva y vuelve a activar la vinculación antigua por cuenta. Si el puerto no está disponible, cmux elige uno disponible."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "点按“应用”会保存端口，在下次启动配对时生效。当前连接会保持。要使用新端口，请关闭再开启 iOS 配对。如果端口不可用，cmux 会选择一个可用端口。"
+            "value": "点按“应用”会保存端口，在下次启动旧版配对时生效。当前连接会保持。要使用新端口，请关闭再开启“旧版账号配对”。如果端口不可用，cmux 会选择一个可用端口。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "按一下「套用」會儲存連接埠，在下次啟動配對時生效。目前的連線會維持。若要使用新連接埠，請關閉再開啟 iOS 配對。如果連接埠無法使用，cmux 會選擇可用的連接埠。"
+            "value": "按一下「套用」會儲存連接埠，在下次啟動舊版配對時生效。目前的連線會維持。若要使用新連接埠，請關閉再開啟「舊版帳號配對」。如果連接埠無法使用，cmux 會選擇可用的連接埠。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "적용을 누르면 다음 페어링 시작에 사용할 포트가 저장됩니다. 현재 연결은 유지됩니다. 새 포트를 사용하려면 iOS 페어링을 껐다가 다시 켜세요. 해당 포트를 사용할 수 없으면 cmux가 사용 가능한 포트를 선택합니다."
+            "value": "적용을 누르면 다음 이전 방식 페어링 시작에 사용할 포트가 저장됩니다. 현재 연결은 유지됩니다. 새 포트를 사용하려면 이전 계정 페어링을 껐다가 다시 켜세요. 해당 포트를 사용할 수 없으면 cmux가 사용 가능한 포트를 선택합니다."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "「適用」で次回のペアリング開始用のポートを保存します。現在の接続は維持されます。新しいポートを使うには、iOS ペアリングをオフにしてからオンにしてください。ポートが使用できない場合、cmux が使用可能なポートを選択します。"
+            "value": "「適用」で次回の旧方式ペアリング開始用のポートを保存します。現在の接続は維持されます。新しいポートを使うには、「旧アカウントペアリング」をオフにしてからオンにしてください。ポートが使用できない場合、cmuxが使用可能なポートを選択します。"
           }
         }
       }
@@ -560599,55 +560599,55 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lets iPhone and iPad pair with and connect to this Mac."
+            "value": "For older account-based clients. This switch does not enable Direct connections."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "iPhone und iPad können sich mit diesem Mac koppeln und verbinden."
+            "value": "Für ältere kontobasierte Clients. Dieser Schalter aktiviert keine Direktverbindungen."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "L’iPhone et l’iPad peuvent se jumeler avec ce Mac et s’y connecter."
+            "value": "Pour les anciens clients utilisant un compte. Ce commutateur n’active pas les connexions directes."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يمكن لـ iPhone وiPad الاقتران بجهاز Mac هذا والاتصال به."
+            "value": "للعملاء الأقدم الذين يعتمدون على الحسابات. لا يفعّل هذا المفتاح الاتصالات المباشرة."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El iPhone y el iPad pueden emparejarse con este Mac y conectarse a él."
+            "value": "Para clientes antiguos basados en cuentas. Este interruptor no activa las conexiones directas."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "允許 iPhone 和 iPad 與此 Mac 配對及連線。"
+            "value": "用於舊版以帳號為基礎的用戶端。此開關不會啟用直連。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "允许 iPhone 和 iPad 与这台 Mac 配对并连接。"
+            "value": "用于旧版基于账号的客户端。此开关不会启用直连。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "iPhone과 iPad가 이 Mac과 페어링하고 연결할 수 있게 합니다."
+            "value": "이전 계정 기반 클라이언트용입니다. 이 스위치는 직접 연결을 활성화하지 않습니다."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "iPhone と iPad がこの Mac とペアリングして接続できるようにします。"
+            "value": "アカウントを使用する旧クライアント向けです。このスイッチでは直接接続は有効になりません。"
           }
         }
       }

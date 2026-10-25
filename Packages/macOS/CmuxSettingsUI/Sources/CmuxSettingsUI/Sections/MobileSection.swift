@@ -2,10 +2,8 @@ import CmuxFoundation
 import CmuxSettings
 import SwiftUI
 
-/// **Mobile** section — Mac-side controls for pairing and syncing with
-/// cmux on iOS: the pairing-host toggle, the preferred listener port (with a
-/// live bound-port indicator), an optional display-name override, and
-/// connection/route diagnostics.
+/// **Mobile** section — Direct connection entrypoint and separate legacy
+/// account-pairing controls, listener settings, and connection diagnostics.
 @MainActor
 public struct MobileSection: View {
     @State private var iOSPairingHost: DefaultsValueModel<Bool>
@@ -84,18 +82,20 @@ public struct MobileSection: View {
         Group {
             SettingsSectionHeader(String(localized: "settings.section.mobile", defaultValue: "Mobile"), section: .mobile)
             SettingsCard {
-                iOSPairingHostRow
-                SettingsCardDivider()
+                pairDeviceRow
+                    .disabled(remoteControlManagedByPolicy)
                 if remoteControlManagedByPolicy {
+                    SettingsCardDivider()
                     SettingsCardNote(String(
                         localized: "settings.mobile.managedByOrganization",
                         defaultValue: "Remote control from the iOS app is disabled by your organization."
                     ))
-                    SettingsCardDivider()
                 }
+            }
+            SettingsCard {
+                iOSPairingHostRow
+                SettingsCardDivider()
                 Group {
-                    pairDeviceRow
-                    SettingsCardDivider()
                     portRow
                     boundPortStatusRow
                     SettingsCardDivider()
@@ -112,7 +112,7 @@ public struct MobileSection: View {
                     }
                     SettingsCardNote(String(
                         localized: "settings.mobile.port.note",
-                        defaultValue: "Apply saves the port for the next pairing start. Current connections continue. To use the new port, turn iOS Pairing off and on. If the port is unavailable, cmux chooses an available port."
+                        defaultValue: "Apply saves the port for the next legacy pairing start. Current connections continue. To use the new port, turn Legacy Account Pairing off and on. If the port is unavailable, cmux chooses an available port."
                     ))
                 }
                 .disabled(remoteControlManagedByPolicy)
@@ -143,13 +143,10 @@ public struct MobileSection: View {
         SettingsCardRow(
             configurationReview: .action,
             searchAnchorID: "setting:mobile:pairDevice",
-            String(localized: "settings.mobile.pairDevice", defaultValue: "Mobile Pairing"),
+            String(localized: "settings.mobile.pairDevice", defaultValue: "Direct Connection"),
             subtitle: String(
                 localized: "settings.mobile.pairDevice.subtitle",
-                defaultValue: """
-                Sign in to cmux on your iPhone with the same account and it \
-                connects automatically. No QR code is needed.
-                """
+                defaultValue: "Connect your Mac and iPhone or iPad to the same Tailscale network, then approve the device on your Mac. Direct connections do not require a cmux account."
             )
         ) {
             Button(String(localized: "settings.mobile.pairDevice.button", defaultValue: "Open Pairing…")) {
@@ -166,8 +163,8 @@ public struct MobileSection: View {
         SettingsCardRow(
             configurationReview: .settingsOnly,
             searchAnchorID: "setting:mobile:iOSPairingHost",
-            String(localized: "settings.mobile.iOSPairingHost", defaultValue: "Enable iOS pairing"),
-            subtitle: String(localized: "settings.mobile.iOSPairingHost.subtitle", defaultValue: "Lets iPhone and iPad pair with and connect to this Mac.")
+            String(localized: "settings.mobile.iOSPairingHost", defaultValue: "Legacy Account Pairing"),
+            subtitle: String(localized: "settings.mobile.iOSPairingHost.subtitle", defaultValue: "For older account-based clients. This switch does not enable Direct connections.")
         ) {
             Toggle("", isOn: Binding(get: { iOSPairingHost.current }, set: { iOSPairingHost.set($0) }))
                 .labelsHidden()

@@ -101,18 +101,20 @@ final class SettingsAppBehaviorUITests: SettingsUITestCase {
             navigate(window, to: "Mobile")
             let pairingToggle = window.checkBoxes["SettingsMobileIOSPairingHostToggle"].firstMatch
             XCTAssertTrue(pairingToggle.waitForExistence(timeout: 5))
-            let detail = window.staticTexts["Lets iPhone and iPad pair with and connect to this Mac."].firstMatch
+            let detail = window.staticTexts["For older account-based clients. This switch does not enable Direct connections."].firstMatch
             if !isOn(pairingToggle) {
                 pairingToggle.click()
             }
             XCTAssertTrue(poll(timeout: 5) { self.isOn(pairingToggle) })
-            let title = window.staticTexts["Enable iOS pairing"].firstMatch
+            let title = window.staticTexts["Legacy Account Pairing"].firstMatch
             XCTAssertTrue(title.waitForExistence(timeout: 5))
             XCTAssertTrue(detail.waitForExistence(timeout: 5))
             let header = try XCTUnwrap(window.staticTexts.matching(identifier: "Mobile").allElementsBoundByIndex.first {
                 $0.frame.minX > window.frame.minX + 150
             })
-            XCTAssertLessThan(title.frame.minY, window.staticTexts["Forward Notifications to iPhone"].firstMatch.frame.minY)
+            let directTitle = window.staticTexts["Direct Connection"].firstMatch
+            XCTAssertTrue(directTitle.waitForExistence(timeout: 5))
+            XCTAssertLessThan(directTitle.frame.minY, title.frame.minY)
             let crop = header.frame.union(title.frame).union(detail.frame).insetBy(dx: -12, dy: -12)
             let source = try XCTUnwrap(window.screenshot().image.cgImage(forProposedRect: nil, context: nil, hints: nil))
             let scale = CGFloat(source.width) / window.frame.width
