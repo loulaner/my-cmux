@@ -724,7 +724,6 @@
   "MobileHostV2ConfigurationTests": 12,
   "MobileHostV2LifecycleTests": 42,
   "MobileHostWorkspaceTicketAuthorizationTests": 56,
-  "MobilePairingConnectionTransitionTests": 19,
   "MobilePanelArtifactResolutionTests": 534,
   "MobileSimulatorReaderAttachmentTests": 11,
   "MobileSurfaceKindMappingTests": 1,
