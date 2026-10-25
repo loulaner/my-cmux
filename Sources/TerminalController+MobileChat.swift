@@ -281,6 +281,7 @@ extension TerminalController {
         guard !text.isEmpty || !attachments.isEmpty else {
             return .err(code: "invalid_params", message: "Nothing to send", data: nil)
         }
+        if !attachments.isEmpty, let error = Self.mobileFileTransferPolicyError() { return error }
         guard let terminalParams = await mobileChatTerminalParams(sessionID: sessionID) else {
             return .err(code: "not_found", message: Self.chatTerminalBindingErrorMessage, data: [
                 "session_id": sessionID
@@ -291,6 +292,7 @@ extension TerminalController {
                 "session_id": sessionID
             ])
         }
+        if !attachments.isEmpty, let error = Self.mobileFileTransferPolicyError() { return error }
         let clearResult = clearAgentPrompt(terminalTarget)
         guard clearResult.accepted else {
             return mobileChatInputError(clearResult)
