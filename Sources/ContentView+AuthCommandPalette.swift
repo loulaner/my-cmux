@@ -98,6 +98,8 @@ extension ContentView {
 }
 
 extension ContentView {
+    // These IDs remain part of existing action routing and capability contracts;
+    // retaining an ID does not register an executable Cloud palette command.
     static let commandPaletteCloudAvailabilityInfoCommandId = "palette.cloud.availabilityInfo"
     static let commandPaletteCloudForkCommandId = "palette.cloud.fork"
     static let commandPaletteCloudSnapshotCommandId = "palette.cloud.snapshot"
@@ -110,93 +112,6 @@ extension ContentView {
     static let commandPaletteCloudNewWorkspaceCommandId = "palette.cloud.newWorkspace"
     static let commandPaletteCloudNewMachineCommandId = "palette.cloud.newMachine"
 
-    /// Returns Cloud VM commands when the Cloud feature and account are ready.
-    static func commandPaletteCloudCommandContributions(
-        isAuthenticated: Bool? = nil
-    ) -> [CommandPaletteCommandContribution] {
-        // Feature-gated: hide every Cloud VM command from the palette when the
-        // Cloud VM UI flag is off, matching the dropdown and shortcut gates.
-        guard CloudMachinesFeature.isEnabled,
-              isAuthenticated ?? (AppDelegate.shared?.auth?.accountFlow.isAuthenticated == true) else { return [] }
-        func constant(_ value: String) -> (CommandPaletteContextSnapshot) -> String {
-            { _ in value }
-        }
-        func capabilityGate(_ key: CommandPaletteContextKeys) -> (CommandPaletteContextSnapshot) -> Bool {
-            { context in
-                !context.bool(CommandPaletteContextKeys.cloudVMCapabilitiesKnown)
-                    || context.bool(key)
-            }
-        }
-        let subtitle = constant(String(localized: "command.cloudVM.subtitle", defaultValue: "Cloud"))
-        return [
-            CommandPaletteCommandContribution(
-                commandId: commandPaletteCloudNewWorkspaceCommandId,
-                title: constant(String(localized: "command.newCloudWorkspace.title", defaultValue: "New Cloud Workspace")),
-                subtitle: subtitle,
-                keywords: ["cloud", "workspace", "new", "create", "machine", "remote"]
-            ),
-            CommandPaletteCommandContribution(
-                commandId: commandPaletteCloudNewMachineCommandId,
-                title: constant(String(localized: "command.cloudVM.newMachine.title", defaultValue: "New Cloud Machine…")),
-                subtitle: subtitle,
-                keywords: ["cloud", "vm", "machine", "new", "create", "desktop", "base"]
-            ),
-            CommandPaletteCommandContribution(
-                commandId: commandPaletteCloudForkCommandId,
-                title: constant(String(localized: "command.cloudVM.fork.title", defaultValue: "Fork Current Cloud VM")),
-                subtitle: subtitle,
-                keywords: ["cloud", "vm", "fork", "clone", "branch"],
-                when: capabilityGate(.cloudVMSupportsFork)
-            ),
-            CommandPaletteCommandContribution(
-                commandId: commandPaletteCloudSnapshotCommandId,
-                title: constant(String(localized: "command.cloudVM.snapshot.title", defaultValue: "Checkpoint Current Cloud VM")),
-                subtitle: subtitle,
-                keywords: ["cloud", "vm", "snapshot", "checkpoint", "save"],
-                when: capabilityGate(.cloudVMSupportsSnapshot)
-            ),
-            CommandPaletteCommandContribution(
-                commandId: commandPaletteCloudRestoreCommandId,
-                title: constant(String(localized: "command.cloudVM.restore.title", defaultValue: "Restore Cloud VM From Checkpoint")),
-                subtitle: subtitle,
-                keywords: ["cloud", "vm", "restore", "snapshot", "checkpoint"],
-                when: capabilityGate(.cloudVMSupportsRestore)
-            ),
-            CommandPaletteCommandContribution(
-                commandId: commandPaletteCloudPromoteTemplateCommandId,
-                title: constant(String(localized: "command.cloudVM.promoteTemplate.title", defaultValue: "Promote Current VM to Template")),
-                subtitle: subtitle,
-                keywords: ["cloud", "vm", "template", "promote", "snapshot"],
-                when: capabilityGate(.cloudVMSupportsSnapshot)
-            ),
-            CommandPaletteCommandContribution(
-                commandId: commandPaletteCloudStatusCommandId,
-                title: constant(String(localized: "command.cloudVM.status.title", defaultValue: "Show Cloud VM Status")),
-                subtitle: subtitle,
-                keywords: ["cloud", "vm", "status", "running", "paused"]
-            ),
-            CommandPaletteCommandContribution(
-                commandId: commandPaletteCloudPortsCommandId,
-                title: constant(String(localized: "command.cloudVM.ports.title", defaultValue: "Show Cloud VM Ports")),
-                subtitle: subtitle,
-                keywords: ["cloud", "vm", "ports", "preview", "localhost"],
-                when: capabilityGate(.cloudVMSupportsPorts)
-            ),
-            CommandPaletteCommandContribution(
-                commandId: commandPaletteCloudToolsCommandId,
-                title: constant(String(localized: "command.cloudVM.tools.title", defaultValue: "Inspect Cloud VM Tools")),
-                subtitle: subtitle,
-                keywords: ["cloud", "vm", "tools", "bootstrap", "zsh", "gh", "htop", "btop"],
-                when: capabilityGate(.cloudVMSupportsExec)
-            ),
-            CommandPaletteCommandContribution(
-                commandId: commandPaletteCloudHandoffCommandId,
-                title: constant(String(localized: "command.cloudVM.handoff.title", defaultValue: "Show Agent Handoff")),
-                subtitle: subtitle,
-                keywords: ["cloud", "vm", "agent", "handoff", "copy"]
-            ),
-        ]
-    }
 
     /// Builds the Cloud-context explanation for local-only palette actions.
     /// Keeping this as a normal command makes the availability explanation
@@ -231,8 +146,8 @@ extension ContentView {
         )
     }
 
-    /// Registers Cloud palette handlers with the shared command dispatcher.
-    func registerCloudCommandHandlers(_ registry: inout CommandPaletteHandlerRegistry) {
+    /// Registers only the local explanation of Cloud command availability.
+    func registerCloudAvailabilityInfoHandler(_ registry: inout CommandPaletteHandlerRegistry) {
         let commandWindow = observedWindow ?? NSApp.keyWindow ?? NSApp.mainWindow
         registry.register(commandId: Self.commandPaletteCloudAvailabilityInfoCommandId) {
             let alert = NSAlert()
@@ -250,83 +165,6 @@ extension ContentView {
             } else {
                 NSSound.beep()
             }
-        }
-        registry.register(commandId: Self.commandPaletteCloudNewMachineCommandId) {
-            _ = AppDelegate.shared?.performNewCloudMachineAction(
-                tabManager: tabManager,
-                preferredWindow: commandWindow,
-                debugSource: "palette.cloud.newMachine"
-            )
-        }
-        registry.register(commandId: Self.commandPaletteCloudNewWorkspaceCommandId) {
-            _ = AppDelegate.shared?.performNewCloudWorkspaceOnResolvedMachineAction(
-                tabManager: tabManager,
-                preferredWindow: commandWindow,
-                debugSource: "palette.cloud.newWorkspace"
-            )
-        }
-        registry.register(commandId: Self.commandPaletteCloudForkCommandId) {
-            _ = AppDelegate.shared?.performCurrentCloudVMCommand(
-                .fork,
-                tabManager: tabManager,
-                preferredWindow: commandWindow,
-                debugSource: "palette.cloud.fork"
-            )
-        }
-        registry.register(commandId: Self.commandPaletteCloudSnapshotCommandId) {
-            _ = AppDelegate.shared?.performCurrentCloudVMCommand(
-                .snapshot,
-                tabManager: tabManager,
-                preferredWindow: commandWindow,
-                debugSource: "palette.cloud.snapshot"
-            )
-        }
-        registry.register(commandId: Self.commandPaletteCloudRestoreCommandId) {
-            _ = AppDelegate.shared?.performCloudVMRestoreCommand(
-                tabManager: tabManager,
-                preferredWindow: commandWindow,
-                debugSource: "palette.cloud.restore"
-            )
-        }
-        registry.register(commandId: Self.commandPaletteCloudPromoteTemplateCommandId) {
-            _ = AppDelegate.shared?.performCurrentCloudVMCommand(
-                .promoteTemplate,
-                tabManager: tabManager,
-                preferredWindow: commandWindow,
-                debugSource: "palette.cloud.promoteTemplate"
-            )
-        }
-        registry.register(commandId: Self.commandPaletteCloudStatusCommandId) {
-            _ = AppDelegate.shared?.performCurrentCloudVMCommand(
-                .status,
-                tabManager: tabManager,
-                preferredWindow: commandWindow,
-                debugSource: "palette.cloud.status"
-            )
-        }
-        registry.register(commandId: Self.commandPaletteCloudPortsCommandId) {
-            _ = AppDelegate.shared?.performCurrentCloudVMCommand(
-                .ports,
-                tabManager: tabManager,
-                preferredWindow: commandWindow,
-                debugSource: "palette.cloud.ports"
-            )
-        }
-        registry.register(commandId: Self.commandPaletteCloudToolsCommandId) {
-            _ = AppDelegate.shared?.performCurrentCloudVMCommand(
-                .tools,
-                tabManager: tabManager,
-                preferredWindow: commandWindow,
-                debugSource: "palette.cloud.tools"
-            )
-        }
-        registry.register(commandId: Self.commandPaletteCloudHandoffCommandId) {
-            _ = AppDelegate.shared?.performCurrentCloudVMCommand(
-                .handoff,
-                tabManager: tabManager,
-                preferredWindow: commandWindow,
-                debugSource: "palette.cloud.handoff"
-            )
         }
     }
 }

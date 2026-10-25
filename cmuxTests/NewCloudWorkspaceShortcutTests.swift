@@ -567,10 +567,12 @@ final class NewCloudWorkspaceShortcutTests {
     }
 #endif
 
-    @Test func testCommandPaletteNewMachineAdvertisesShortcut() {
+    @Test func retiredCloudPaletteCommandsHaveNoShortcutHints() {
         defer { restoreState() }
-        #expect(ContentView.commandPaletteShortcutAction(forCommandID: ContentView.commandPaletteCloudNewMachineCommandId) == .newCloudMachine)
-        #expect(ContentView.commandPaletteShortcutAction(forCommandID: ContentView.commandPaletteCloudNewWorkspaceCommandId) == .newCloudWorkspace)
+        #expect(ContentView.commandPaletteShortcutAction(forCommandID: ContentView.commandPaletteCloudNewMachineCommandId) == nil)
+        #expect(ContentView.commandPaletteShortcutAction(forCommandID: ContentView.commandPaletteCloudNewWorkspaceCommandId) == nil)
+        #expect(ContentView.commandPaletteShortcutAction(forCommandID: "palette.newWorkspace") == .newTab)
+        #expect(ContentView.commandPaletteShortcutAction(forCommandID: "palette.newBrowserWorkspace") == .newBrowserWorkspace)
     }
 
     @Test func testCommandYDoesNotFallbackForProviderFailure() async throws {

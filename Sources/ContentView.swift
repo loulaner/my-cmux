@@ -7610,7 +7610,6 @@ struct ContentView: View {
         }
 
         var contributions: [CommandPaletteCommandContribution] = [Self.commandPaletteFindWorkContribution()]
-        contributions.append(contentsOf: Self.commandPaletteCloudCommandContributions())
         contributions.append(Self.commandPaletteCloudAvailabilityInfoContribution())
         contributions.append(contentsOf: Self.commandPaletteComputerUseContributions())
 
@@ -9118,7 +9117,7 @@ struct ContentView: View {
         }
         registerViewCommandHandlers(&registry)
         registerCanvasCommandHandlers(&registry)
-        registerCloudCommandHandlers(&registry)
+        registerCloudAvailabilityInfoHandler(&registry)
         registerComputerUseCommandPaletteHandlers(&registry)
         registerSavedLayoutCommandHandlers(&registry)
         registerKeymapPresetCommandHandlers(&registry)
@@ -15668,7 +15667,7 @@ struct SidebarFooterButtons: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            if shows(.account) || shows(.mobileConnect) || shows(.help) || shows(.cloud) {
+            if shows(.account) || shows(.mobileConnect) || shows(.help) {
                 HStack(spacing: 0) {
                     if shows(.account), CmuxFeatureFlags.shared.isSidebarAccountButtonEnabled {
                         SidebarAccountMenuButton()
@@ -15679,13 +15678,9 @@ struct SidebarFooterButtons: View {
                     if shows(.help) {
                         SidebarHelpMenuButton(onSendFeedback: onSendFeedback)
                     }
-                    // Cloud sits immediately to the right of Help.
-                    if shows(.cloud) {
-                        SidebarCloudButton()
-                    }
                 }
             }
-            // Command-hold reveal: appears after the account/help/Cloud group. It stays
+            // Command-hold reveal: appears after the account/help group. It stays
             // mounted while its popover is open so releasing ⌘ does not dismiss it.
             if shows(.shortcutDiscovery),
                (showModifierHoldHints && modifierKeyMonitor.isModifierPressed) || isShortcutPopoverPresented {

@@ -80,7 +80,6 @@ enum SidebarFooterControl: CaseIterable, Equatable {
     case account
     case mobileConnect
     case help
-    case cloud
     case shortcutDiscovery
     case extensions
     case update
@@ -320,41 +319,6 @@ struct SidebarMobileConnectButton: View {
     }
 }
 
-/// Opens Cloud Machines in the right sidebar, introducing Cloud first while
-/// it is off. Follows the "Show Cloud and Device Icons in Sidebar" setting and
-/// stays hidden when managed policy disables Cloud.
-struct SidebarCloudButton: View {
-    @LiveSetting(\.sidebar.showCloudDeviceIcons) private var showsCloudDeviceIcons
-    @State private var anchorView: NSView?
-    private let title = String(localized: "sidebar.cloud.button", defaultValue: "Cloud")
-
-    var body: some View {
-        if showsCloudDeviceIcons, CloudMachinesFeature.isAvailable {
-            Button {
-                AppDelegate.shared?.performSidebarCloudButtonAction(preferredWindow: anchorView?.window)
-            } label: {
-                SidebarFooterCircularIcon(
-                    systemName: "cloud",
-                    style: SidebarFooterCircularIconStyle.standard.resized(to: SidebarFooterButtonMetrics.cloudIconSize)
-                )
-                .frame(
-                    width: SidebarFooterButtonMetrics.buttonSize,
-                    height: SidebarFooterButtonMetrics.buttonSize
-                )
-            }
-            .buttonStyle(SidebarFooterIconButtonStyle())
-            .frame(
-                width: SidebarFooterButtonMetrics.buttonSize,
-                height: SidebarFooterButtonMetrics.buttonSize
-            )
-            .background(TitlebarControlAnchorView { anchorView = $0 })
-            .safeHelp(title)
-            .hintableAccessibilityLabel(title)
-            .accessibilityIdentifier("SidebarCloudButton")
-            .padding(.leading, SidebarFooterButtonMetrics.cloudLeadingInset)
-        }
-    }
-}
 
 private struct SidebarFooterIconButtonStyleBody: View {
     let configuration: SidebarFooterIconButtonStyle.Configuration
