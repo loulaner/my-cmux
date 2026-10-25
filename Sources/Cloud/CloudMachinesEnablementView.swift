@@ -4,8 +4,7 @@ import SwiftUI
 
 /// The Cloud tab's first-use outcome. Mirrors
 /// ``CloudActivationCoordinator/State`` so the screen renders from plain
-/// values (the app maps it in ``CloudMachinesEnablementPanel``; the
-/// CloudWelcomeLab builds it directly).
+/// values; callers provide the phase to the values-only renderer.
 enum CloudMachinesEnablementPhase: Equatable {
     enum Failure: Equatable {
         case requiresPro
@@ -35,8 +34,7 @@ enum CloudMachinesEnablementPhase: Equatable {
 /// backdrops are unified), which the dense machines tree mostly covers, but a
 /// mostly empty onboarding card would otherwise let other windows show through.
 ///
-/// It takes plain values and action closures only; the app wires its
-/// coordinator and account flow in ``CloudMachinesEnablementPanel``.
+/// It takes plain values and action closures only; callers own service wiring.
 struct CloudMachinesEnablementView: View {
     let phase: CloudMachinesEnablementPhase
     /// Whether a billing plan request has finished for this account. When it

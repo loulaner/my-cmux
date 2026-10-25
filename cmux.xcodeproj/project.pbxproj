@@ -1922,7 +1922,6 @@
 				DEC1CE000000000000000044 /* DeviceRouteSelectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000043 /* DeviceRouteSelectorTests.swift */; };
 				DEC1CE00000000000000004A /* DevicesCloudTreeBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000049 /* DevicesCloudTreeBuilderTests.swift */; };
 				DEC1CE000000000000000002 /* DevicesFeature.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000001 /* DevicesFeature.swift */; };
-				DEC1CE000000000000000028 /* DevicesPanelViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE000000000000000027 /* DevicesPanelViewModel.swift */; };
 				B4E31E6EB2DF2BB3E11C81CE /* DevicesPreferencesModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F4913B51A207BA657F0241 /* DevicesPreferencesModel.swift */; };
 				428D61BE1D1B92287FC560D3 /* DevicesSidebarControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4681424F883829B8E87F5B0B /* DevicesSidebarControls.swift */; };
 				DEC1CE00000000000000004C /* DevicesSidebarModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEC1CE00000000000000004B /* DevicesSidebarModeTests.swift */; };
@@ -2489,12 +2488,8 @@
 				D80010000000000000000102 /* MachinesControlBarComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80010000000000000000101 /* MachinesControlBarComponents.swift */; };
 		C6210849A98B0C07D5240A69 /* MachinesListStatusToolbarRowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 311C986A1E7430418708AAA6 /* MachinesListStatusToolbarRowTests.swift */; };
 		58CF0FC31BE78E5EB1413C9E /* MachinesListStatusViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7858F7AEBE9927DEAB5CABC /* MachinesListStatusViews.swift */; };
-		4A6A6A54919FEE7C66D41678 /* MachinesPanelBanners.swift in Sources */ = {isa = PBXBuildFile; fileRef = 031E69302DA348EC747F0B64 /* MachinesPanelBanners.swift */; };
 		7690848956F4C55873F767F6 /* MachinesPanelModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78F49DA9F80DC43173341410 /* MachinesPanelModelTests.swift */; };
 		98E6802001D61AC24F2ABB09 /* MachinesPanelUncappedPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A986C3063FCE5F28AA10ACA /* MachinesPanelUncappedPlanTests.swift */; };
-		2DBF954BA240B2C9DA4A9755 /* MachinesPanelView+Activation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AC64FE02675D0294E2CF115 /* MachinesPanelView+Activation.swift */; };
-		E7F0A61240F14295AD6F19BF /* MachinesPanelView+TeamScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E642299D32B3539B81F7E90 /* MachinesPanelView+TeamScope.swift */; };
-		E879C292A2D38E3DDBCB004D /* MachinesPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08610D114C8CF23877176D7E /* MachinesPanelView.swift */; };
 		1FB07351D13BDC6E953792A3 /* MachinesPanelViewModel+ListStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37A99C8431FC45A80855541 /* MachinesPanelViewModel+ListStatus.swift */; };
 		08F746099657B74737EFC1C3 /* MachinesPanelViewModel+MachineDeletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED2C0C087F0298473CB156E7 /* MachinesPanelViewModel+MachineDeletion.swift */; };
 		C1257500000000000000001A /* MachinesPanelViewModel+MachinePins.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1257500000000000000001B /* MachinesPanelViewModel+MachinePins.swift */; };
@@ -6480,7 +6475,6 @@
 				DEC1CE000000000000000043 /* DeviceRouteSelectorTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeviceRouteSelectorTests.swift; sourceTree = "<group>"; };
 				DEC1CE000000000000000049 /* DevicesCloudTreeBuilderTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DevicesCloudTreeBuilderTests.swift; sourceTree = "<group>"; };
 				DEC1CE000000000000000001 /* DevicesFeature.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DevicesFeature.swift"; sourceTree = "<group>"; };
-				DEC1CE000000000000000027 /* DevicesPanelViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DevicesPanelViewModel.swift"; sourceTree = "<group>"; };
 				93F4913B51A207BA657F0241 /* DevicesPreferencesModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DevicesPreferencesModel.swift"; sourceTree = "<group>"; };
 				4681424F883829B8E87F5B0B /* DevicesSidebarControls.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "Devices/DevicesSidebarControls.swift"; sourceTree = "<group>"; };
 				DEC1CE00000000000000004B /* DevicesSidebarModeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DevicesSidebarModeTests.swift; sourceTree = "<group>"; };
@@ -7039,12 +7033,8 @@
 				D80010000000000000000101 /* MachinesControlBarComponents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MachinesControlBarComponents.swift; sourceTree = "<group>"; };
 		311C986A1E7430418708AAA6 /* MachinesListStatusToolbarRowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MachinesListStatusToolbarRowTests.swift"; sourceTree = "<group>"; };
 		D7858F7AEBE9927DEAB5CABC /* MachinesListStatusViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachinesListStatusViews.swift; sourceTree = "<group>"; };
-		031E69302DA348EC747F0B64 /* MachinesPanelBanners.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MachinesPanelBanners.swift"; sourceTree = "<group>"; };
 		78F49DA9F80DC43173341410 /* MachinesPanelModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MachinesPanelModelTests.swift; sourceTree = "<group>"; };
 		9A986C3063FCE5F28AA10ACA /* MachinesPanelUncappedPlanTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MachinesPanelUncappedPlanTests.swift; sourceTree = "<group>"; };
-		7AC64FE02675D0294E2CF115 /* MachinesPanelView+Activation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MachinesPanelView+Activation.swift"; sourceTree = "<group>"; };
-		2E642299D32B3539B81F7E90 /* MachinesPanelView+TeamScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MachinesPanelView+TeamScope.swift"; sourceTree = "<group>"; };
-		08610D114C8CF23877176D7E /* MachinesPanelView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MachinesPanelView.swift; sourceTree = "<group>"; };
 		E37A99C8431FC45A80855541 /* MachinesPanelViewModel+ListStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MachinesPanelViewModel+ListStatus.swift"; sourceTree = "<group>"; };
 		ED2C0C087F0298473CB156E7 /* MachinesPanelViewModel+MachineDeletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MachinesPanelViewModel+MachineDeletion.swift"; sourceTree = "<group>"; };
 		C1257500000000000000001B /* MachinesPanelViewModel+MachinePins.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MachinesPanelViewModel+MachinePins.swift"; sourceTree = "<group>"; };
@@ -9851,9 +9841,7 @@
 				7A0CE1000000000000000018 /* VMClientSocketCommands+Tunnel.swift */,
 				7A0CE1000000000000000052 /* Tunnel */,
 				7A0CE1000000000000000708 /* PortForward */,
-				08610D114C8CF23877176D7E /* MachinesPanelView.swift */,
 				90586458CDCDE7700CEDE927 /* MachineRowActions.swift */,
-				031E69302DA348EC747F0B64 /* MachinesPanelBanners.swift */,
 				CDEFAC0300DEBACE00000001 /* DevBackendStartup.swift */,
 				CDEFAC0300DEBACE00000003 /* DevBackendStartup+Status.swift */,
 				333CFD2BE68E128395477836 /* CloudTreeRowHeight.swift */,
@@ -9995,8 +9983,6 @@
 				E09A9B78125D188EEE10DEC4 /* CloudWelcomeWindowController.swift */,
 				6C632B1DEF42152DBA995A37 /* CloudWelcomeView.swift */,
 				3CA8C3407967FE40B15A41A3 /* CloudWelcomeHero.swift */,
-				7AC64FE02675D0294E2CF115 /* MachinesPanelView+Activation.swift */,
-				2E642299D32B3539B81F7E90 /* MachinesPanelView+TeamScope.swift */,
 				343AD0359AD2A02EE6861D0D /* CloudTreeOutlineView+MachineLookup.swift */,
 				4F3F6B820FF35BCF02EF6B2E /* CloudTreeSectionRefreshHeader.swift */,
 				66CDAC0E0F1B791CA9260310 /* CloudWelcomeMedia.swift */,
@@ -12119,7 +12105,6 @@
 				DEC1CE000000000000000021 /* DeviceSurfaceProvider.swift */,
 				DEC1CE000000000000000023 /* DeviceSurfaceProvider+Mutations.swift */,
 				DEC1CE000000000000000025 /* DeviceSurfaceProviderRegistry.swift */,
-				DEC1CE000000000000000027 /* DevicesPanelViewModel.swift */,
 				E9CE5C9947FB0EB965C69FE8 /* DeviceIrxPeerTransportProvider.swift */,
 				E74955A61FF70525F27DAA8A /* DeviceIrxClientContext.swift */,
 				269118819F1F884672CFA7E4 /* DeviceIrxClient.swift */,
@@ -15546,7 +15531,6 @@
 				DEC1CE000000000000000008 /* DeviceRegistryDirectoryWire.swift in Sources */,
 				DEC1CE000000000000000012 /* DeviceRouteSelector.swift in Sources */,
 				DEC1CE000000000000000002 /* DevicesFeature.swift in Sources */,
-				DEC1CE000000000000000028 /* DevicesPanelViewModel.swift in Sources */,
 				B4E31E6EB2DF2BB3E11C81CE /* DevicesPreferencesModel.swift in Sources */,
 				428D61BE1D1B92287FC560D3 /* DevicesSidebarControls.swift in Sources */,
 				2CA890B9EF5C412A91FB8B78 /* DeviceSurfaceProvider+Layout.swift in Sources */,
@@ -15913,10 +15897,6 @@
 				800100000000000000000302 /* MachinesCloudStatus.swift in Sources */,
 				D80010000000000000000102 /* MachinesControlBarComponents.swift in Sources */,
 				58CF0FC31BE78E5EB1413C9E /* MachinesListStatusViews.swift in Sources */,
-				4A6A6A54919FEE7C66D41678 /* MachinesPanelBanners.swift in Sources */,
-				2DBF954BA240B2C9DA4A9755 /* MachinesPanelView+Activation.swift in Sources */,
-				E7F0A61240F14295AD6F19BF /* MachinesPanelView+TeamScope.swift in Sources */,
-				E879C292A2D38E3DDBCB004D /* MachinesPanelView.swift in Sources */,
 				1FB07351D13BDC6E953792A3 /* MachinesPanelViewModel+ListStatus.swift in Sources */,
 				08F746099657B74737EFC1C3 /* MachinesPanelViewModel+MachineDeletion.swift in Sources */,
 				C1257500000000000000001A /* MachinesPanelViewModel+MachinePins.swift in Sources */,

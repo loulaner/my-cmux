@@ -63,17 +63,3 @@ struct MachinesCloudStatus: View {
         }
     }
 }
-
-extension MachinesPanelView {
-    func performListStatusAction(_ action: MachineListStatusPresentation.Action) {
-        switch action {
-        case .retry:
-            viewModel.recoverList()
-        case .signInAgain:
-            guard let accountFlow = AppDelegate.shared?.auth?.accountFlow else { return }
-            Task { await accountFlow.signOut() }
-        case .upgrade:
-            ProUpgradePresenter.present(source: .machinesPanelRequiresPro)
-        }
-    }
-}

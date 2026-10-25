@@ -3,41 +3,6 @@ import CmuxCloud
 import AppKit
 import SwiftUI
 
-/// A read-only free-access deadline warning with an independent dismiss button.
-struct MachinesFreeAccessBanner: View {
-    let text: String
-    let isExpired: Bool
-    let backgroundColor: NSColor
-    let onDismiss: () -> Void
-
-    var body: some View {
-        HStack(spacing: 5) {
-            HStack(spacing: 5) {
-                Image(systemName: isExpired ? "lock.fill" : "clock")
-                    .font(.system(size: 10, weight: .semibold))
-                Text(text)
-                    .cmuxFont(size: 11, monospacedDigit: true)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Spacer(minLength: 0)
-            }
-            .accessibilityElement(children: .combine)
-            .foregroundColor(isExpired ? Color.orange : .secondary)
-            .accessibilityLabel(text)
-            .layoutPriority(1)
-            CloudBannerDismissButton(action: onDismiss)
-        }
-        .padding(.horizontal, RightSidebarChromeMetrics.barHorizontalPadding)
-        .padding(.vertical, RightSidebarChromeMetrics.barVerticalPadding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .foregroundColor(isExpired ? Color.orange : .secondary)
-        .contentShape(Rectangle())
-        .background(Color(nsColor: backgroundColor))
-        .help(text)
-        .accessibilityIdentifier("CloudMachinesFreeAccessBanner")
-    }
-}
-
 struct MachinesChromeIconButton: View {
     let symbolName: String
     let accessibilityLabel: String
