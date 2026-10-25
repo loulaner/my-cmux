@@ -1,4 +1,3 @@
-import AppKit
 import CmuxAuthRuntime
 import CmuxCloud
 import Foundation
@@ -26,17 +25,15 @@ struct NewMachineSheetData {
 }
 
 /// App-level, account-scoped cache of ``NewMachineSheetData`` so New Cloud
-/// Machine (Cmd+Shift+Y) presents a fully populated sheet without waiting on the
-/// network.
+/// Machine (Cmd+Shift+Y) can reuse available data while loading on demand.
 ///
 /// Ownership: created once at the composition root after `VMClient` is
 /// bootstrapped (``bootstrap(auth:fetchPage:fetchCatalog:)``).
 ///
-/// Warming: every authenticated account/team scope the auth coordinator
-/// publishes (app launch with a restored session, sign-in, team switch)
-/// starts a fetch. App activation revalidates when the data is older than
-/// ``staleAfter``; presenting the sheet always revalidates in the background;
-/// the Machines panel's list reads feed ``ingest(page:scope:)``.
+/// Loading: explicit reads and refreshes fetch on demand. Scope and feature
+/// changes refresh only while a sheet listener is attached. Explicit reads
+/// reuse data within ``staleAfter``; the Machines panel's list reads feed
+/// ``ingest(page:scope:)``.
 ///
 /// Invalidation: a scope change (sign-out, account switch, team switch)
 /// clears everything synchronously before any new fetch, and each result is
@@ -49,7 +46,7 @@ final class NewMachineSheetDataCache {
 
     private(set) static var shared: NewMachineSheetDataCache?
 
-    /// Older data is revalidated when the app becomes active.
+    /// Explicit reads revalidate data older than this TTL.
     static let staleAfter: Duration = .seconds(60)
 
     private let currentScope: @MainActor () -> AuthenticatedTeamScope?
@@ -74,7 +71,6 @@ final class NewMachineSheetDataCache {
     private var catalogTask: Task<Void, Never>?
     private var catalogRequestID: UUID?
     private var scopeTask: Task<Void, Never>?
-    private var activationObserver: NSObjectProtocol?
     private var listeners: [UUID: @MainActor (NewMachineSheetData) -> Void] = [:]
     private var waiters: [UUID: CheckedContinuation<Void, Never>] = [:]
     private var waiterDeadlines: [UUID: Task<Void, Never>] = [:]
@@ -127,8 +123,12 @@ final class NewMachineSheetDataCache {
             notificationCenter: notificationCenter, isEnabled: isCloudEnabled
         ) { [weak self] enabled in
             guard let self else { return }
-            if enabled { self.refresh() }
-            else { self.adopt(scope: nil) }
+            if enabled {
+                self.adopt(scope: self.currentScope())
+                if !self.listeners.isEmpty { self.refresh() }
+            } else {
+                self.adopt(scope: nil)
+            }
         }
         scopeTask?.cancel()
         scopeTask = Task { @MainActor [weak self] in
@@ -137,13 +137,8 @@ final class NewMachineSheetDataCache {
             for await scope in stream {
                 guard !Task.isCancelled, let self else { return }
                 self.adopt(scope: scope)
+                if scope != nil, !self.listeners.isEmpty { self.refresh() }
             }
-        }
-        if let activationObserver { notificationCenter.removeObserver(activationObserver) }
-        activationObserver = notificationCenter.addObserver(
-            forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshIfStale() }
         }
     }
 
@@ -167,7 +162,7 @@ final class NewMachineSheetDataCache {
         )
     }
 
-    /// Reuses the enable-time preload. A cold caller joins that request;
+    /// Reuses fresh cached data. A cold caller starts or joins a request;
     /// network presets never extend the wait for machine sizes.
     func data(waitingAtMost limit: Duration? = nil) async -> NewMachineSheetData? {
         guard !Task.isCancelled else { return nil }
@@ -222,22 +217,14 @@ final class NewMachineSheetDataCache {
         listeners[id] = nil
     }
 
-    func refreshIfStale() {
-        guard let fetchedAt else { refresh(); return }
-        if clock.now - fetchedAt >= Self.staleAfter { refresh() }
-    }
-
     /// Starts a fetch of the plan and the catalog unless one is running.
     /// Returns false when nobody is signed in, so no answer will come.
     @discardableResult
     func refresh() -> Bool {
         guard isCloudEnabled(), let scope = currentScope() else { return false }
         // A scope the stream has not delivered yet: adopting it drops the old
-        // account's values and its in-flight fetch, and starts this one.
-        guard scope == self.scope else {
-            adopt(scope: scope)
-            return refreshTask != nil
-        }
+        // account's values and its in-flight fetch before starting this one.
+        if scope != self.scope { adopt(scope: scope) }
         if refreshTask == nil {
             let id = UUID()
             refreshID = id
@@ -300,10 +287,7 @@ final class NewMachineSheetDataCache {
     }
 
     private func adopt(scope: AuthenticatedTeamScope?) {
-        guard scope != self.scope else {
-            if scope != nil, page == nil { refresh() }
-            return
-        }
+        guard scope != self.scope else { return }
         catalogTask?.cancel()
         catalogTask = nil
         catalogRequestID = nil
@@ -317,7 +301,6 @@ final class NewMachineSheetDataCache {
         catalog = nil
         catalogFailed = false
         fetchedAt = nil
-        if scope != nil { refresh() }
     }
 
     private func notify() {

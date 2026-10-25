@@ -2533,8 +2533,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             isCloudEnabled: { CloudMachinesFeature.offMainIsEnabled() }, isCloudAvailable: { CloudMachinesFeature.offMainIsAvailable() }
         )
         TerminalController.shared.cloudTunnel = cloudTunnel
-        // Warms the New Machine sheet's plan and network catalog per signed-in
-        // account so Cmd+Shift+Y never waits on the network.
+        // Establishes the on-demand New Machine sheet cache, isolated by
+        // authenticated account and team scope.
         NewMachineSheetDataCache.bootstrap(auth: auth.coordinator)
         RemotesClient.bootstrap(auth: auth.coordinator)
         TeamsClient.bootstrap(auth: auth.coordinator)
@@ -10877,17 +10877,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             },
             onQuitApp: {
                 AppDelegate.requestApplicationTermination()
-            },
-            cloudMenuEntries: { [weak self] in
-                guard let self else { return [] }
-                return CloudMenuContent.entries(
-                    self.cloudMenuContext(),
-                    actions: self.cloudMenuActions(fromStatusItem: true),
-                    layout: .statusItem
-                )
-            },
-            onCloudMenuWillOpen: {
-                CloudMenuModel.shared.menuWillOpen()
             }
         )
     }

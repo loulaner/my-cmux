@@ -271,7 +271,6 @@
 		C4160A030000000000000001 /* AppDelegate+ClosedItemHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4160A030000000000000002 /* AppDelegate+ClosedItemHistory.swift */; };
 		AC329BBA70590E415B129F2F /* AppDelegate+CloudDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0A6FA47518B9D3AF658084 /* AppDelegate+CloudDiagnostics.swift */; };
 		F01900514D217679242CDBCB /* AppDelegate+CloudMachineWorkspaceClosure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC9467C0E0B527D9B9BC2E0 /* AppDelegate+CloudMachineWorkspaceClosure.swift */; };
-		54C99A27585D8B10B223082B /* AppDelegate+CloudMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E9B5E5C615E77AB061F2963 /* AppDelegate+CloudMenu.swift */; };
 		9FC7BD6263A65F7A691B01A2 /* AppDelegate+CloudTeamPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27422F10498F0E21AFC4E789 /* AppDelegate+CloudTeamPicker.swift */; };
 		C72B971AA11641AD9D61CDA3 /* AppDelegate+CloudTerminalNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33981D3B415C488D8406A09E /* AppDelegate+CloudTerminalNavigation.swift */; };
 		7A0CE1000000000000000045 /* AppDelegate+CloudTunnel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0CE1000000000000000019 /* AppDelegate+CloudTunnel.swift */; };
@@ -1210,7 +1209,6 @@
 		8295A0018295A0018295A001 /* CmuxAlertContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8295A0028295A0028295A002 /* CmuxAlertContent.swift */; };
 		8295A0058295A0058295A005 /* CmuxAlertContentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8295A0068295A0068295A006 /* CmuxAlertContentTests.swift */; };
 		8295A0038295A0038295A003 /* CmuxAlertScrollableDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8295A0048295A0048295A004 /* CmuxAlertScrollableDetailsView.swift */; };
-		C93797F141669B8E0DF3FE5C /* cmuxApp+CloudMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0099F1705D48F395E6A9840E /* cmuxApp+CloudMenu.swift */; };
 		3F4F74BE5EBF4B51B8E64AB6 /* cmuxApp+CloudWorkspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DF23874CA9E46EFB0708B3D /* cmuxApp+CloudWorkspace.swift */; };
 		E3309A07 /* cmuxApp+EqualizeSplitsMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3309A08 /* cmuxApp+EqualizeSplitsMenu.swift */; };
 		C4160A010000000000000001 /* cmuxApp+HistoryMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4160A010000000000000002 /* cmuxApp+HistoryMenu.swift */; };
@@ -4993,7 +4991,6 @@
 		C4160A030000000000000002 /* AppDelegate+ClosedItemHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+ClosedItemHistory.swift"; sourceTree = "<group>"; };
 		0D0A6FA47518B9D3AF658084 /* AppDelegate+CloudDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+CloudDiagnostics.swift"; sourceTree = "<group>"; };
 		7FC9467C0E0B527D9B9BC2E0 /* AppDelegate+CloudMachineWorkspaceClosure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+CloudMachineWorkspaceClosure.swift"; sourceTree = "<group>"; };
-		2E9B5E5C615E77AB061F2963 /* AppDelegate+CloudMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+CloudMenu.swift"; sourceTree = "<group>"; };
 		27422F10498F0E21AFC4E789 /* AppDelegate+CloudTeamPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+CloudTeamPicker.swift"; sourceTree = "<group>"; };
 		33981D3B415C488D8406A09E /* AppDelegate+CloudTerminalNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+CloudTerminalNavigation.swift"; sourceTree = "<group>"; };
 		7A0CE1000000000000000019 /* AppDelegate+CloudTunnel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "AppDelegate+CloudTunnel.swift"; sourceTree = "<group>"; };
@@ -5897,7 +5894,6 @@
 		8295A0028295A0028295A002 /* CmuxAlertContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CmuxAlertContent.swift; sourceTree = "<group>"; };
 		8295A0068295A0068295A006 /* CmuxAlertContentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CmuxAlertContentTests.swift; sourceTree = "<group>"; };
 		8295A0048295A0048295A004 /* CmuxAlertScrollableDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CmuxAlertScrollableDetailsView.swift; sourceTree = "<group>"; };
-		0099F1705D48F395E6A9840E /* cmuxApp+CloudMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "cmuxApp+CloudMenu.swift"; sourceTree = "<group>"; };
 		1DF23874CA9E46EFB0708B3D /* cmuxApp+CloudWorkspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "cmuxApp+CloudWorkspace.swift"; sourceTree = "<group>"; };
 		E3309A08 /* cmuxApp+EqualizeSplitsMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "cmuxApp+EqualizeSplitsMenu.swift"; sourceTree = "<group>"; };
 		C4160A010000000000000002 /* cmuxApp+HistoryMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "cmuxApp+HistoryMenu.swift"; sourceTree = "<group>"; };
@@ -9976,7 +9972,6 @@
 				8131E9BE5F3F3A28CA99614F /* MachineDeleteCoordinator.swift */,
 				ED2C0C087F0298473CB156E7 /* MachinesPanelViewModel+MachineDeletion.swift */,
 				E3AF26EAE918E646929A4B58 /* CloudTreeOutlineView+RestoreState.swift */,
-				2E9B5E5C615E77AB061F2963 /* AppDelegate+CloudMenu.swift */,
 				BBB754F8A2E5D01449E118AC /* CloudMachineMenuVerbs.swift */,
 				03E5F492610421C2D48474B6 /* CloudMenuContent.swift */,
 				58EEEE4ED164EBC1BD173EE8 /* CloudMenuEntriesView.swift */,
@@ -12193,7 +12188,6 @@
 				2522709FFB5C399F9AA17B8D /* TmuxWorkspacePaneOverlayCoordinator.swift */,
 				875F3861057A8182C3AC2AC9 /* TmuxWorkspacePaneOverlayInputs.swift */,
 				7C62279A431EC9F35D9F052D /* TmuxWorkspacePaneOverlayRefreshSnapshot.swift */,
-				0099F1705D48F395E6A9840E /* cmuxApp+CloudMenu.swift */,
 				F2A8C8F36CBB9D59049A238F /* SidebarResizerAccessibilityModifier.swift */,
 				60FA3A8B7182AEE47EC38033 /* DiffViewerPreferencesStore.swift */,
 				EF429A8ABD1F6FBA507AEBC8 /* KeyboardShortcutSettings+DiffViewerNavigation.swift */,
@@ -14873,7 +14867,6 @@
 				C4160A030000000000000001 /* AppDelegate+ClosedItemHistory.swift in Sources */,
 				AC329BBA70590E415B129F2F /* AppDelegate+CloudDiagnostics.swift in Sources */,
 				F01900514D217679242CDBCB /* AppDelegate+CloudMachineWorkspaceClosure.swift in Sources */,
-				54C99A27585D8B10B223082B /* AppDelegate+CloudMenu.swift in Sources */,
 				9FC7BD6263A65F7A691B01A2 /* AppDelegate+CloudTeamPicker.swift in Sources */,
 				C72B971AA11641AD9D61CDA3 /* AppDelegate+CloudTerminalNavigation.swift in Sources */,
 				7A0CE1000000000000000045 /* AppDelegate+CloudTunnel.swift in Sources */,
@@ -15313,7 +15306,6 @@
 				C0DE43000000000000000001 /* CmuxAgentChatConfig.swift in Sources */,
 				8295A0018295A0018295A001 /* CmuxAlertContent.swift in Sources */,
 				8295A0038295A0038295A003 /* CmuxAlertScrollableDetailsView.swift in Sources */,
-				C93797F141669B8E0DF3FE5C /* cmuxApp+CloudMenu.swift in Sources */,
 				3F4F74BE5EBF4B51B8E64AB6 /* cmuxApp+CloudWorkspace.swift in Sources */,
 				E3309A07 /* cmuxApp+EqualizeSplitsMenu.swift in Sources */,
 				C4160A010000000000000001 /* cmuxApp+HistoryMenu.swift in Sources */,

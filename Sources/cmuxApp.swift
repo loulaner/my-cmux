@@ -1040,7 +1040,6 @@ struct cmuxApp: App {
         }
         helpCommands
         historyCommands
-        cloudCommands
         CommandGroup(after: .toolbar) {
             splitCommandButton(title: String(localized: "menu.view.toggleLeftSidebar", defaultValue: "Toggle Left Sidebar"), shortcut: menuShortcut(for: .toggleSidebar)) {
                 // The AppKit-hosted Settings window has no SwiftUI

@@ -117,8 +117,7 @@ struct NewMachineSheetPresenterTests {
                 return expected
             },
             isAvailable: { true },
-            isFeatureEnabled: { true },
-            mainMenu: { nil }
+            isFeatureEnabled: { true }
         )
 
         let page = await model.fleetPageForPresentation()
@@ -137,8 +136,7 @@ struct NewMachineSheetPresenterTests {
                 throw URLError(.networkConnectionLost)
             },
             isAvailable: { true },
-            isFeatureEnabled: { true },
-            mainMenu: { nil }
+            isFeatureEnabled: { true }
         )
         let page = await model.fleetPageForPresentation()
         #expect(page == nil)
@@ -154,8 +152,7 @@ struct NewMachineSheetPresenterTests {
                 return VMListPage(vms: [])
             },
             isAvailable: { true },
-            isFeatureEnabled: { true },
-            mainMenu: { nil }
+            isFeatureEnabled: { true }
         )
         let request = Task { await model.fleetPageForPresentation() }
         request.cancel()

@@ -237,8 +237,8 @@ struct CloudMenuContentTests {
         #expect(recorder.log == ["shell:m0"])
     }
 
-    @Test("Opening a menu reuses a fresh fleet, and a team switch drops it")
-    func modelRefreshPolicy() async throws {
+    @Test("Explicit presentation reuses a fresh fleet, and a team switch drops it")
+    func explicitPresentationRefreshPolicy() async throws {
         let center = NotificationCenter()
         let reads = ReadCounter()
         let model = CloudMenuModel(
@@ -249,24 +249,21 @@ struct CloudMenuContentTests {
             },
             isAvailable: { true },
             pinStore: { nil },
-            isFeatureEnabled: { true },
-            mainMenu: { nil }
+            isFeatureEnabled: { true }
         )
-        model.menuWillOpen()
-        try await Self.waitUntil { model.loadState == .loaded }
+        _ = await model.fleetPageForPresentation()
         #expect(model.machines.map(\.id) == ["vm-1"])
-        model.menuWillOpen()
+        _ = await model.fleetPageForPresentation()
         #expect(reads.count == 1)
 
         center.post(name: .cmuxCloudTeamScopeDidChange, object: nil)
         #expect(model.machines.isEmpty)
         #expect(model.loadState == .idle)
-        model.menuWillOpen()
-        try await Self.waitUntil { model.loadState == .loaded }
+        _ = await model.fleetPageForPresentation()
         #expect(model.machines.map(\.id) == ["vm-2"])
     }
 
-    @Test("A read that lands after a scope change does not leave the menu loading")
+    @Test("A read that lands after a scope change recovers the explicit presentation")
     func scopeChangeDuringReadRecovers() async throws {
         let reads = ReadCounter()
         let scope = ScopeBox(value: "team:personal")
@@ -281,12 +278,51 @@ struct CloudMenuContentTests {
             isAvailable: { true },
             pinStore: { nil },
             scope: { scope.value },
-            isFeatureEnabled: { true },
-            mainMenu: { nil }
+            isFeatureEnabled: { true }
         )
-        model.menuWillOpen()
-        try await Self.waitUntil { model.loadState == .loaded }
+        _ = await model.fleetPageForPresentation()
         #expect(model.machines.map(\.id) == ["vm-2"])
+    }
+
+    @Test("Initialization, feature changes and scope invalidation do not read the fleet")
+    func idleModelDoesNotReadFleet() async {
+        let center = NotificationCenter()
+        let reads = ReadCounter()
+        let scope = ScopeBox(value: "account-a:team-a")
+        var enabled = true
+        let model = CloudMenuModel(
+            center: center,
+            listMachines: {
+                reads.count += 1
+                return VMListPage(vms: [VMSummary(
+                    id: scope.value ?? "none", provider: "freestyle", status: "running",
+                    image: "cmux-devbox", createdAt: 0
+                )])
+            },
+            isAvailable: { enabled && scope.value != nil },
+            pinStore: { nil },
+            scope: { scope.value },
+            isFeatureEnabled: { enabled }
+        )
+        #expect(reads.count == 0)
+        enabled = false
+        center.post(name: .cmuxFeatureFlagsDidChange, object: nil)
+        enabled = true
+        center.post(name: .cmuxFeatureFlagsDidChange, object: nil)
+        scope.value = "account-b:team-a"
+        center.post(name: .cmuxCloudVMAccessDidEnd, object: nil)
+        scope.value = "account-b:team-b"
+        center.post(name: .cmuxCloudTeamScopeDidChange, object: nil)
+        #expect(reads.count == 0)
+        #expect(model.fleetPage == nil && model.loadState == .idle)
+        let page = await model.fleetPageForPresentation()
+        #expect(page?.vms.map(\.id) == ["account-b:team-b"])
+        #expect(reads.count == 1)
+        scope.value = nil
+        center.post(name: .cmuxCloudVMAccessDidEnd, object: nil)
+        #expect(model.fleetPage == nil && model.machines.isEmpty)
+        #expect(await model.fleetPageForPresentation() == nil)
+        #expect(reads.count == 1)
     }
 
     @Test("An identical rebuild keeps the status item's rows; a visible change replaces them")

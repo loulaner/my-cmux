@@ -341,7 +341,7 @@ final class NewMachineSheetPresenter: NSObject, NewMachineSheetPresenting {
         if model.plan == nil { model.setPlanLoading() }
         planLoadTask = Task { @MainActor [weak self, weak model] in
             guard let self, let model else { return }
-            // Join the account-scoped preload first. On a cold first open the
+            // Join the explicit shared request first. On a cold first open the
             // cache may still be fetching the plan even though the sheet is
             // already visible; showing an error for that transient gap makes
             // the second open appear to fix the problem by accident.

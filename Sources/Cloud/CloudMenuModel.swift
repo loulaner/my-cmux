@@ -1,15 +1,11 @@
-import AppKit
 import CmuxCloud
 import CmuxCloudMachines
 import Foundation
 import Observation
 
-/// The machine fleet as the status item and the main-menu Cloud menu show it.
-///
-/// Menus do not poll. Opening either menu asks for a refresh; a read younger
-/// than `freshness` is reused, so the menu opens on the last known fleet and
-/// updates in place when the read lands. Team switches and sign-out drop the
-/// fleet and discard reads that were started for the previous scope.
+/// Owns explicit fleet reads for Cloud presentation, with shared freshness,
+/// retries and account/team isolation. Scope changes discard prior results;
+/// initialization and ordinary menu tracking do not start a fleet read.
 @MainActor
 @Observable
 final class CloudMenuModel {
@@ -43,7 +39,6 @@ final class CloudMenuModel {
     @ObservationIgnored private var pageWaiters: [UUID: CheckedContinuation<VMListPage?, Never>] = [:]
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private var featureObserver: CloudFeatureAvailabilityObserver?
-    @ObservationIgnored private let mainMenu: @MainActor () -> NSMenu?
 
     init(
         center: NotificationCenter = .default,
@@ -54,8 +49,7 @@ final class CloudMenuModel {
         },
         pinStore: @escaping @MainActor () -> CloudMachinePinStore? = { AppDelegate.shared?.cloudMachinePinStore },
         scope: (@MainActor () -> String?)? = nil,
-        isFeatureEnabled: @escaping @MainActor () -> Bool = { CloudMachinesFeature.isEnabled },
-        mainMenu: @escaping @MainActor () -> NSMenu? = { NSApp?.mainMenu }
+        isFeatureEnabled: @escaping @MainActor () -> Bool = { CloudMachinesFeature.isEnabled }
     ) {
         self.retryClock = retryClock
         self.listMachines = listMachines ?? {
@@ -65,25 +59,12 @@ final class CloudMenuModel {
         self.isAvailable = isAvailable
         self.pinStore = pinStore
         self.scope = scope ?? { pinStore()?.scopeIdentifier }
-        self.mainMenu = mainMenu
         observers = [Notification.Name.cmuxCloudVMAccessDidEnd, .cmuxCloudTeamScopeDidChange].map { name in
             center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 // Posted on the main queue by the auth and team-scope owners.
                 MainActor.assumeIsolated { self?.reset() }
             }
         }
-        // The main-menu Cloud menu has no willOpen hook; opening any main-menu
-        // title refreshes a stale fleet, the same seam the History menu uses.
-        observers.append(center.addObserver(forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main) { [weak self] notification in
-            guard var root = notification.object as? NSMenu else { return }
-            while let parent = root.supermenu { root = parent }
-            let rootID = ObjectIdentifier(root)
-            // NSMenu tracking notifications are delivered on the main run loop.
-            MainActor.assumeIsolated {
-                guard let self, let mainMenu = self.mainMenu(), ObjectIdentifier(mainMenu) == rootID else { return }
-                self.menuWillOpen()
-            }
-        })
         featureObserver = CloudFeatureAvailabilityObserver(notificationCenter: center, isEnabled: isFeatureEnabled) { [weak self] enabled in
             guard let self else { return }
             self.isFeatureEnabled = enabled
@@ -130,14 +111,6 @@ final class CloudMenuModel {
 
     private func finishPageWaiter(_ id: UUID, page: VMListPage?) {
         pageWaiters.removeValue(forKey: id)?.resume(returning: page)
-    }
-
-    func menuWillOpen() {
-        guard isAvailable() else { reset(); return }
-        if task != nil { return }
-        if loadState == .loaded, let lastLoadedAt,
-           ContinuousClock.now - lastLoadedAt < Self.freshness { return }
-        refresh()
     }
 
     /// Reads the fleet now (Retry, or a verb that changed it).
@@ -223,7 +196,7 @@ final class CloudMenuModel {
         NotificationCenter.default.post(name: Self.didChangeNotification, object: self)
     }
 
-    /// The one fleet both Cloud menus read.
+    /// The shared fleet owner for explicit presentation reads.
     static let shared = CloudMenuModel()
 
     static let didChangeNotification = Notification.Name("cmux.cloudMenuModel.didChange")
