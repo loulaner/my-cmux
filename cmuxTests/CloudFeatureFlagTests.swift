@@ -95,16 +95,6 @@ struct CloudFeatureFlagTests {
         }
     }
 
-    @Test("Upgrade and welcome palette commands are available before any flags load")
-    func upgradeCommandsDoNotNeedRolloutContext() {
-        let context = CommandPaletteContextSnapshot()
-        let commands = ContentView.commandPaletteProCommandContributions()
-        #expect(commands.count == 2)
-        for command in commands {
-            #expect(command.when(context))
-            #expect(command.enablement(context))
-        }
-    }
 
     @Test("A cancelled keyed operation cannot erase its replacement after re-enable")
     func lateKeyedCompletion() async {

@@ -82,7 +82,6 @@ enum SidebarFooterControl: CaseIterable, Equatable {
     case help
     case cloud
     case shortcutDiscovery
-    case upgrade
     case extensions
     case update
 }
@@ -92,14 +91,7 @@ enum SidebarFooterPresentationPolicy {
         _ control: SidebarFooterControl,
         presentationMode: WorkspacePresentationModeSettings.Mode
     ) -> Bool {
-        presentationMode != .minimal || control == .upgrade
-    }
-
-    static func isUpgradeVisible(
-        isProActive: Bool,
-        isProStatusKnown: Bool = true
-    ) -> Bool {
-        isProStatusKnown && !isProActive
+        presentationMode != .minimal
     }
 }
 

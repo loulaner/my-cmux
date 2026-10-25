@@ -7322,10 +7322,6 @@ struct ContentView: View {
             snapshot.setBool(CommandPaletteContextKeys.authSignedIn, auth.accountFlow.isAuthenticated)
             snapshot.setBool(CommandPaletteContextKeys.authWorking, auth.accountFlow.isWorkingOnAuth)
         }
-        snapshot.setString(
-            CommandPaletteContextKeys.accountUpgradeOffer,
-            Self.commandPaletteUpgradeOfferValue(ProUpgradePresenter.currentUpgradeOffer)
-        )
 
         let focusedDock = AppDelegate.shared?.focusedDockStoreForShortcut(
             preferredWindow: observedWindow ?? NSApp.keyWindow ?? NSApp.mainWindow
@@ -7913,7 +7909,7 @@ struct ContentView: View {
                 when: { !$0.bool(CommandPaletteContextKeys.mobileRemoteControlManagedByPolicy) }
             )
         )
-        contributions.append(contentsOf: Self.commandPaletteAuthCommandContributions() + Self.commandPaletteProCommandContributions())
+        contributions.append(contentsOf: Self.commandPaletteAuthCommandContributions())
         contributions.append(
             CommandPaletteCommandContribution(
                 commandId: "palette.makeDefaultTerminal",
@@ -9179,7 +9175,6 @@ struct ContentView: View {
             )
         }
         registerAuthCommandHandlers(&registry)
-        registerProCommandHandlers(&registry)
         registry.register(commandId: "palette.makeDefaultTerminal") {
             DefaultTerminalUserAction.setAsDefault(debugSource: "palette.makeDefaultTerminal")
         }
@@ -15666,10 +15661,6 @@ struct SidebarFooterButtons: View {
         return "\(accountID):\(flow.confirmedTeamID ?? "personal"):\(flow.isAuthenticated)"
     }
 
-    private var isProStatusKnownForUpgrade: Bool {
-        guard let flow = accountFlow else { return true }
-        return !flow.isWorkingOnAuth && (flow.currentIdentity == nil || flow.hasLoadedBillingPlan)
-    }
 
     private func shows(_ control: SidebarFooterControl) -> Bool {
         SidebarFooterPresentationPolicy.isVisible(control, presentationMode: presentationMode)
@@ -15688,24 +15679,17 @@ struct SidebarFooterButtons: View {
                     if shows(.help) {
                         SidebarHelpMenuButton(onSendFeedback: onSendFeedback)
                     }
-                    // Right of Help and left of Upgrade, per the footer design.
+                    // Cloud sits immediately to the right of Help.
                     if shows(.cloud) {
                         SidebarCloudButton()
                     }
                 }
             }
-            // Command-hold reveal: appears immediately before Upgrade. It stays
+            // Command-hold reveal: appears after the account/help/Cloud group. It stays
             // mounted while its popover is open so releasing ⌘ does not dismiss it.
             if shows(.shortcutDiscovery),
                (showModifierHoldHints && modifierKeyMonitor.isModifierPressed) || isShortcutPopoverPresented {
                 ShortcutDiscoveryButton(isPopoverPresented: $isShortcutPopoverPresented)
-            }
-            if shows(.upgrade),
-               SidebarFooterPresentationPolicy.isUpgradeVisible(
-                   isProActive: accountFlow?.planTier?.includesPro == true,
-                   isProStatusKnown: isProStatusKnownForUpgrade
-               ) {
-                SidebarProBadge()
             }
             // The puzzle button opens the extensions browser; it only shows
             // while the experimental Extensions feature is enabled.
@@ -15737,7 +15721,6 @@ struct SidebarFooterButtons: View {
 
 private enum SidebarHelpMenuAction {
     case settings
-    case upgrade
     case importBrowserData
     case keyboardShortcuts
     case docs
@@ -15827,15 +15810,6 @@ private struct SidebarHelpMenuButton: View {
                 accessibilityIdentifier: "SidebarHelpMenuOptionWelcome",
                 isExternalLink: false
             )
-            if let offer = ProUpgradePresenter.currentUpgradeOffer {
-                helpOptionButton(
-                    title: ProUpgradePresenter.upgradeMenuTitle(for: offer),
-                    action: .upgrade,
-                    accessibilityIdentifier: "SidebarHelpMenuOptionUpgrade",
-                    isExternalLink: false,
-                    trailingSystemImage: "sparkles"
-                )
-            }
             helpOptionButton(
                 title: String(localized: "menu.app.settings", defaultValue: "Settings…"),
                 action: .settings,
@@ -15965,8 +15939,6 @@ private struct SidebarHelpMenuButton: View {
                     AppDelegate.presentPreferencesWindow()
                 }
             }
-        case .upgrade:
-            ProUpgradePresenter.present(source: .sidebarHelpMenu)
         case .importBrowserData:
             isPopoverPresented = false
             DispatchQueue.main.async {

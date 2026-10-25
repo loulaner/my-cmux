@@ -546,7 +546,7 @@ final class WorkspaceContentViewVisibilityTests {
     }
 
     @Test
-    func minimalModeSidebarFooterKeepsOnlyUpgradeControl() {
+    func minimalModeSidebarFooterHidesAllControls() {
         let minimalControls = SidebarFooterControl.allCases.filter {
             SidebarFooterPresentationPolicy.isVisible($0, presentationMode: .minimal)
         }
@@ -554,30 +554,14 @@ final class WorkspaceContentViewVisibilityTests {
             SidebarFooterPresentationPolicy.isVisible($0, presentationMode: .standard)
         }
 
-        #expect(minimalControls == [.upgrade])
+        #expect(minimalControls == [])
         #expect(standardControls == SidebarFooterControl.allCases)
     }
 
-    @Test
-    func upgradeVisibilityRequiresKnownFreeEntitlement() {
-        #expect(
-            SidebarFooterPresentationPolicy.isUpgradeVisible(
-                isProActive: false,
-                isProStatusKnown: true
-            )
-        )
-        #expect(
-            !SidebarFooterPresentationPolicy.isUpgradeVisible(
-                isProActive: true,
-                isProStatusKnown: true
-            )
-        )
-        #expect(
-            !SidebarFooterPresentationPolicy.isUpgradeVisible(
-                isProActive: false,
-                isProStatusKnown: false
-            )
-        )
+    @Test(arguments: SidebarFooterControl.allCases)
+    func sidebarFooterControlsRespectPresentationMode(_ control: SidebarFooterControl) {
+        #expect(SidebarFooterPresentationPolicy.isVisible(control, presentationMode: .standard))
+        #expect(!SidebarFooterPresentationPolicy.isVisible(control, presentationMode: .minimal))
     }
 
     @Test
