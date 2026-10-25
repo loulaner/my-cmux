@@ -7,8 +7,8 @@ enum CloudWelcomeNextStep: Equatable {
     case signIn
     case upgrade
     case enable
-    /// The plan is not known yet (or could not be loaded): open the Cloud tab,
-    /// whose own gate decides between Upgrade and Enable.
+    /// The plan is not known yet (or could not be loaded): open Cloud Settings,
+    /// whose activation and plan gates decide the next step.
     case openCloud
 
     /// Stack Auth creates one personal team for a normal account. A free

@@ -98,8 +98,9 @@ extension HostSettingsActions {
             : nil
     }
 
+    /// Compatibility entrypoint for Cloud setup, now in Settings rather than a machine list.
     func openCloudMachinesPanel() {
-        _ = AppDelegate.shared?.focusRightSidebarInActiveMainWindow(mode: .machines)
+        SettingsWindowPresenter.show(navigationTarget: .cloudMachines)
     }
 
     func openCloudMachinesBilling() {

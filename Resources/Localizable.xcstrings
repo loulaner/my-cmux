@@ -568924,55 +568924,55 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enable Cloud Machines in the Cloud tab to use My Devices."
+            "value": "Enable Cloud Machines in Settings → Cloud to use My Devices."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "فعّل «أجهزة Cloud» في علامة تبويب Cloud لاستخدام «أجهزتي»."
+            "value": "فعّل «أجهزة Cloud» في «الإعدادات ← السحابة» لاستخدام «أجهزتي»."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aktiviere Cloud Machines im Cloud-Tab, um Meine Geräte zu verwenden."
+            "value": "Aktiviere Cloud Machines unter Einstellungen → Cloud, um Meine Geräte zu verwenden."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Activa Máquinas en la nube en la pestaña Cloud para usar Mis dispositivos."
+            "value": "Activa Máquinas en la nube en Configuración → Nube para usar Mis dispositivos."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Activez Machines cloud dans l’onglet Cloud pour utiliser Mes appareils."
+            "value": "Activez Machines cloud dans Réglages → Cloud pour utiliser Mes appareils."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "マイデバイスを使うには、Cloud タブで Cloud Machines を有効にしてください。"
+            "value": "マイデバイスを使うには、「設定 → クラウド」で Cloud Machines を有効にしてください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "내 기기를 사용하려면 Cloud 탭에서 Cloud Machines를 켜세요."
+            "value": "내 기기를 사용하려면 설정 → 클라우드에서 Cloud Machines를 켜세요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请在 Cloud 标签页中启用“Cloud Machines”以使用“我的设备”。"
+            "value": "请在“设置 → 云端”中启用 Cloud Machines，以使用“我的设备”。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請在 Cloud 分頁中開啟「Cloud Machines」以使用「我的裝置」。"
+            "value": "請在「設定 → 雲端」中啟用 Cloud Machines，以使用「我的裝置」。"
           }
         }
       }

@@ -4,8 +4,7 @@ import SwiftUI
 
 /// **Cloud Machines** settings: first-use activation, plan details, and
 /// optional system VPN setup. The activation control calls the host's shared
-/// coordinator so Settings and the right-sidebar onboarding screen cannot
-/// perform different setup work.
+/// coordinator so all entrypoints perform the same setup work.
 @MainActor
 public struct CloudMachinesSection: View {
     private let hostActions: SettingsHostActions
@@ -32,13 +31,10 @@ public struct CloudMachinesSection: View {
             )
             SettingsCard {
                 activationRow
-                // Plan, machines and VPN all need Cloud on; before that each
-                // could only say "Open Machines", so they wait until it is.
+                // Plan and VPN actions require Cloud to be enabled.
                 if activationState.isEnabled {
                     SettingsCardDivider()
                     planRow
-                    SettingsCardDivider()
-                    panelRow
                     SettingsCardDivider()
                     vpnRow
                 }
@@ -48,7 +44,6 @@ public struct CloudMachinesSection: View {
                     ? [
                         "setting:cloudMachines:enable",
                         "setting:cloudMachines:plan",
-                        "setting:cloudMachines:open-panel",
                         "setting:cloudMachines:vpn",
                     ]
                     : ["setting:cloudMachines:enable"]
@@ -240,8 +235,6 @@ public struct CloudMachinesSection: View {
             Button(manageButtonTitle) {
                 if activationState.isEnabled {
                     hostActions.openCloudMachinesBilling()
-                } else {
-                    hostActions.openCloudMachinesPanel()
                 }
             }
             .buttonStyle(.bordered)
@@ -250,29 +243,6 @@ public struct CloudMachinesSection: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .id("setting:cloudMachines:plan")
-    }
-
-    private var panelRow: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(String(localized: "settings.cloudMachines.panel.title", defaultValue: "Your machines"))
-                Text(String(
-                    localized: "settings.cloudMachines.panel.subtitle",
-                    defaultValue: "Persistent cloud computers. Files survive forever; sleeping machines cost nothing."
-                ))
-                .cmuxFont(.caption)
-                .foregroundColor(.secondary)
-            }
-            Spacer()
-            Button(String(localized: "settings.cloudMachines.panel.open", defaultValue: "Open Machines")) {
-                hostActions.openCloudMachinesPanel()
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .id("setting:cloudMachines:open-panel")
     }
 
     private var vpnRow: some View {
@@ -287,8 +257,6 @@ public struct CloudMachinesSection: View {
             Button(vpnActionTitle) {
                 if activationState.isEnabled {
                     hostActions.openCloudVPNSetup()
-                } else {
-                    hostActions.openCloudMachinesPanel()
                 }
             }
             .buttonStyle(.bordered)
@@ -327,9 +295,6 @@ public struct CloudMachinesSection: View {
     }
 
     private var manageButtonTitle: String {
-        guard activationState.isEnabled else {
-            return String(localized: "settings.cloudMachines.plan.openMachines", defaultValue: "Open Machines")
-        }
         if let plan, !plan.isPaidPlan {
             return String(localized: "settings.cloudMachines.plan.upgrade", defaultValue: "Upgrade…")
         }
@@ -350,9 +315,7 @@ public struct CloudMachinesSection: View {
     }
 
     private var vpnActionTitle: String {
-        activationState.isEnabled
-            ? String(localized: "cloudTree.ports.setupVPN", defaultValue: "Set Up VPN…")
-            : String(localized: "settings.cloudMachines.vpn.openMachines", defaultValue: "Open Machines")
+        String(localized: "cloudTree.ports.setupVPN", defaultValue: "Set Up VPN…")
     }
 
     private func observeActivation() async {

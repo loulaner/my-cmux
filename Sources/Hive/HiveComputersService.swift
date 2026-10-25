@@ -296,7 +296,7 @@ final class HiveComputersService {
             return CloudMachinesFeature.disabledMessage
         }
         if !ManagedDevicePolicy().isEnforced(.disableCloud), !CloudMachinesFeature.localOptIn(defaults: .standard) {
-            return String(localized: "settings.devices.cloudRequired", defaultValue: "Enable Cloud Machines in the Cloud tab to use My Devices.")
+            return String(localized: "settings.devices.cloudRequired", defaultValue: "Enable Cloud Machines in Settings → Cloud to use My Devices.")
         }
         return CloudMachinesFeature.disabledMessage
     }

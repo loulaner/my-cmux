@@ -24,7 +24,7 @@ extension AppDelegate {
             return nil
         }
         guard CloudMachinesFeature.isEnabled else {
-            _ = focusRightSidebarInActiveMainWindow(mode: .machines)
+            SettingsWindowPresenter.show(navigationTarget: .cloudMachines)
             return nil
         }
         if bringWindowForward {

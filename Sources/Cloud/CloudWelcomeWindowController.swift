@@ -278,19 +278,19 @@ final class CloudWelcomeWindowController: NSObject, NSWindowDelegate {
         let app = AppDelegate.shared
         switch step {
         case .signIn:
-            _ = app?.focusRightSidebarInActiveMainWindow(mode: .machines)
+            SettingsWindowPresenter.show(navigationTarget: .account)
             app?.auth?.accountFlow.startSignIn()
         case .upgrade:
             ProUpgradePresenter.present(source: .cloudWelcome)
         case .enable:
-            _ = app?.focusRightSidebarInActiveMainWindow(mode: .machines)
+            SettingsWindowPresenter.show(navigationTarget: .cloudMachines)
             guard let activation = app?.cloudActivationCoordinator else { return }
             activation.enable()
             if let onEnabled {
                 Task { @MainActor in await Self.resume(onEnabled, after: activation) }
             }
         case .openCloud:
-            _ = app?.focusRightSidebarInActiveMainWindow(mode: .machines)
+            SettingsWindowPresenter.show(navigationTarget: .cloudMachines)
         }
     }
 
