@@ -1849,13 +1849,11 @@ struct CmuxConfigIssue: Identifiable, Equatable, Sendable {
 @MainActor
 final class CmuxConfigStore: ObservableObject {
     /// Plus-menu rows when `ui.newWorkspace.contextMenu` is not configured.
-    /// Feature-gated rows (Cloud, browser) are filtered at menu-build time by
+    /// Feature-gated rows (browser) are filtered at menu-build time by
     /// `AppDelegate.isBuiltInActionAvailableInNewWorkspaceMenu` so a flag flip
     /// takes effect without a config reload.
     static let defaultNewWorkspaceContextMenu: [CmuxConfigContextMenuItem] = [
         .action(CmuxConfigContextMenuActionItem(action: CmuxSurfaceTabBarBuiltInAction.newWorkspace.configID)),
-        .action(CmuxConfigContextMenuActionItem(action: CmuxSurfaceTabBarBuiltInAction.newCloudWorkspace.configID)),
-        .action(CmuxConfigContextMenuActionItem(action: CmuxSurfaceTabBarBuiltInAction.newCloudMachine.configID)),
         .action(CmuxConfigContextMenuActionItem(action: CmuxSurfaceTabBarBuiltInAction.newTerminal.configID)),
         .action(CmuxConfigContextMenuActionItem(action: CmuxSurfaceTabBarBuiltInAction.newBrowser.configID)),
     ]

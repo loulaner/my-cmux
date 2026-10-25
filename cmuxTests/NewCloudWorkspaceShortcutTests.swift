@@ -11,9 +11,8 @@ import Testing
 @testable import cmux
 #endif
 
-/// New Cloud Workspace (Cmd+Y): the shortcut catalog entry, the plus-menu
-/// rows with their live shortcut hints, and the shared action every
-/// entrypoint routes through.
+/// Retired Cloud keyboard bindings, default and configured plus-menu rows,
+/// and the explicitly configured shared actions that remain available.
 @MainActor
 @Suite(.serialized, .exclusiveAppContext)
 final class NewCloudWorkspaceShortcutTests {
@@ -97,59 +96,58 @@ final class NewCloudWorkspaceShortcutTests {
 
     // MARK: Shortcut catalog
 
-    @Test func testDefaultShortcutIsCommandYAndDoesNotCollide() {
+    @Test func retiredCloudWorkspaceShortcutIsHiddenAndUnbound() {
         defer { restoreState() }
         let action = KeyboardShortcutSettings.Action.newCloudWorkspace
         #expect(action.label == "New Cloud Workspace")
         #expect(action.defaultsKey == "shortcut.newCloudWorkspace")
-        #expect(KeyboardShortcutSettings.publicShortcutActions.contains(action))
-        #expect(KeyboardShortcutSettings.settingsVisibleActions.contains(action))
-
-        let shortcut = action.defaultShortcut
-        #expect(shortcut.key == "y")
-        #expect(shortcut.command)
-        #expect(!shortcut.shift)
-        #expect(!shortcut.option)
-        #expect(!shortcut.control)
-        #expect(shortcut.displayString == "⌘Y")
-
-        for other in KeyboardShortcutSettings.Action.allCases where other != action {
-            let otherDefault = other.defaultShortcut
-            guard !otherDefault.isUnbound else { continue }
-            #expect(otherDefault != shortcut, "\(other) also defaults to ⌘Y")
-        }
+        #expect(!KeyboardShortcutSettings.publicShortcutActions.contains(action))
+        #expect(!KeyboardShortcutSettings.settingsVisibleActions.contains(action))
+        #expect(action.defaultShortcut.isUnbound)
+        #expect(KeyboardShortcutSettings.shortcut(for: action).isUnbound)
+        #expect(KeyboardShortcutSettings.menuShortcut(for: action).isUnbound)
+        #expect(KeyboardShortcutSettings.shortcutIfBound(for: action) == nil)
     }
 
-    @Test func testNewCloudMachineUsesShiftCommandY() {
+    @Test func retiredCloudMachineShortcutIsHiddenAndUnbound() {
         defer { restoreState() }
         let action = KeyboardShortcutSettings.Action.newCloudMachine
-        #expect(action.defaultShortcut == StoredShortcut(key: "y", command: true, shift: true, option: false, control: false))
         #expect(action.label == "New Cloud Machine")
+        #expect(action.defaultsKey == "shortcut.newCloudMachine")
+        #expect(!KeyboardShortcutSettings.publicShortcutActions.contains(action))
+        #expect(!KeyboardShortcutSettings.settingsVisibleActions.contains(action))
+        #expect(action.defaultShortcut.isUnbound)
+        #expect(KeyboardShortcutSettings.shortcut(for: action).isUnbound)
+        #expect(KeyboardShortcutSettings.menuShortcut(for: action).isUnbound)
+        #expect(KeyboardShortcutSettings.shortcutIfBound(for: action) == nil)
     }
 
     @Test func testSettingsPackageActionStaysAligned() throws {
         defer { restoreState() }
-        let settingsAction = try #require(
-            ShortcutAction(rawValue: KeyboardShortcutSettings.Action.newCloudWorkspace.rawValue)
-        )
-        #expect(settingsAction.defaultStroke == ShortcutStroke(key: "y", command: true))
-        #expect(settingsAction.displayName == KeyboardShortcutSettings.Action.newCloudWorkspace.label)
-        #expect(settingsAction.group == .workspace)
-        #expect(ShortcutAction.settingsVisibleActions.contains(settingsAction))
+        for action in [KeyboardShortcutSettings.Action.newCloudWorkspace, .newCloudMachine] {
+            let settingsAction = try #require(ShortcutAction(rawValue: action.rawValue))
+            #expect(settingsAction.displayName == action.label)
+            #expect(settingsAction.group == .workspace)
+            #expect(settingsAction.defaultStroke == nil)
+            #expect(settingsAction.defaultShortcut == nil)
+            #expect(!ShortcutAction.settingsVisibleActions.contains(settingsAction))
+        }
     }
 
-    @Test func testRebindPersistsThroughSettingsAPI() {
+    @Test func storedRetiredBindingNeverExecutes() throws {
         defer { restoreState() }
         let rebound = StoredShortcut(key: "k", command: true, shift: true, option: false, control: false)
-        KeyboardShortcutSettings.setShortcut(rebound, for: .newCloudWorkspace)
-        #expect(KeyboardShortcutSettings.shortcut(for: .newCloudWorkspace) == rebound)
-        #expect(KeyboardShortcutSettings.menuShortcut(for: .newCloudWorkspace) == rebound)
-
-        KeyboardShortcutSettings.setShortcut(.unbound, for: .newCloudWorkspace)
-        #expect(KeyboardShortcutSettings.shortcut(for: .newCloudWorkspace).isUnbound)
-
-        KeyboardShortcutSettings.resetShortcut(for: .newCloudWorkspace)
-        #expect(KeyboardShortcutSettings.shortcut(for: .newCloudWorkspace).key == "y")
+        for action in [KeyboardShortcutSettings.Action.newCloudWorkspace, .newCloudMachine] {
+            KeyboardShortcutSettings.setShortcut(rebound, for: action)
+            let data = try #require(UserDefaults.standard.data(forKey: action.defaultsKey))
+            #expect(try JSONDecoder().decode(StoredShortcut.self, from: data) == rebound)
+            #expect(KeyboardShortcutSettings.shortcut(for: action).isUnbound)
+            #expect(KeyboardShortcutSettings.menuShortcut(for: action).isUnbound)
+            KeyboardShortcutSettings.setShortcut(.unbound, for: action)
+            #expect(KeyboardShortcutSettings.shortcut(for: action).isUnbound)
+            KeyboardShortcutSettings.resetShortcut(for: action)
+            #expect(KeyboardShortcutSettings.shortcut(for: action).isUnbound)
+        }
     }
 
     @Test func testBuiltInActionResolvesFromConfigAndMapsToShortcut() {
@@ -220,42 +218,33 @@ final class NewCloudWorkspaceShortcutTests {
         setCloudMachinesEnabled(true)
         try withDefaultPlusMenu { menu in
             let rows = builtInMenuRows(menu)
-            let leading = rows.prefix(5).map(\.action)
-            #expect(leading == [.newWorkspace, .newCloudWorkspace, .newCloudMachine, .newTerminal, .newBrowser])
+            let leading = rows.prefix(3).map(\.action)
+            #expect(leading == [.newWorkspace, .newTerminal, .newBrowser])
 
+            #expect(!rows.contains { $0.action == .newCloudWorkspace || $0.action == .newCloudMachine })
             let hints = Dictionary(uniqueKeysWithValues: rows.map { ($0.action, $0.item) })
             #expect(hints[.newWorkspace]?.keyEquivalent == "n")
             #expect(hints[.newWorkspace]?.keyEquivalentModifierMask == [.command])
-            #expect(hints[.newCloudWorkspace]?.keyEquivalent == "y")
-            #expect(hints[.newCloudWorkspace]?.keyEquivalentModifierMask == [.command])
-            #expect(hints[.newCloudMachine]?.keyEquivalent == "y")
-            #expect(hints[.newCloudMachine]?.keyEquivalentModifierMask == [.command, .shift])
             #expect(hints[.newTerminal]?.keyEquivalent == "t")
             #expect(hints[.newTerminal]?.keyEquivalentModifierMask == [.command])
             #expect(hints[.newBrowser]?.keyEquivalent == "l")
             #expect(hints[.newBrowser]?.keyEquivalentModifierMask == [.command, .shift])
-            #expect(hints[.newCloudWorkspace]?.title == String(localized: "command.newCloudWorkspace.title", defaultValue: "New Cloud Workspace"))
         }
     }
 
-    @Test func testPlusMenuHintFollowsRebindAndUnbind() throws {
+    @Test func retiredBindingsDoNotRestoreDefaultPlusMenuRows() throws {
         defer { restoreState() }
         setCloudMachinesEnabled(true)
-        KeyboardShortcutSettings.setShortcut(
-            StoredShortcut(key: "k", command: true, shift: true, option: false, control: false),
-            for: .newCloudWorkspace
-        )
-        try withDefaultPlusMenu { menu in
-            let item = try #require(builtInMenuRows(menu).first { $0.action == .newCloudWorkspace }?.item)
-            #expect(item.keyEquivalent == "k")
-            #expect(item.keyEquivalentModifierMask == [.command, .shift])
-        }
-
-        KeyboardShortcutSettings.setShortcut(.unbound, for: .newCloudWorkspace)
-        try withDefaultPlusMenu { menu in
-            let item = try #require(builtInMenuRows(menu).first { $0.action == .newCloudWorkspace }?.item)
-            #expect(item.keyEquivalent == "")
-            #expect(item.keyEquivalentModifierMask == [])
+        for binding in [StoredShortcut(key: "k", command: true, shift: true, option: false, control: false), .unbound] {
+            KeyboardShortcutSettings.setShortcut(binding, for: .newCloudWorkspace)
+            KeyboardShortcutSettings.setShortcut(binding, for: .newCloudMachine)
+            try withDefaultPlusMenu { menu in
+                let rows = builtInMenuRows(menu)
+                #expect(!rows.contains { $0.action == .newCloudWorkspace || $0.action == .newCloudMachine })
+                let local = try #require(rows.first { $0.action == .newWorkspace }?.item)
+                #expect(local.keyEquivalent == "n")
+                #expect(local.keyEquivalentModifierMask == [.command])
+            }
         }
     }
 
@@ -287,7 +276,7 @@ final class NewCloudWorkspaceShortcutTests {
         try withDefaultPlusMenu { menu in
             let actions = builtInMenuRows(menu).map(\.action)
             #expect(!actions.contains(.newBrowser))
-            #expect(actions.contains(.newCloudWorkspace))
+            #expect(!actions.contains(.newCloudWorkspace))
         }
     }
 
@@ -314,7 +303,9 @@ final class NewCloudWorkspaceShortcutTests {
         let rows = builtInMenuRows(menu)
         #expect(rows.prefix(2).map(\.action) == [.newTerminal, .newCloudWorkspace])
         let cloudRow = try #require(rows.dropFirst().first)
-        #expect(cloudRow.item.keyEquivalent == "y")
+        #expect(cloudRow.item.keyEquivalent == "")
+        #expect(cloudRow.item.keyEquivalentModifierMask == [])
+        #expect(rows.first?.item.keyEquivalent == "t")
     }
 
     // MARK: Shared action path
@@ -411,7 +402,7 @@ final class NewCloudWorkspaceShortcutTests {
         #expect(manager.selectedWorkspace?.cloudVMID == nil)
     }
 
-    @Test func testCommandYRoutesThroughResolvedCloudWorkspaceAction() async throws {
+    @Test func retiredCommandYDoesNotRouteToCloudWorkspace() async throws {
         defer { restoreState() }
         let windowFixture = NewCloudWorkspaceShortcutWindowFixture(); defer { windowFixture.cleanup() }
         let appDelegate = windowFixture.appDelegate; setCloudMachinesEnabled(true)
@@ -449,13 +440,13 @@ final class NewCloudWorkspaceShortcutTests {
             isARepeat: false,
             keyCode: 16 // kVK_ANSI_Y
         ))
-        #expect(appDelegate.debugHandleCustomShortcut(event: event))
+        #expect(!appDelegate.debugHandleCustomShortcut(event: event))
         await appDelegate.cloudWorkspaceOperationController?.waitForPendingOperations()
-        #expect(requestCount == 1)
+        #expect(requestCount == 0)
         #expect(presenter.presentCount == 0)
     }
 
-    @Test func testCommandShiftYRoutesThroughNewMachineAction() async throws {
+    @Test func retiredCommandShiftYDoesNotRouteToCloudMachine() async throws {
         defer { restoreState() }
         let windowFixture = NewCloudWorkspaceShortcutWindowFixture(); defer { windowFixture.cleanup() }
         let appDelegate = windowFixture.appDelegate; setCloudMachinesEnabled(true)
@@ -475,9 +466,9 @@ final class NewCloudWorkspaceShortcutTests {
             isARepeat: false,
             keyCode: 16
         ))
-        #expect(appDelegate.debugHandleCustomShortcut(event: event))
+        #expect(!appDelegate.debugHandleCustomShortcut(event: event))
         await appDelegate.cloudWorkspaceOperationController?.waitForPendingOperations()
-        #expect(presenter.presentCount == 1)
+        #expect(presenter.presentCount == 0)
     }
 #endif
 
@@ -525,7 +516,7 @@ final class NewCloudWorkspaceShortcutTests {
 #endif
 
 #if DEBUG
-    @Test func testReboundKeyRoutesAndOldKeyDoesNot() async throws {
+    @Test func retiredDefaultAndStoredReboundKeysDoNotRoute() async throws {
         defer { restoreState() }
         let appDelegate = AppDelegate()
         setCloudMachinesEnabled(true)
@@ -561,7 +552,7 @@ final class NewCloudWorkspaceShortcutTests {
         #expect(!appDelegate.debugHandleCustomShortcut(event: try keyEvent("y", [.command], 16)))
         #expect(presenter.presentCount == 0, "the old ⌘Y binding must not fire after a rebind")
 
-        #expect(appDelegate.debugHandleCustomShortcut(event: try keyEvent("K", [.command, .shift], 40)))
+        #expect(!appDelegate.debugHandleCustomShortcut(event: try keyEvent("K", [.command, .shift], 40)))
         await appDelegate.cloudWorkspaceOperationController?.waitForPendingOperations()
         #expect(presenter.presentCount == 0)
     }

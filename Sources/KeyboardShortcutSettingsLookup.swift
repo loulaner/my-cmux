@@ -4,6 +4,7 @@ import Foundation
 
 extension KeyboardShortcutSettings {
     static func shortcutIfBound(for action: Action) -> StoredShortcut? {
+        guard !action.isRetiredShortcutAction else { return nil }
         #if DEBUG
         shortcutLookupObserver?(action)
         #endif

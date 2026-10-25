@@ -378,3 +378,14 @@ extension ShortcutAction {
     }
 
 }
+
+public extension ShortcutAction {
+    /// Whether this historical action no longer accepts executable keyboard bindings.
+    /// Raw identifiers remain available for persisted configuration compatibility.
+    var isRetired: Bool {
+        switch self {
+        case .newCloudWorkspace, .newCloudMachine: return true
+        default: return false
+        }
+    }
+}

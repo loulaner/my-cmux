@@ -15419,23 +15419,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             return true
         }
 
-        if matchConfiguredShortcut(event: event, action: .newCloudWorkspace) {
-#if DEBUG
-            cmuxDebugLog("shortcut.action name=newCloudWorkspace \(debugShortcutRouteSnapshot(event: event))")
-#endif
-            return performNewCloudWorkspaceOnResolvedMachineAction(
-                preferredWindow: mainWindowForShortcutEvent(event),
-                debugSource: "shortcut.cmdY"
-            )
-        }
-
-        if matchConfiguredShortcut(event: event, action: .newCloudMachine) {
-#if DEBUG
-            cmuxDebugLog("shortcut.action name=newCloudMachine \(debugShortcutRouteSnapshot(event: event))")
-#endif
-            return performNewCloudMachineAction(event: event, debugSource: "shortcut.cmdShiftY")
-        }
-
         // New Window: Cmd+Shift+N
         // Handled here instead of relying on SwiftUI's CommandGroup menu item because
         // after a browser panel has been shown, SwiftUI's menu dispatch can silently

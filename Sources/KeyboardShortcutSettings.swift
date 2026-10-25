@@ -468,13 +468,8 @@ enum KeyboardShortcutSettings {
                 // Option+Cmd+N: sits next to New Workspace (Cmd+N) and New Window (Cmd+Shift+N)
                 // without colliding with any cmux default or an AppKit-reserved keystroke.
                 return StoredShortcut(key: "n", command: true, shift: false, option: true, control: false)
-            case .newCloudWorkspace:
-                // Cmd+Y creates a Cloud workspace on the last usable Cloud
-                // context, falling back to the New Cloud Machine flow.
-                return StoredShortcut(key: "y", command: true, shift: false, option: false, control: false)
-            case .newCloudMachine:
-                // Shift+Cmd+Y always opens the New Cloud Machine flow.
-                return StoredShortcut(key: "y", command: true, shift: true, option: false, control: false)
+            case .newCloudWorkspace, .newCloudMachine:
+                return .unbound
             case .saveLayoutTemplate:
                 return StoredShortcut(key: "s", command: true, shift: false, option: false, control: true)
             case .openFolder:

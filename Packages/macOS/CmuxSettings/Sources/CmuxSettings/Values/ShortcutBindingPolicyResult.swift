@@ -111,6 +111,8 @@ extension ShortcutAction {
         normalizing: (StoredShortcut) -> StoredShortcut?,
         conflictsWithReservedShortcut: (StoredShortcut) -> Bool
     ) -> StoredShortcut? {
+        guard !isRetired else { return nil }
+
         if let candidate {
             if candidate.isUnbound {
                 return nil

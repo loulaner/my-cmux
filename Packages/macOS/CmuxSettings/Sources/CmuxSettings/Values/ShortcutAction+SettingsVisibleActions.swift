@@ -3,7 +3,7 @@ public extension ShortcutAction {
     /// Actions shown in the Keyboard Shortcuts settings section, in display order.
     static var settingsVisibleActions: [ShortcutAction] {
         orderedSettingsVisibleActions(
-            from: allCases.filter { $0 != .showHideAllWindows }
+            from: allCases.filter { !$0.isRetired && $0 != .showHideAllWindows }
         )
     }
 }
