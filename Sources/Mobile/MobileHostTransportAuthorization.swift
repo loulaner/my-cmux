@@ -27,6 +27,24 @@ struct MobileHostRPCExecutionContext: Sendable {
     let authorization: MobileHostConnectionAuthorizationContext
     let artifactTransfers: MobileHostIrohArtifactTransferRegistry?
 
+    private let mutationAdmissionValidator: (@Sendable () async -> Bool)?
+
+    init(connectionID: UUID, authorization: MobileHostConnectionAuthorizationContext,
+         artifactTransfers: MobileHostIrohArtifactTransferRegistry?,
+         mutationAdmissionValidator: (@Sendable () async -> Bool)? = nil) {
+        self.connectionID = connectionID
+        self.authorization = authorization
+        self.artifactTransfers = artifactTransfers
+        self.mutationAdmissionValidator = mutationAdmissionValidator
+    }
+
+    /// A fresh pre-mutation snapshot; missing validators fail closed, without changing old RPCs.
+    func validateLocalDirectMutationAdmission() async -> Bool {
+        guard case .localDirect = authorization, !Task.isCancelled, let mutationAdmissionValidator else { return false }
+        let authorized = await mutationAdmissionValidator()
+        return authorized && !Task.isCancelled
+    }
+
     func issueArtifactTransfer(
         canonicalPath: String
     ) async throws -> ChatArtifactLaneDescriptor {
@@ -257,6 +275,21 @@ final class MobileHostConnectionRegistry: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return connections[id]?.connection
+    }
+
+    /// Synchronous lookup keeps the existing registry lock entirely outside suspension points.
+    private func localDirectConnection(id: UUID) -> MobileHostConnection? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let entry = connections[id], case .localDirect = entry.authorization else { return nil }
+        return entry.connection
+    }
+
+    /// Revalidates the actual registered Direct connection, including removal/replacement during await.
+    func isLocalDirectMutationAdmissionCurrent(id: UUID) async -> Bool {
+        guard let connection = localDirectConnection(id: id) else { return false }
+        guard await connection.isMutationAdmissionCurrent() else { return false }
+        return localDirectConnection(id: id) === connection && !Task.isCancelled
     }
 
     func snapshot(irohBindingID: String) -> [MobileHostConnection] {

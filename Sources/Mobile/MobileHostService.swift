@@ -971,7 +971,8 @@ final class MobileHostService {
                     executionContext: MobileHostRPCExecutionContext(
                         connectionID: id,
                         authorization: authorization,
-                        artifactTransfers: artifactTransfers
+                        artifactTransfers: artifactTransfers,
+                        mutationAdmissionValidator: { await registry.isLocalDirectMutationAdmissionCurrent(id: id) }
                     )
                 )
                 await MobileHostService.shared.recordCreatedResourcesIfNeeded(
@@ -1664,6 +1665,13 @@ actor MobileHostConnection {
             }
         )
         return exit
+    }
+
+    /// Fresh connection/authorization snapshot before mutation, not atomic authorization with a write.
+    func isMutationAdmissionCurrent() async -> Bool {
+        guard !isClosed, !Task.isCancelled else { return false }
+        let authorized = await isAuthorizationCurrent()
+        return authorized && !isClosed && !Task.isCancelled
     }
 
     func close(
