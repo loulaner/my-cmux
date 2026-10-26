@@ -50,41 +50,43 @@ def source_fixture(integration):
     if paths['PREVIEW_PARSER'].exists() and '/*__PREVIEW_PARSER__*/' not in template:
         template += '\n/*__PREVIEW_PARSER__*/\n'
     snippets = {}
-    for token, path in paths.items():
+    for placeholder, path in paths.items():
         if path.exists():
             source = path.read_text()
-            snippets[token] = '\n'.join(line for line in source.splitlines() if not line.startswith(('import ', 'public import ')))
-            records[token] = {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+            snippets[placeholder] = '\n'.join(line for line in source.splitlines() if not line.startswith(('import ', 'public import ')))
+            records[placeholder] = {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
         else:
-            snippets[token] = ''
+            snippets[placeholder] = ''
     slices = [('RESULT', ROOT / 'Sources/TerminalController.swift', '    enum V2CallResult {', '    nonisolated func v2Result('),
               ('HELPER', ROOT / 'Sources/TerminalController+MobileTaskAttachments.swift', '    /// The refusal', '    /// Handles'),
               ('OWNER', ROOT / 'Packages/macOS/CmuxCloud/Sources/CmuxCloud/Environment/ManagedCapabilityPolicy.swift', '    public static var disabledMessage: String {', '    /// Tells the user why')]
-    for token, path, start, end in slices:
+    for placeholder, path, start, end in slices:
         source = path.read_text()
-        if token == 'OWNER':
+        if placeholder == 'OWNER':
             source = source.split('public enum ManagedFileTransferPolicy: Sendable {')[1].split('public enum ManagedCloudPolicy:')[0]
         body = source[source.index(start):source.index(end)]
-        snippets[token] = body
-        original = path.read_text(); offset = original.index(body)
-        records[token] = {'path': str(path), 'startByte': len(original[:offset].encode()), 'sha256': hashlib.sha256(body.encode()).hexdigest()}
-    for token, body in snippets.items():
-        template = template.replace(f'/*__{token}__*/', body)
+        snippets[placeholder] = body
+        original = path.read_text()
+        offset = original.index(body)
+        records[placeholder] = {'path': str(path), 'startByte': len(original[:offset].encode()), 'sha256': hashlib.sha256(body.encode()).hexdigest()}
+    for placeholder, body in snippets.items():
+        template = template.replace(f'/*__{placeholder}__*/', body)
     if integration:
         template += '\n' + (ROOT / 'tests/fixtures/mobile_workspace_file_preview_rpc_runtime.swift').read_text()
         more = {'PREVIEW': HOST / 'MobileWorkspaceFilePreview.swift', 'PREVIEW_ERROR': HOST / 'MobileWorkspaceFilePreviewError.swift', 'LEAF': LEAF}
-        for token, path in more.items():
+        for placeholder, path in more.items():
             source = path.read_text()
             body = '\n'.join(line for line in source.splitlines() if not line.startswith(('import ', 'public import ')))
-            records[token] = {'path': str(path), 'sha256': hashlib.sha256(source.encode()).hexdigest()}
-            if token == 'LEAF' and os.environ.get('CMUX_PREVIEW_MUTATE') == '1':
+            records[placeholder] = {'path': str(path), 'sha256': hashlib.sha256(source.encode()).hexdigest()}
+            if placeholder == 'LEAF' and os.environ.get('CMUX_PREVIEW_MUTATE') == '1':
                 old = '            if let error = Self.mobileFileTransferPolicyError() { return error }\n            try Task.checkCancellation()'
                 assert body.count(old) == 1
                 body = body.replace(old, '            try Task.checkCancellation()')
                 records['mutation'] = {'before': old, 'after': '            try Task.checkCancellation()'}
-            template = template.replace(f'/*__{token}__*/', body)
+            template = template.replace(f'/*__{placeholder}__*/', body)
         path = ROOT / 'Packages/Shared/CMUXMobileCore/Sources/CMUXMobileCore/MobileSyncProtocol.swift'
-        source = path.read_text(); body = source[source.index('public enum MobileSyncFrameCodecError:'):]
+        source = path.read_text()
+        body = source[source.index('public enum MobileSyncFrameCodecError:'):source.index('private struct DynamicCodingKey:')]
         template = template.replace('/*__FRAME__*/', body)
         records['FRAME'] = {'path': str(path), 'sha256': hashlib.sha256(body.encode()).hexdigest()}
     else:
@@ -123,11 +125,13 @@ class PreviewRPC(unittest.TestCase):
             self.skipTest('Preview handler not implemented on baseline')
         source = (ROOT / 'Sources/TerminalController.swift').read_text()
         branch = source.split('case "mobile.workspace.files.preview":')[1].split('\n        case ')[0]
-        for text in ['v2MobileWorkspaceFilePreview(', 'params: params', 'authorization: executionContext?.authorization', 'filesystemJobQuota: mobileTaskFilesystemJobQuota']:
+        for text in ['v2MobileWorkspaceFilePreview(', 'params: request.params', 'authorization: executionContext?.authorization', 'filesystemJobQuota: mobileTaskFilesystemJobQuota']:
             self.assertIn(text, branch)
         relay = (ROOT / 'Packages/macOS/CmuxRemoteWorkspace/Sources/CmuxRemoteWorkspace/Relay/RemoteRelayCommandPolicy.swift').read_text()
         self.assertNotIn('mobile.workspace.files.preview', relay)
-        self.assertIn('methodNotAllowed', relay)
+        self.assertIn('RemoteRelayRoutingSchema().parameters(for: method) != nil', relay)
+        schema = (ROOT / 'Packages/macOS/CmuxRemoteWorkspace/Sources/CmuxRemoteWorkspace/Relay/RemoteRelayRoutingSchema.swift').read_text()
+        self.assertNotIn('mobile.workspace.files.preview', schema)
 
 
 if __name__ == '__main__':

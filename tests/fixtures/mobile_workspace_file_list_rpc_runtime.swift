@@ -24,6 +24,7 @@ enum ManagedFileTransferPolicy {
     /*__OWNER__*/
 }
 /*__PARSER__*/
+/*__PREVIEW_PARSER__*/
 /*__POLICY__*/
 /*__CAP__*/
 /*__QUOTA__*/
@@ -210,9 +211,9 @@ enum MobileHostConnectionAuthorizationContext { case localDirect; case stackBear
                 let current = MobileLocalDirectRPCPolicy()
                 let admittedChanges = enabled && !disabled
                 check(current.methods == base.methods.union(admittedChanges ? ["mobile.workspace.changes.files", "mobile.workspace.changes.file_diff"] : [])
-                    .union(disabled ? [] : [method]))
+                    .union(disabled ? [] : [method, "mobile.workspace.files.preview"]))
                 check(current.capabilities == base.capabilities + (admittedChanges ? [CmxLocalDirectCapabilities.workspaceChangesRead] : [])
-                    + (disabled ? [] : [CmxLocalDirectCapabilities.workspaceFilesList]))
+                    + (disabled ? [] : [CmxLocalDirectCapabilities.workspaceFilesList, CmxLocalDirectCapabilities.workspaceFilesPreview]))
                 check(current.topics == base.topics)
                 check(policyCode(current, method, params) == (disabled ? "file_transfer_disabled" : nil))
                 check(policyCode(current, method, [:]) == (disabled ? "file_transfer_disabled" : "invalid_params"))

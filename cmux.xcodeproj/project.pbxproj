@@ -3867,6 +3867,7 @@
 				B11D00000000000000000001 /* TerminalController+MobileTerminalLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11D00000000000000000002 /* TerminalController+MobileTerminalLifecycle.swift */; };
 		C7AF31000000000000000001 /* TerminalController+MobileTodos.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7AF31000000000000000002 /* TerminalController+MobileTodos.swift */; };
 		D1FF00010000000000000002 /* TerminalController+MobileWorkspaceChanges.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1FF00010000000000000001 /* TerminalController+MobileWorkspaceChanges.swift */; };
+		B98F58482A054F91A530CB01 /* TerminalController+MobileWorkspaceFilePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = B98F58482A054F91A530CB02 /* TerminalController+MobileWorkspaceFilePreview.swift */; };
 		A80EB1ABD83311712271BC40 /* TerminalController+MobileWorkspaceFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD71828F63C956A318F9D37E /* TerminalController+MobileWorkspaceFiles.swift */; };
 		C7A50B000000000000000012 /* TerminalController+MobileWorkspaceList.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A50B000000000000000011 /* TerminalController+MobileWorkspaceList.swift */; };
 		D7AB0000000000000000000B /* TerminalController+MoveTabToNewWorkspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7AB0000000000000000000C /* TerminalController+MoveTabToNewWorkspace.swift */; };
@@ -8377,6 +8378,7 @@
 				B11D00000000000000000002 /* TerminalController+MobileTerminalLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileTerminalLifecycle.swift"; sourceTree = "<group>"; };
 		C7AF31000000000000000002 /* TerminalController+MobileTodos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileTodos.swift"; sourceTree = "<group>"; };
 		D1FF00010000000000000001 /* TerminalController+MobileWorkspaceChanges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileWorkspaceChanges.swift"; sourceTree = "<group>"; };
+		B98F58482A054F91A530CB02 /* TerminalController+MobileWorkspaceFilePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileWorkspaceFilePreview.swift"; sourceTree = "<group>"; };
 		BD71828F63C956A318F9D37E /* TerminalController+MobileWorkspaceFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileWorkspaceFiles.swift"; sourceTree = "<group>"; };
 		C7A50B000000000000000011 /* TerminalController+MobileWorkspaceList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileWorkspaceList.swift"; sourceTree = "<group>"; };
 		D7AB0000000000000000000C /* TerminalController+MoveTabToNewWorkspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MoveTabToNewWorkspace.swift"; sourceTree = "<group>"; };
@@ -12198,6 +12200,7 @@
 				DF6CE43179E3A958139FB9FB /* ProcessDetectedTerminalBinding.swift */,
 				F89797AE49756191CC98B2C1 /* ProBadgeActions.swift */,
 				30AA2D44945B6C4A24A6D837 /* TerminalController+BrowserEmulation.swift */,
+				B98F58482A054F91A530CB02 /* TerminalController+MobileWorkspaceFilePreview.swift */,
 				BD71828F63C956A318F9D37E /* TerminalController+MobileWorkspaceFiles.swift */,
 			);
 			path = Sources;
@@ -16750,6 +16753,7 @@
 				B11D00000000000000000001 /* TerminalController+MobileTerminalLifecycle.swift in Sources */,
 				C7AF31000000000000000001 /* TerminalController+MobileTodos.swift in Sources */,
 				D1FF00010000000000000002 /* TerminalController+MobileWorkspaceChanges.swift in Sources */,
+				B98F58482A054F91A530CB01 /* TerminalController+MobileWorkspaceFilePreview.swift in Sources */,
 				A80EB1ABD83311712271BC40 /* TerminalController+MobileWorkspaceFiles.swift in Sources */,
 				C7A50B000000000000000012 /* TerminalController+MobileWorkspaceList.swift in Sources */,
 				D7AB0000000000000000000B /* TerminalController+MoveTabToNewWorkspace.swift in Sources */,

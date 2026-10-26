@@ -15571,6 +15571,12 @@ class TerminalController {
                 authorization: executionContext?.authorization,
                 filesystemJobQuota: mobileTaskFilesystemJobQuota
             )
+        case "mobile.workspace.files.preview":
+            result = await v2MobileWorkspaceFilePreview(
+                params: request.params,
+                authorization: executionContext?.authorization,
+                filesystemJobQuota: mobileTaskFilesystemJobQuota
+            )
         case "mobile.directory.search":
             result = await v2MobileDirectorySearch(
                 params: request.params,

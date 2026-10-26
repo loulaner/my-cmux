@@ -30,7 +30,7 @@ struct MobileLocalDirectRPCPolicy: Sendable {
 
     var methods: Set<String> {
         var allowed = workspaceChangesEnabled && !fileTransferDisabled ? baseMethods.union(changesMethods) : baseMethods
-        if !fileTransferDisabled { allowed.insert("mobile.workspace.files.list") }
+        if !fileTransferDisabled { allowed.formUnion(["mobile.workspace.files.list", "mobile.workspace.files.preview"]) }
         return allowed
     }
 
@@ -45,18 +45,21 @@ struct MobileLocalDirectRPCPolicy: Sendable {
          MobileTerminalInputDelivery.capability, MobileHostService.terminalSharedSizingCapability]
         let changes = workspaceChangesEnabled && !fileTransferDisabled
             ? [CmxLocalDirectCapabilities.workspaceChangesRead] : []
-        return base + changes + (fileTransferDisabled ? [] : [CmxLocalDirectCapabilities.workspaceFilesList])
+        return base + changes + (fileTransferDisabled ? [] : [CmxLocalDirectCapabilities.workspaceFilesList, CmxLocalDirectCapabilities.workspaceFilesPreview])
     }
 
     /// Runs before subscription handling as well as before terminal dispatch.
     func authorizationError(for request: MobileHostRPCRequest) -> MobileHostRPCResult? {
-        if request.method == "mobile.workspace.files.list" {
+        if request.method == "mobile.workspace.files.list" || request.method == "mobile.workspace.files.preview" {
             if fileTransferDisabled {
                 return .failure(MobileHostRPCError(
                     code: "file_transfer_disabled", message: ManagedFileTransferPolicy.disabledMessage
                 ))
             }
-            guard MobileWorkspaceFileListRequest(params: request.params) != nil else {
+            let valid = request.method == "mobile.workspace.files.list"
+                ? MobileWorkspaceFileListRequest(params: request.params) != nil
+                : MobileWorkspaceFilePreviewRequest(params: request.params) != nil
+            guard valid else {
                 return .failure(MobileHostRPCError(code: "invalid_params", message: String(
                     localized: "mobile.localDirect.files.error.invalidParams", defaultValue: "Invalid workspace file request"
                 )))

@@ -7,4 +7,7 @@ public enum CmxLocalDirectCapabilities {
     /// Lists metadata beneath an explicitly authorized workspace directory only.
     /// Does not grant content reads, downloads, uploads, writes, or arbitrary absolute paths.
     public static let workspaceFilesList = "workspace.files.list.v1"
+    /// Reads a fixed bounded raw prefix beneath an explicitly authorized workspace root.
+    /// Does not grant streams, ranges, unbounded downloads, uploads, writes or absolute-path access.
+    public static let workspaceFilesPreview = "workspace.files.preview.v1"
 }

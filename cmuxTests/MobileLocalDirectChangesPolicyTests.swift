@@ -26,9 +26,9 @@ struct MobileLocalDirectChangesPolicyTests {
             for disabled in [false, true] {
                 let policy = MobileLocalDirectRPCPolicy(workspaceChangesEnabled: enabled, fileTransferDisabled: disabled)
                 let admitted = enabled && !disabled
-                #expect(policy.methods == (admitted ? base.methods.union([files, diff]) : base.methods).union(disabled ? [] : ["mobile.workspace.files.list"]))
+                #expect(policy.methods == (admitted ? base.methods.union([files, diff]) : base.methods).union(disabled ? [] : ["mobile.workspace.files.list", "mobile.workspace.files.preview"]))
                 #expect(policy.capabilities == base.capabilities + (admitted ? [CmxLocalDirectCapabilities.workspaceChangesRead] : [])
-                    + (disabled ? [] : [CmxLocalDirectCapabilities.workspaceFilesList]))
+                    + (disabled ? [] : [CmxLocalDirectCapabilities.workspaceFilesList, CmxLocalDirectCapabilities.workspaceFilesPreview]))
                 #expect(!policy.capabilities.contains("workspace.changes.v1"))
                 #expect(policy.topics == base.topics)
                 for method in [files, diff] {
