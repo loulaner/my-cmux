@@ -179,4 +179,31 @@ struct MobileWorkspaceFileListServiceTests {
         await task.value
     }
 
+    @Test func rootIdentityIsStableAcrossPagesAndChildChanges() async throws {
+        let container = try fixture()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let root = container.appendingPathComponent("root")
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("child"), withIntermediateDirectories: true)
+        try Data("old".utf8).write(to: root.appendingPathComponent("file"))
+        let service = try MobileWorkspaceFileListService(rootDirectory: root)
+        let first = try await service.list(limit: 1)
+        #expect(first.rootID.utf8.count == 64)
+        #expect(first.rootID.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) })
+        #expect(try await service.list(relativePath: "child").rootID == first.rootID)
+        #expect(try await service.list(offset: 1, limit: 1).rootID == first.rootID)
+        let slash = try MobileWorkspaceFileListService(rootDirectory: URL(fileURLWithPath: root.path + "/", isDirectory: true))
+        #expect(try await slash.list().rootID == first.rootID)
+        try Data("new content".utf8).write(to: root.appendingPathComponent("file"))
+        try Data().write(to: root.appendingPathComponent("added"))
+        #expect(try await service.list().rootID == first.rootID)
+        try FileManager.default.removeItem(at: root.appendingPathComponent("added"))
+        #expect(try await service.list().rootID == first.rootID)
+        let other = try MobileWorkspaceFileListService(rootDirectory: container)
+        #expect(try await other.list().rootID != first.rootID)
+        // Keep the old inode alive: replacement must not depend on probabilistic inode reuse.
+        try FileManager.default.moveItem(at: root, to: container.appendingPathComponent("retained-old-root"))
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        #expect(try await service.list().rootID != first.rootID)
+    }
+
 }

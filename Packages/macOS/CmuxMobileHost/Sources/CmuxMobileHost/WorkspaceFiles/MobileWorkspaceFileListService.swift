@@ -13,24 +13,14 @@ public import Foundation
 /// let page = try await service.list(relativePath: "Sources", limit: 100)
 /// ```
 public actor MobileWorkspaceFileListService {
-    private let rootPath: String
+    private let directoryAccess: MobileWorkspaceDirectoryAccess
     private static let maximumEntries = 10_000
-    private static let directoryFlags = O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK
 
     /// Stores an authorized root without performing filesystem I/O.
     /// - Parameter rootDirectory: An absolute file URL supplied by the trusted caller.
     /// - Throws: ``MobileWorkspaceFileListError.invalidPath`` for invalid root syntax.
     public init(rootDirectory: URL) throws {
-        let path = rootDirectory.path(percentEncoded: false)
-        guard rootDirectory.isFileURL, path.hasPrefix("/"), !path.contains("\0"),
-              !path.isEmpty, path.utf8.count <= 4_096 else {
-            throw MobileWorkspaceFileListError.invalidPath
-        }
-        // A trailing slash must not turn the final component into an ancestor
-        // and bypass O_NOFOLLOW (including URLs explicitly marked as directories).
-        var openedPath = path
-        while openedPath.count > 1 && openedPath.hasSuffix("/") { openedPath.removeLast() }
-        rootPath = openedPath
+        directoryAccess = try MobileWorkspaceDirectoryAccess(rootDirectory: rootDirectory)
     }
 
     /// Enumerates and sorts one bounded directory before slicing a page.
@@ -45,17 +35,13 @@ public actor MobileWorkspaceFileListService {
     /// - Throws: A safe ``MobileWorkspaceFileListError``, or ``CancellationError`` unchanged.
     public func list(relativePath: String = "", offset: Int = 0, limit: Int = 100) throws -> MobileWorkspaceFileListPage {
         guard offset >= 0, (1...100).contains(limit) else { throw MobileWorkspaceFileListError.invalidRequest }
-        let components = relativePath.split(separator: "/", omittingEmptySubsequences: false)
-        guard !relativePath.contains("\0"), relativePath.utf8.count <= 4_096,
-              relativePath.isEmpty || components.allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." }) else {
-            throw MobileWorkspaceFileListError.invalidPath
-        }
+        let components = try MobileWorkspaceDirectoryAccess.components(relativePath: relativePath, allowRoot: true)
         try Task.checkCancellation()
-        let descriptor = try openDirectory(components: relativePath.isEmpty ? [] : components.map(String.init))
+        let (descriptor, rootID) = try directoryAccess.openDirectory(components: components)
         guard let directory = fdopendir(descriptor) else {
             let code = errno
             close(descriptor)
-            throw Self.failure(code)
+            throw MobileWorkspaceDirectoryAccess.failure(code)
         }
         defer { closedir(directory) }
         var entries = try enumerate(directory, relativePath: relativePath)
@@ -66,24 +52,7 @@ public actor MobileWorkspaceFileListService {
         try Task.checkCancellation()
         return MobileWorkspaceFileListPage(relativePath: relativePath, parentRelativePath: parent,
             entries: Array(entries[start..<end]), offset: start, limit: limit, totalCount: entries.count,
-            nextOffset: end < entries.count ? end : nil)
-    }
-
-    /// Returns an owned descriptor, closing intermediate descriptors on every exit path.
-    private func openDirectory(components: [String]) throws -> Int32 {
-        var descriptor = open(rootPath, Self.directoryFlags)
-        guard descriptor >= 0 else { throw Self.failure(errno) }
-        defer { if descriptor >= 0 { close(descriptor) } }
-        for component in components {
-            try Task.checkCancellation()
-            let child = openat(descriptor, component, Self.directoryFlags)
-            guard child >= 0 else { throw Self.failure(errno) }
-            close(descriptor)
-            descriptor = child
-        }
-        let result = descriptor
-        descriptor = -1 // Transfer to the caller, which hands it to fdopendir.
-        return result
+            nextOffset: end < entries.count ? end : nil, rootID: rootID)
     }
 
     /// Counts non-dot entries before metadata filtering, including children that disappear.
@@ -95,7 +64,7 @@ public actor MobileWorkspaceFileListService {
             try Task.checkCancellation()
             errno = 0
             guard let entry = readdir(directory) else {
-                if errno != 0 { throw Self.failure(errno) }
+                if errno != 0 { throw MobileWorkspaceDirectoryAccess.failure(errno) }
                 break
             }
             guard let name = withUnsafePointer(to: &entry.pointee.d_name, { pointer in
@@ -120,7 +89,7 @@ public actor MobileWorkspaceFileListService {
         if fstatat(directory, name, &value, AT_SYMLINK_NOFOLLOW) != 0 {
             let code = errno
             if code == ENOENT { return nil }
-            throw Self.failure(code)
+            throw MobileWorkspaceDirectoryAccess.failure(code)
         }
         let kind: MobileWorkspaceFileListEntry.Kind
         switch value.st_mode & mode_t(S_IFMT) {
@@ -135,13 +104,4 @@ public actor MobileWorkspaceFileListService {
         )
     }
 
-    private static func failure(_ code: Int32) -> MobileWorkspaceFileListError {
-        switch code {
-        case ENOENT: .notFound
-        case ENOTDIR, ELOOP: .notDirectory
-        case EACCES, EPERM: .permissionDenied
-        case ENAMETOOLONG: .invalidPath
-        default: .unreadable
-        }
-    }
 }

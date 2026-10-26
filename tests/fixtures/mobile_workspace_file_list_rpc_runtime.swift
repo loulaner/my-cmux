@@ -130,7 +130,7 @@ enum MobileHostConnectionAuthorizationContext { case localDirect; case stackBear
         return MobileWorkspaceFileListPage(relativePath: path, parentRelativePath: nested ? "literal%2e%2e" : nil,
             entries: entries.map { .init(name: $0.name, relativePath: nested ? path + "/" + $0.name : $0.name,
                                         kind: $0.kind, byteCount: $0.byteCount) },
-            offset: nested ? 3 : 0, limit: nested ? 4 : 100, totalCount: nested ? 10 : 4, nextOffset: nested ? 7 : nil)
+            offset: nested ? 3 : 0, limit: nested ? 4 : 100, totalCount: nested ? 10 : 4, nextOffset: nested ? 7 : nil, rootID: String(repeating: "0", count: 64))
     }
     static func suspended(_ scenario: String, failure: (any Error)? = nil, expected: String? = nil) async {
         reset()

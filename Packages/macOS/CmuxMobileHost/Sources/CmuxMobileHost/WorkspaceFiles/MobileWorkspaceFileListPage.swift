@@ -14,4 +14,7 @@ public struct MobileWorkspaceFileListPage: Sendable, Equatable {
     public let totalCount: Int
     /// The next offset when more entries remain, otherwise `nil`.
     public let nextOffset: Int?
+    /// Caller-side consistency marker for the opened root, not a secret or permission grant.
+    /// It does not bind current RPC pages across requests until a caller explicitly carries it.
+    public let rootID: String
 }
