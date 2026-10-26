@@ -1,4 +1,5 @@
 /// Narrow capabilities shared by local-direct clients and hosts.
+// lint:allow -- Shared wire vocabulary used by both endpoints; retain the published String API without coupling it to either endpoint.
 public enum CmxLocalDirectCapabilities {
     /// Reads the selected workspace's change list and text diffs only.
     /// Does not grant blob downloads, writes, or arbitrary-file access.

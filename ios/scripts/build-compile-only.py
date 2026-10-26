@@ -22,9 +22,11 @@ def command(scheme, output):
             '-scheme', scheme, '-configuration', configuration,
             '-destination', 'generic/platform=iOS', '-derivedDataPath', str(output / 'DerivedData'),
             '-clonedSourcePackagesDirPath', str(ROOT / '.build/ios-personal/SourcePackages'),
-            '-disableAutomaticPackageResolution', '-onlyUsePackageVersionsFromResolvedFile',
+            '-disableAutomaticPackageResolution', '-onlyUsePackageVersionsFromResolvedFile', '-skipPackageUpdates',
             '-jobs', '4', 'CODE_SIGNING_ALLOWED=NO', 'CODE_SIGNING_REQUIRED=NO',
-            'CODE_SIGN_IDENTITY=', 'DEVELOPMENT_TEAM=', 'EXCLUDED_SOURCE_FILE_NAMES=Info.plist']
+            'CODE_SIGN_IDENTITY=', 'DEVELOPMENT_TEAM=', 'EXCLUDED_SOURCE_FILE_NAMES=Info.plist',
+            'CLANG_MODULE_CACHE_PATH=' + str(output / 'Environment/modulecache'),
+            'SWIFT_MODULE_CACHE_PATH=' + str(output / 'Environment/modulecache')]
 
 
 def execute(scheme, output, runner=subprocess.run):
@@ -35,8 +37,23 @@ def execute(scheme, output, runner=subprocess.run):
                'installable': False, 'state': 'NOT_INSTALLABLE', 'scheme': scheme,
                'configuration': configuration, 'bundle_id': bundle, 'build_exit': None}
     (output / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
-    environment = {k: os.environ[k] for k in ('HOME', 'PATH', 'TMPDIR', 'DEVELOPER_DIR', 'LANG') if k in os.environ}
-    environment['CMUX_DEV_BACKEND_MODE'] = 'local'
+    environment = {k: os.environ[k] for k in ('PATH', 'DEVELOPER_DIR', 'LANG') if k in os.environ}
+    private = output / 'Environment'
+    private.mkdir(mode=0o700)
+    directories = {
+        'HOME': 'home', 'CFFIXED_USER_HOME': 'home', 'TMPDIR': 'tmp',
+        'XDG_CONFIG_HOME': 'config', 'XDG_CACHE_HOME': 'cache',
+        'XDG_DATA_HOME': 'data', 'XDG_STATE_HOME': 'state',
+        'SWIFTPM_MODULECACHE_OVERRIDE': 'modulecache',
+        'CLANG_MODULE_CACHE_PATH': 'modulecache', 'SWIFT_MODULE_CACHE_PATH': 'modulecache',
+    }
+    for name in set(directories.values()):
+        (private / name).mkdir(mode=0o700)
+    for key, name in directories.items():
+        environment[key] = str(private / name) + ('/' if key == 'TMPDIR' else '')
+    environment.update(CMUX_DEV_BACKEND_MODE='local', GIT_ALLOW_PROTOCOL='',
+                       GIT_TERMINAL_PROMPT='0', GIT_NO_LAZY_FETCH='1',
+                       GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL='/dev/null')
     argv = command(scheme, output)
     (output / 'build.command.json').write_text(json.dumps(argv, indent=2) + '\n')
     with (output / 'build.log').open('wb') as log:
