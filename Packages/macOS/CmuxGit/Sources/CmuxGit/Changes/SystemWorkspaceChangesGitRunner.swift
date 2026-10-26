@@ -28,13 +28,15 @@ struct SystemWorkspaceChangesGitRunner: WorkspaceChangesGitRunning {
     private let fallbackExecutableURLs: [URL]
     private let environment: [String: String]
     private let boundedCommandWallTimeLimit: TimeInterval
+    private let startupArguments: [String]
 
     init(
         executableURL: URL? = nil,
         environment: [String: String] = ProcessInfo.processInfo.environment,
         boundedCommandWallTimeLimit: TimeInterval = 30,
         isolateRepositoryConfig: Bool = false,
-        fallbackExecutableURLs: [URL]? = nil
+        fallbackExecutableURLs: [URL]? = nil,
+        disableFilesystemMonitor: Bool = false
     ) {
         let candidates = if let executableURL {
             [executableURL] + (fallbackExecutableURLs ?? [])
@@ -65,6 +67,8 @@ struct SystemWorkspaceChangesGitRunner: WorkspaceChangesGitRunning {
             scopedEnvironment["GIT_CONFIG_GLOBAL"] = "/dev/null"
         }
         scopedEnvironment["GIT_OPTIONAL_LOCKS"] = "0"
+        // Changes reads opt out of repository-configured fsmonitor programs; refs retain the default.
+        self.startupArguments = disableFilesystemMonitor ? ["-c", "core.fsmonitor=false"] : []
         self.environment = scopedEnvironment
         self.boundedCommandWallTimeLimit = max(0, boundedCommandWallTimeLimit)
     }
@@ -221,7 +225,7 @@ struct SystemWorkspaceChangesGitRunner: WorkspaceChangesGitRunning {
         try prepareAttempt()
         let process = try WorkspaceChangesGitProcess.spawn(
             executableURL: executableURL,
-            arguments: arguments,
+            arguments: startupArguments + arguments,
             environment: environment,
             directory: directory,
             wallTimeLimit: remainingSeconds

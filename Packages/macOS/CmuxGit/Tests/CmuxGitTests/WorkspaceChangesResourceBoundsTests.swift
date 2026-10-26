@@ -6,7 +6,7 @@ import Testing
 @Suite struct WorkspaceChangesResourceBoundsTests {
     @Test func boundedSnapshotCommandPropagatesPartialResultAsTruncated() async throws {
         let root = "/tmp/cmux-truncated-snapshot"
-        let statusArguments = ["diff", "-M", "--name-status", "-z", "abc", "--"]
+        let statusArguments = ["diff", "--no-ext-diff", "--no-textconv", "-M", "--name-status", "-z", "abc", "--"]
         let runner = FakeWorkspaceChangesGitRunner(results: [
             ["rev-parse", "--show-toplevel"]: FakeWorkspaceChangesGitRunner.result("\(root)\n"),
             ["symbolic-ref", "--quiet", "--short", "HEAD"]: FakeWorkspaceChangesGitRunner.result("main\n"),
@@ -25,7 +25,7 @@ import Testing
                 exitCode: 15,
                 standardOutputWasTruncated: true
             ),
-            ["diff", "-M", "--numstat", "-z", "abc", "--"]:
+            ["diff", "--no-ext-diff", "--no-textconv", "-M", "--numstat", "-z", "abc", "--"]:
                 FakeWorkspaceChangesGitRunner.result("4\t2\tFile.swift\0"),
             ["ls-files", "--others", "--exclude-standard", "-z"]:
                 FakeWorkspaceChangesGitRunner.result(),
@@ -176,9 +176,9 @@ import Testing
         defer { try? FileManager.default.removeItem(at: root) }
         try Data("one\ntwo\n".utf8).write(to: root.appendingPathComponent("partial.txt"))
         let runner = FakeWorkspaceChangesGitRunner(results: [
-            ["diff", "-M", "--name-status", "-z", "abc", "--"]:
+            ["diff", "--no-ext-diff", "--no-textconv", "-M", "--name-status", "-z", "abc", "--"]:
                 FakeWorkspaceChangesGitRunner.result(),
-            ["diff", "-M", "--numstat", "-z", "abc", "--"]:
+            ["diff", "--no-ext-diff", "--no-textconv", "-M", "--numstat", "-z", "abc", "--"]:
                 FakeWorkspaceChangesGitRunner.result(),
             ["ls-files", "--others", "--exclude-standard", "-z"]:
                 FakeWorkspaceChangesGitRunner.result("partial.txt\0"),

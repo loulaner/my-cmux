@@ -90,13 +90,13 @@ struct WorkspaceChangesSnapshotLoader: Sendable {
         scope: WorkspaceChangesScope
     ) throws(WorkspaceChangesServiceError) -> WorkspaceChangesSnapshot {
         let statusResult = try run(
-            ["diff", "-M", "--name-status", "-z", scope.diffBase, "--"],
+            ["diff", "--no-ext-diff", "--no-textconv", "-M", "--name-status", "-z", scope.diffBase, "--"],
             repoRoot: scope.repoRoot,
             maximumOutputByteCount: Self.maximumSnapshotCommandOutputByteCount
         )
         guard succeededOrTruncated(statusResult) else { throw .gitFailure }
         let numstatResult = try run(
-            ["diff", "-M", "--numstat", "-z", scope.diffBase, "--"],
+            ["diff", "--no-ext-diff", "--no-textconv", "-M", "--numstat", "-z", scope.diffBase, "--"],
             repoRoot: scope.repoRoot,
             maximumOutputByteCount: Self.maximumSnapshotCommandOutputByteCount
         )

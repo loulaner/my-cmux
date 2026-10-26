@@ -49,7 +49,7 @@ extension WorkspaceChangesService {
         let acceptedExitCodes: Set<Int32>
         if file.status == .untracked {
             arguments = [
-                "--literal-pathspecs", "diff", "--unified=3", "--no-index",
+                "--literal-pathspecs", "diff", "--no-ext-diff", "--no-textconv", "--unified=3", "--no-index",
                 "--", "/dev/null", normalizedPath,
             ]
             acceptedExitCodes = [0, 1]
@@ -67,7 +67,7 @@ extension WorkspaceChangesService {
                 )
             }
             arguments = [
-                "--literal-pathspecs", "diff", "-M", "--unified=3",
+                "--literal-pathspecs", "diff", "--no-ext-diff", "--no-textconv", "-M", "--unified=3",
                 scope.diffBase, "--",
             ] + pathspecs
             acceptedExitCodes = [0]

@@ -122,7 +122,7 @@ import Testing
         let markers = root.appendingPathComponent("markers", isDirectory: true)
         try FileManager.default.createDirectory(at: markers, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
-        let statusArguments = ["diff", "-M", "--name-status", "-z", "abc", "--"]
+        let statusArguments = ["diff", "--no-ext-diff", "--no-textconv", "-M", "--name-status", "-z", "abc", "--"]
         let runner = FakeWorkspaceChangesGitRunner(
             results: [
                 ["rev-parse", "--show-toplevel"]:
@@ -141,7 +141,7 @@ import Testing
                     FakeWorkspaceChangesGitRunner.result("abc\n"),
                 statusArguments:
                     FakeWorkspaceChangesGitRunner.result("M\0File.swift\0"),
-                ["diff", "-M", "--numstat", "-z", "abc", "--"]:
+                ["diff", "--no-ext-diff", "--no-textconv", "-M", "--numstat", "-z", "abc", "--"]:
                     FakeWorkspaceChangesGitRunner.result("1\t1\tFile.swift\0"),
                 ["ls-files", "--others", "--exclude-standard", "-z"]:
                     FakeWorkspaceChangesGitRunner.result(),
@@ -178,9 +178,9 @@ import Testing
             ["merge-base", "HEAD", "main"]: FakeWorkspaceChangesGitRunner.result("base-sha\n"),
             ["rev-parse", "--verify", "base-sha^{commit}"]:
                 FakeWorkspaceChangesGitRunner.result("resolved-base-oid\n"),
-            ["diff", "-M", "--name-status", "-z", "resolved-base-oid", "--"]:
+            ["diff", "--no-ext-diff", "--no-textconv", "-M", "--name-status", "-z", "resolved-base-oid", "--"]:
                 FakeWorkspaceChangesGitRunner.result("M\0File.swift\0"),
-            ["diff", "-M", "--numstat", "-z", "resolved-base-oid", "--"]:
+            ["diff", "--no-ext-diff", "--no-textconv", "-M", "--numstat", "-z", "resolved-base-oid", "--"]:
                 FakeWorkspaceChangesGitRunner.result("4\t2\tFile.swift\0"),
             ["ls-files", "--others", "--exclude-standard", "-z"]: FakeWorkspaceChangesGitRunner.result(),
         ])
@@ -214,9 +214,9 @@ import Testing
             ["rev-parse", "--verify", "--quiet", "origin/master^{commit}"]: FakeWorkspaceChangesGitRunner.result(exitCode: 1),
             ["rev-parse", "--verify", "--quiet", "main^{commit}"]: FakeWorkspaceChangesGitRunner.result("abc\n"),
             ["rev-parse", "--verify", "HEAD^{commit}"]: FakeWorkspaceChangesGitRunner.result("abc\n"),
-            ["diff", "-M", "--name-status", "-z", "abc", "--"]:
+            ["diff", "--no-ext-diff", "--no-textconv", "-M", "--name-status", "-z", "abc", "--"]:
                 FakeWorkspaceChangesGitRunner.result(statuses),
-            ["diff", "-M", "--numstat", "-z", "abc", "--"]:
+            ["diff", "--no-ext-diff", "--no-textconv", "-M", "--numstat", "-z", "abc", "--"]:
                 FakeWorkspaceChangesGitRunner.result(numstat),
             ["ls-files", "--others", "--exclude-standard", "-z"]: FakeWorkspaceChangesGitRunner.result(),
         ])
@@ -396,9 +396,9 @@ import Testing
             ["rev-parse", "--verify", "--quiet", "origin/master^{commit}"]: FakeWorkspaceChangesGitRunner.result(exitCode: 1),
             ["rev-parse", "--verify", "--quiet", "main^{commit}"]: FakeWorkspaceChangesGitRunner.result("abc\n"),
             ["rev-parse", "--verify", "HEAD^{commit}"]: FakeWorkspaceChangesGitRunner.result("abc\n"),
-            ["diff", "-M", "--name-status", "-z", "abc", "--"]:
+            ["diff", "--no-ext-diff", "--no-textconv", "-M", "--name-status", "-z", "abc", "--"]:
                 FakeWorkspaceChangesGitRunner.result(statuses),
-            ["diff", "-M", "--numstat", "-z", "abc", "--"]:
+            ["diff", "--no-ext-diff", "--no-textconv", "-M", "--numstat", "-z", "abc", "--"]:
                 FakeWorkspaceChangesGitRunner.result(numstat),
             ["ls-files", "--others", "--exclude-standard", "-z"]: FakeWorkspaceChangesGitRunner.result("zzz-untracked.txt\0"),
         ])
