@@ -1,4 +1,5 @@
 import CmuxCloud
+import CmuxMobileHost
 import CoreFoundation
 import CMUXMobileCore
 import Foundation
@@ -28,7 +29,9 @@ struct MobileLocalDirectRPCPolicy: Sendable {
     }
 
     var methods: Set<String> {
-        workspaceChangesEnabled && !fileTransferDisabled ? baseMethods.union(changesMethods) : baseMethods
+        var allowed = workspaceChangesEnabled && !fileTransferDisabled ? baseMethods.union(changesMethods) : baseMethods
+        if !fileTransferDisabled { allowed.insert("mobile.workspace.files.list") }
+        return allowed
     }
 
     let topics: Set<String> = [
@@ -40,12 +43,26 @@ struct MobileLocalDirectRPCPolicy: Sendable {
          "terminal.render_grid.verified_replay.v1", "terminal.render_grid.screen_anchor.v1",
          "terminal.replay.v1", "terminal.viewport.v1", MobileHostService.terminalInputOrderedCapability,
          MobileTerminalInputDelivery.capability, MobileHostService.terminalSharedSizingCapability]
-        return workspaceChangesEnabled && !fileTransferDisabled
-            ? base + [CmxLocalDirectCapabilities.workspaceChangesRead] : base
+        let changes = workspaceChangesEnabled && !fileTransferDisabled
+            ? [CmxLocalDirectCapabilities.workspaceChangesRead] : []
+        return base + changes + (fileTransferDisabled ? [] : [CmxLocalDirectCapabilities.workspaceFilesList])
     }
 
     /// Runs before subscription handling as well as before terminal dispatch.
     func authorizationError(for request: MobileHostRPCRequest) -> MobileHostRPCResult? {
+        if request.method == "mobile.workspace.files.list" {
+            if fileTransferDisabled {
+                return .failure(MobileHostRPCError(
+                    code: "file_transfer_disabled", message: ManagedFileTransferPolicy.disabledMessage
+                ))
+            }
+            guard MobileWorkspaceFileListRequest(params: request.params) != nil else {
+                return .failure(MobileHostRPCError(code: "invalid_params", message: String(
+                    localized: "mobile.localDirect.files.error.invalidParams", defaultValue: "Invalid workspace file request"
+                )))
+            }
+            return nil
+        }
         if changesMethods.contains(request.method) {
             if fileTransferDisabled {
                 return .failure(MobileHostRPCError(

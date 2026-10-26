@@ -2632,6 +2632,7 @@
 		93D65A08A69E051D11CF5B0F /* MobileLocalDirectSessionServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 779CC1D9064D23D2C7D18F1F /* MobileLocalDirectSessionServer.swift */; };
 		EA8836477B60D13FF454651C /* MobileLocalDirectSessionServerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11FEA4AB80AC2141C48F26B5 /* MobileLocalDirectSessionServerTests.swift */; };
 		48893730553F76B97917EEB7 /* MobileLocalDirectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 442A4E2488E59818D831817F /* MobileLocalDirectView.swift */; };
+		77F24E71039A12E24BBAF4F6 /* MobileLocalDirectWorkspaceFilesPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D21555A99326BAC0875EFB3 /* MobileLocalDirectWorkspaceFilesPolicyTests.swift */; };
 		EEDEFE5F0D0F20180A8C112D /* MobileLocalSessionEpochProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92722A5A8A79EF4CC84389A4 /* MobileLocalSessionEpochProbe.swift */; };
 		1AE6DC743D19411AD15D260E /* MobileLocalTerminalSessionServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07E8F498833CAF8ADC716BB1 /* MobileLocalTerminalSessionServer.swift */; };
 		5A8D3A24D4EB4DB0CEE3436B /* MobileLocalTerminalSessionServerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BAC51089DCC481840C5C437 /* MobileLocalTerminalSessionServerTests.swift */; };
@@ -3866,6 +3867,7 @@
 				B11D00000000000000000001 /* TerminalController+MobileTerminalLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11D00000000000000000002 /* TerminalController+MobileTerminalLifecycle.swift */; };
 		C7AF31000000000000000001 /* TerminalController+MobileTodos.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7AF31000000000000000002 /* TerminalController+MobileTodos.swift */; };
 		D1FF00010000000000000002 /* TerminalController+MobileWorkspaceChanges.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1FF00010000000000000001 /* TerminalController+MobileWorkspaceChanges.swift */; };
+		A80EB1ABD83311712271BC40 /* TerminalController+MobileWorkspaceFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD71828F63C956A318F9D37E /* TerminalController+MobileWorkspaceFiles.swift */; };
 		C7A50B000000000000000012 /* TerminalController+MobileWorkspaceList.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A50B000000000000000011 /* TerminalController+MobileWorkspaceList.swift */; };
 		D7AB0000000000000000000B /* TerminalController+MoveTabToNewWorkspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7AB0000000000000000000C /* TerminalController+MoveTabToNewWorkspace.swift */; };
 		A049D3EEEF099C2E793679D0 /* TerminalController+ProcessDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73B29F22CCC610EAEED4C0C /* TerminalController+ProcessDiagnostics.swift */; };
@@ -7154,6 +7156,7 @@
 		779CC1D9064D23D2C7D18F1F /* MobileLocalDirectSessionServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileLocalDirectSessionServer.swift; sourceTree = "<group>"; };
 		11FEA4AB80AC2141C48F26B5 /* MobileLocalDirectSessionServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MobileLocalDirectSessionServerTests.swift"; sourceTree = "<group>"; };
 		442A4E2488E59818D831817F /* MobileLocalDirectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pairing/MobileLocalDirectView.swift; sourceTree = "<group>"; };
+		2D21555A99326BAC0875EFB3 /* MobileLocalDirectWorkspaceFilesPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MobileLocalDirectWorkspaceFilesPolicyTests.swift"; sourceTree = "<group>"; };
 		92722A5A8A79EF4CC84389A4 /* MobileLocalSessionEpochProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MobileLocalSessionEpochProbe.swift"; sourceTree = "<group>"; };
 		07E8F498833CAF8ADC716BB1 /* MobileLocalTerminalSessionServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileLocalTerminalSessionServer.swift; sourceTree = "<group>"; };
 		6BAC51089DCC481840C5C437 /* MobileLocalTerminalSessionServerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MobileLocalTerminalSessionServerTests.swift"; sourceTree = "<group>"; };
@@ -8374,6 +8377,7 @@
 				B11D00000000000000000002 /* TerminalController+MobileTerminalLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileTerminalLifecycle.swift"; sourceTree = "<group>"; };
 		C7AF31000000000000000002 /* TerminalController+MobileTodos.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileTodos.swift"; sourceTree = "<group>"; };
 		D1FF00010000000000000001 /* TerminalController+MobileWorkspaceChanges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileWorkspaceChanges.swift"; sourceTree = "<group>"; };
+		BD71828F63C956A318F9D37E /* TerminalController+MobileWorkspaceFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileWorkspaceFiles.swift"; sourceTree = "<group>"; };
 		C7A50B000000000000000011 /* TerminalController+MobileWorkspaceList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileWorkspaceList.swift"; sourceTree = "<group>"; };
 		D7AB0000000000000000000C /* TerminalController+MoveTabToNewWorkspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MoveTabToNewWorkspace.swift"; sourceTree = "<group>"; };
 		C73B29F22CCC610EAEED4C0C /* TerminalController+ProcessDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+ProcessDiagnostics.swift"; sourceTree = "<group>"; };
@@ -12194,6 +12198,7 @@
 				DF6CE43179E3A958139FB9FB /* ProcessDetectedTerminalBinding.swift */,
 				F89797AE49756191CC98B2C1 /* ProBadgeActions.swift */,
 				30AA2D44945B6C4A24A6D837 /* TerminalController+BrowserEmulation.swift */,
+				BD71828F63C956A318F9D37E /* TerminalController+MobileWorkspaceFiles.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -13784,6 +13789,7 @@
 				596FEC1D39F600E76CC47CD8 /* MacAuthCompositionLaunchOptionsTests.swift */,
 				607A4FF2F8D6FAC84C6EB1CD /* MobileFileTransferPolicyTests.swift */,
 				75F8180C125EBD7A72035FED /* MobileLocalDirectChangesPolicyTests.swift */,
+				2D21555A99326BAC0875EFB3 /* MobileLocalDirectWorkspaceFilesPolicyTests.swift */,
 			);
 			path = cmuxTests;
 			sourceTree = "<group>";
@@ -16744,6 +16750,7 @@
 				B11D00000000000000000001 /* TerminalController+MobileTerminalLifecycle.swift in Sources */,
 				C7AF31000000000000000001 /* TerminalController+MobileTodos.swift in Sources */,
 				D1FF00010000000000000002 /* TerminalController+MobileWorkspaceChanges.swift in Sources */,
+				A80EB1ABD83311712271BC40 /* TerminalController+MobileWorkspaceFiles.swift in Sources */,
 				C7A50B000000000000000012 /* TerminalController+MobileWorkspaceList.swift in Sources */,
 				D7AB0000000000000000000B /* TerminalController+MoveTabToNewWorkspace.swift in Sources */,
 				A049D3EEEF099C2E793679D0 /* TerminalController+ProcessDiagnostics.swift in Sources */,
@@ -18435,6 +18442,7 @@
 				63A526F4A0283CAC1BF5F90B /* MobileLocalDirectHostControllerTests.swift in Sources */,
 				2717C39948C1C369E83E9EA5 /* MobileLocalDirectMemoryStorage.swift in Sources */,
 				EA8836477B60D13FF454651C /* MobileLocalDirectSessionServerTests.swift in Sources */,
+				77F24E71039A12E24BBAF4F6 /* MobileLocalDirectWorkspaceFilesPolicyTests.swift in Sources */,
 				EEDEFE5F0D0F20180A8C112D /* MobileLocalSessionEpochProbe.swift in Sources */,
 				5A8D3A24D4EB4DB0CEE3436B /* MobileLocalTerminalSessionServerTests.swift in Sources */,
 				ABMDPARTRES0000000000001 /* MobilePanelArtifactResolutionTests.swift in Sources */,

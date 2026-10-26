@@ -21,13 +21,14 @@ struct MobileLocalDirectChangesPolicyTests {
     }
 
     @Test func gatesAndCapabilitiesAgree() {
-        let base = MobileLocalDirectRPCPolicy(workspaceChangesEnabled: false, fileTransferDisabled: false)
+        let base = MobileLocalDirectRPCPolicy(workspaceChangesEnabled: false, fileTransferDisabled: true)
         for enabled in [false, true] {
             for disabled in [false, true] {
                 let policy = MobileLocalDirectRPCPolicy(workspaceChangesEnabled: enabled, fileTransferDisabled: disabled)
                 let admitted = enabled && !disabled
-                #expect(policy.methods == (admitted ? base.methods.union([files, diff]) : base.methods))
-                #expect(policy.capabilities == base.capabilities + (admitted ? [CmxLocalDirectCapabilities.workspaceChangesRead] : []))
+                #expect(policy.methods == (admitted ? base.methods.union([files, diff]) : base.methods).union(disabled ? [] : ["mobile.workspace.files.list"]))
+                #expect(policy.capabilities == base.capabilities + (admitted ? [CmxLocalDirectCapabilities.workspaceChangesRead] : [])
+                    + (disabled ? [] : [CmxLocalDirectCapabilities.workspaceFilesList]))
                 #expect(!policy.capabilities.contains("workspace.changes.v1"))
                 #expect(policy.topics == base.topics)
                 for method in [files, diff] {

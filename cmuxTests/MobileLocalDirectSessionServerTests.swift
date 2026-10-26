@@ -20,7 +20,7 @@ struct MobileLocalDirectSessionServerTests {
     }
     @Test func allowedMethodsAndTopicBoundary() {
         let policy = MobileLocalDirectRPCPolicy(workspaceChangesEnabled: false, fileTransferDisabled: false)
-        for method in policy.methods where method != "mobile.events.subscribe" {
+        for method in policy.methods.subtracting(["mobile.workspace.files.list"]) where method != "mobile.events.subscribe" {
             #expect(policy.authorizationError(for: MobileHostRPCRequest(id: "test", method: method, params: [:], auth: nil)) == nil)
         }
         for topics in [["*"], ["terminal.bytes", "feed.changed"], ["browser.stream"], [""], []] {

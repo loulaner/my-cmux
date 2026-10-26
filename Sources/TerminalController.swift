@@ -15565,6 +15565,12 @@ class TerminalController {
              "mobile.workspace.changes.file_stat",
              "mobile.workspace.changes.file_fetch":
             result = await v2MobileWorkspaceChanges(method: request.method, params: request.params)
+        case "mobile.workspace.files.list":
+            result = await v2MobileWorkspaceFilesList(
+                params: request.params,
+                authorization: executionContext?.authorization,
+                filesystemJobQuota: mobileTaskFilesystemJobQuota
+            )
         case "mobile.directory.search":
             result = await v2MobileDirectorySearch(
                 params: request.params,
