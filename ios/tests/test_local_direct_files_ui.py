@@ -51,8 +51,16 @@ class LocalDirectFilesUIGuardTests(unittest.TestCase):
                         "ByteCountFormatter.string(fromByteCount: size, countStyle: .file)", "entry.kind == .file, let size = entry.size"]:
             self.assertIn(snippet, view)
         self.assertEqual(view.count("session.openDirectory("), 1)
+        self.assertEqual(view.count("@State"), 1)
+        self.assertIn("@State private var previewPresentation: PreviewPresentation?", view)
+        self.assertIn("private struct PreviewPresentation: Hashable", view)
+        self.assertIn("let session: MobileLocalDirectFilePreviewSession", view)
+        self.assertIn("ObjectIdentifier(lhs.session) == ObjectIdentifier(rhs.session)", view)
+        self.assertEqual(view.count(".navigationDestination("), 1)
+        self.assertIn(".navigationDestination(item: $previewPresentation)", view)
+        self.assertIn("MobileLocalDirectFilePreviewView(session: presentation.session)", view)
         self.assertRegex(view, r'else \{\s+entryLabel\(entry\)\s+\}')
-        for forbidden in ["@State", "NavigationLink", "navigationDestination", "navigationPath", "TextField", "path: $", "appendingPathComponent"]:
+        for forbidden in ["NavigationLink", "navigationPath", "TextField", "path: $", "appendingPathComponent"]:
             self.assertNotIn(forbidden, view)
 
     def test_explicit_loading_pagination_and_failure_recovery(self):
@@ -70,13 +78,25 @@ class LocalDirectFilesUIGuardTests(unittest.TestCase):
             self.assertIn(f"case .{failure}:", view)
             self.assertIn(f'localized: "direct.files.error.{failure}"', view)
         self.assertIn('localized: "direct.files.metadataOnly"', view)
-        for forbidden in ["onAppear", "onDisappear", "Timer", "Task.sleep", ".onChange", "refreshable", "prefetch"]:
+        self.assertEqual(view.count(".onChange("), 2)
+        self.assertEqual(view.count(".onDisappear"), 1)
+        self.assertIn("\n        .onDisappear { session.closePreview() }", view)
+        self.assertNotIn("\n            .onDisappear", view)
+        self.assertIn("ObjectIdentifier(presentation.session) != identity", view)
+        self.assertIn("if let old, new == nil, session.previewSession === old.session", view)
+        for marker in ["session.previewSession.map", "previewPresentation"]:
+            handler = re.search(r"\.onChange\(of: " + re.escape(marker) + r".*?\n        \}", view, re.S)
+            if handler is None:
+                self.fail("Missing identity/pop cleanup")
+            for forbidden in ["refresh()", "disconnect(", "invalidate(", "openFile("]:
+                self.assertNotIn(forbidden, handler.group())
+        for forbidden in ["onAppear", "Timer", "Task.sleep", "refreshable", "prefetch"]:
             self.assertNotIn(forbidden, view)
 
     def test_metadata_only_no_connection_or_content_actions(self):
         view = source("MobileLocalDirectFilesView.swift")
         self.assertTrue(view)
-        for forbidden in ["sendRequest", "MobileLocalDirectFilesSession(", "disconnect(", "invalidate(", "subscribe(",
+        for forbidden in ["sendRequest", "MobileLocalDirectFilesSession(", "MobileLocalDirectFilePreviewSession(", "disconnect(", "invalidate(", "subscribe(",
                           "clear_all", "sendInput", "controller", "localizedDescription", "QuickLook", "WKWebView",
                           "Markdown", "AttributedString", "URL(", "openURL", "ShareLink", "UIPasteboard", "FileManager",
                           ".sheet(", "interactiveDismissDisabled", "UIScreen", "GeometryReader", "keyboard", "rootDirectory"]:

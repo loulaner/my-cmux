@@ -3,18 +3,38 @@ import CmuxMobileShell
 import Foundation
 import SwiftUI
 
-/// Single-page metadata browser; the captured session alone owns directory navigation.
+/// Single-page directory browser with a captured, separately owned text preview.
 @MainActor
 struct MobileLocalDirectFilesView: View {
     @Bindable var session: MobileLocalDirectFilesSession
     @Environment(\.dismiss) private var dismiss
+    @State private var previewPresentation: PreviewPresentation?
+
+    private struct PreviewPresentation: Hashable {
+        let session: MobileLocalDirectFilePreviewSession
+
+        nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
+            ObjectIdentifier(lhs.session) == ObjectIdentifier(rhs.session)
+        }
+
+        nonisolated func hash(into hasher: inout Hasher) {
+            hasher.combine(ObjectIdentifier(session))
+        }
+    }
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    Text(String(localized: "direct.files.metadataOnly", defaultValue: "Only folder browsing is available. File previews and transfers are not supported yet."))
-                        .foregroundStyle(.secondary)
+                    if session.state == .ready {
+                        if session.canPreviewFiles {
+                            Text(String(localized: "direct.preview.availability", defaultValue: "Open a text file to preview it. Downloads and uploads are not available yet."))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text(String(localized: "direct.files.metadataOnly", defaultValue: "Only folder browsing is available. File previews and transfers are not supported yet."))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                     if session.parentPath != nil {
                         Button { session.goToParent() } label: {
                             Label(String(localized: "direct.files.up", defaultValue: "Parent Folder"), systemImage: "arrow.up")
@@ -41,6 +61,20 @@ struct MobileLocalDirectFilesView: View {
                         }
                         .disabled(session.state != .ready || entry.path.utf8.count > 4_096)
                         .accessibilityHint(String(localized: "direct.files.openHint", defaultValue: "Open Folder"))
+                    } else if entry.kind == .file && session.canPreviewFiles {
+                        Button {
+                            if session.openFile(path: entry.path), let child = session.previewSession {
+                                previewPresentation = PreviewPresentation(session: child)
+                            }
+                        } label: {
+                            HStack {
+                                entryLabel(entry)
+                                Spacer()
+                                Image(systemName: "chevron.forward").accessibilityHidden(true)
+                            }
+                        }
+                        .disabled(entry.path.utf8.count > 4_096)
+                        .accessibilityHint(String(localized: "direct.preview.openHint", defaultValue: "Open Preview"))
                     } else {
                         entryLabel(entry)
                     }
@@ -61,10 +95,13 @@ struct MobileLocalDirectFilesView: View {
                     Button(String(localized: "direct.changes.retry", defaultValue: "Try Again")) { session.refresh() }
                 }
             }
+            .navigationDestination(item: $previewPresentation) { presentation in
+                MobileLocalDirectFilePreviewView(session: presentation.session)
+            }
             .navigationTitle(String(localized: "direct.files.title", defaultValue: "Files"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "direct.changes.close", defaultValue: "Close")) { dismiss() }
+                    Button(String(localized: "direct.changes.close", defaultValue: "Close")) { session.closePreview(); dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button(String(localized: "direct.changes.refresh", defaultValue: "Refresh")) { session.refresh() }
@@ -72,6 +109,17 @@ struct MobileLocalDirectFilesView: View {
                 }
             }
         }
+        .onChange(of: session.previewSession.map { ObjectIdentifier($0) }) { _, identity in
+            if let presentation = previewPresentation, ObjectIdentifier(presentation.session) != identity {
+                previewPresentation = nil
+            }
+        }
+        .onChange(of: previewPresentation) { old, new in
+            if let old, new == nil, session.previewSession === old.session {
+                session.closePreview()
+            }
+        }
+        .onDisappear { session.closePreview() }
         .task(id: ObjectIdentifier(session)) {
             guard !Task.isCancelled, session.state != .loading else { return }
             session.refresh()
