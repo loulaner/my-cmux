@@ -69,6 +69,11 @@ public final class MobileLocalDirectFilesSession {
         if case .observed(let marker) = rootBinding { return marker }
         return nil
     }
+    /// The owned preview selection; creation alone performs no RPC.
+    public private(set) var previewSession: MobileLocalDirectFilePreviewSession?
+    /// Whether this ready, marked directory permits explicit file previews.
+    public var canPreviewFiles: Bool { active && state == .ready && capable && previewCapable && rootID != nil }
+
     private enum RootBinding {
         case unbound
         case observed(String?)
@@ -83,6 +88,7 @@ public final class MobileLocalDirectFilesSession {
     @ObservationIgnored private let rpc: any MobileSyncing
     @ObservationIgnored private let workspaceUUID: UUID
     @ObservationIgnored private let capable: Bool
+    @ObservationIgnored private let previewCapable: Bool
     @ObservationIgnored private var active = true
     @ObservationIgnored private var token: UInt64 = 0
     // Internal read-only completion handle, including cancellation-ignoring replies.
@@ -100,6 +106,7 @@ public final class MobileLocalDirectFilesSession {
         self.rpc = rpc; self.workspaceID = workspaceID; workspaceUUID = uuid
         self.connectionGeneration = connectionGeneration
         capable = capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesList)
+        previewCapable = capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesPreview)
     }
 
     deinit { requestTask?.cancel() }
@@ -135,6 +142,30 @@ public final class MobileLocalDirectFilesSession {
         start(path: currentPath, offset: nextOffset)
     }
 
+    /// Replaces the preview only for an exact regular-file entry in the ready page set.
+    /// - Parameter path: Original UTF-8 entry path, never an arbitrary or normalized selection.
+    /// - Returns: Whether a zero-request child was created; rejection leaves directory state unchanged.
+    @discardableResult
+    public func openFile(path: String) -> Bool {
+        guard active, state == .ready else { return false }
+        closePreview()
+        guard canPreviewFiles, Self.validRequestPath(path), let rootID,
+              entries.contains(where: { $0.kind == .file && $0.path.utf8.elementsEqual(path.utf8) }) else { return false }
+        do {
+            previewSession = try MobileLocalDirectFilePreviewSession(
+                rpc: rpc, workspaceID: workspaceID, connectionGeneration: connectionGeneration,
+                path: path, rootID: rootID, capabilities: [CmxLocalDirectCapabilities.workspaceFilesPreview]
+            )
+            return true
+        } catch { return false }
+    }
+
+    /// Invalidates only the owned preview, preserving directory state and the shared connection.
+    public func closePreview() {
+        previewSession?.invalidate()
+        previewSession = nil
+    }
+
     /// Permanently clears this session without disconnecting the shared RPC.
     public func invalidate() {
         guard active else { return }
@@ -143,6 +174,7 @@ public final class MobileLocalDirectFilesSession {
     }
 
     private func start(path: String, offset: Int) {
+        closePreview()
         requestTask?.cancel(); requestTask = nil; token &+= 1
         let expectedBinding = rootBinding
         currentPath = path
@@ -189,6 +221,7 @@ public final class MobileLocalDirectFilesSession {
     }
 
     private func clearPages(preservingRoot: Bool = false) {
+        closePreview()
         entries = []; totalCount = nil; nextOffset = nil
         if !preservingRoot { rootBinding = .unbound }
     }

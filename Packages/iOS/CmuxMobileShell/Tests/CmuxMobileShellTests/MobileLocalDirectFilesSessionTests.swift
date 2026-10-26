@@ -444,4 +444,141 @@ struct MobileLocalDirectFilesSessionTests {
         #expect(session.state == .ready && session.rootID == b && session.currentPath == "")
     }
 
+    // Preview ownership cases below intentionally leave every existing list assertion untouched.
+    private func previewOwner(_ rpc: RPC, previewCapable: Bool = true) throws -> MobileLocalDirectFilesSession {
+        var capabilities: Set<String> = [CmxLocalDirectCapabilities.workspaceFilesList]
+        if previewCapable { capabilities.insert(CmxLocalDirectCapabilities.workspaceFilesPreview) }
+        return try .init(rpc: rpc, workspaceID: Self.workspace, connectionGeneration: 7, capabilities: capabilities)
+    }
+    private func previewReply(path: String, text: String = "SYNTHETIC-LATE-PREVIEW") throws -> Data {
+        try data(["workspace_id": Self.workspace, "path": path, "root_id": String(repeating: "a", count: 64),
+                  "data_base64": Data(text.utf8).base64EncodedString(), "byte_count": text.utf8.count,
+                  "total_bytes": text.utf8.count, "truncated": false])
+    }
+
+    @Test func previewCreationReplacementAndClosePreserveDirectory() async throws {
+        let rpc = RPC(), session = try previewOwner(rpc), root = String(repeating: "a", count: 64)
+        #expect(!session.canPreviewFiles && !session.openFile(path: "a"))
+        #expect(await rpc.requests.isEmpty)
+        session.refresh(); try await finish(session, rpc, index: 0, value: rooted(object(["a", "b"]), root))
+        let entries = session.entries
+        #expect(session.canPreviewFiles && session.openFile(path: "a"))
+        let old = try #require(session.previewSession)
+        #expect(old.workspaceID == session.workspaceID && old.connectionGeneration == 7 && old.rootID == root && old.path == "a")
+        #expect(old.state == .idle)
+        #expect(await rpc.requests.count == 1)
+        old.refresh(); await rpc.wait(2); let pending = old.requestTask
+        #expect(session.openFile(path: "b"))
+        let child = try #require(session.previewSession)
+        #expect(child !== old && old.state == .failed(.disconnected) && child.state == .idle)
+        #expect(await rpc.requests.count == 2)
+        await rpc.reply(1, .success(try previewReply(path: "a"))); await pending?.value
+        #expect(old.text == nil && old.state == .failed(.disconnected))
+        child.refresh(); await rpc.wait(3); let current = child.requestTask
+        await rpc.reply(2, .success(try previewReply(path: "b", text: "B"))); await current?.value
+        #expect(child.text == "B" && child.state == .ready)
+        session.closePreview(); old.refresh(); child.refresh()
+        #expect(session.previewSession == nil && child.text == nil && child.state == .failed(.disconnected))
+        #expect(session.entries == entries && session.rootID == root && session.totalCount == 2 && session.nextOffset == nil)
+        #expect(session.state == .ready && session.canPreviewFiles && session.currentPath == "")
+        #expect(await rpc.requests.count == 3)
+        #expect(await rpc.disconnects == 0)
+        #expect(await rpc.subscriptions == 0)
+    }
+
+    @Test(arguments: ["legacy", "noPreview", "directory", "symbolicLink", "other", "invalid", "oversized"])
+    func previewEligibilityRejectsWithoutParentMutation(mode: String) async throws {
+        let rpc = RPC(), session = try previewOwner(rpc, previewCapable: mode != "noPreview")
+        let root = String(repeating: "a", count: 64)
+        var selection = "e\u{301}", index = 0
+        session.refresh()
+        if mode == "oversized" {
+            let directory = String(repeating: "d", count: 4096)
+            try await finish(session, rpc, index: 0, value: rooted(object([directory], kind: "directory"), root))
+            session.openDirectory(path: directory)
+            try await finish(session, rpc, index: 1, value: rooted(object(["f"], path: directory), root)); index = 1
+            selection = directory + "/f"
+        } else {
+            let kind = ["directory", "symbolicLink", "other"].contains(mode) ? mode : "file"
+            try await finish(session, rpc, index: 0, value: rooted(object([selection], kind: kind), mode == "legacy" ? nil : root))
+        }
+        let entries = session.entries, marker = session.rootID, path = session.currentPath
+        if mode == "invalid" {
+            for invalid in ["", "unknown", "/file", "../file", "a//b", "a/", "é", "a\0b", String(repeating: "x", count: 4097)] {
+                #expect(session.openFile(path: selection)); let child = try #require(session.previewSession)
+                #expect(!session.openFile(path: invalid) && session.previewSession == nil)
+                #expect(child.state == .failed(.disconnected))
+            }
+        } else { #expect(!session.openFile(path: selection) && session.previewSession == nil) }
+        #expect(session.canPreviewFiles == !["legacy", "noPreview"].contains(mode))
+        #expect(session.state == .ready && session.entries == entries && session.rootID == marker && session.currentPath == path)
+        #expect(await rpc.requests.count == index + 1)
+        #expect(await rpc.disconnects == 0)
+    }
+
+    @Test(arguments: ["refresh", "directory", "parent", "next", "invalidDirectory", "invalidate", "error", "malformed", "rootChanged"])
+    func parentActionsRetirePendingPreview(mode: String) async throws {
+        let rpc = RPC(), session = try previewOwner(rpc), root = String(repeating: "a", count: 64)
+        var page = object(["dir"] + names(0..<99), total: 101)
+        var entries = try #require(page["entries"] as? [[String: Any]])
+        entries[0]["kind"] = "directory"; entries[0]["size"] = NSNull(); page["entries"] = entries
+        page = rooted(page, root)
+        session.refresh(); try await finish(session, rpc, index: 0, value: page)
+        var selection = names(0..<1)[0]
+        if mode == "parent" {
+            session.openDirectory(path: "dir")
+            try await finish(session, rpc, index: 1, value: rooted(object(["file"], path: "dir"), root))
+            selection = "dir/file"
+        }
+        #expect(session.openFile(path: selection))
+        let child = try #require(session.previewSession), index = await rpc.requests.count
+        child.refresh(); await rpc.wait(index + 1); let pending = child.requestTask
+        switch mode {
+        case "directory": session.openDirectory(path: "dir")
+        case "parent": session.goToParent()
+        case "next", "rootChanged": session.loadNextPage()
+        case "invalidDirectory": session.openDirectory(path: "unknown")
+        case "invalidate": session.invalidate()
+        default: session.refresh()
+        }
+        #expect(session.previewSession == nil && child.state == .failed(.disconnected))
+        await rpc.reply(index, .success(try previewReply(path: selection))); await pending?.value
+        child.refresh()
+        #expect(child.state == .failed(.disconnected) && child.text == nil && child.totalBytes == nil && child.displayedByteCount == 0)
+        if !["invalidDirectory", "invalidate"].contains(mode) {
+            await rpc.wait(index + 2); let task = session.requestTask
+            if mode == "error" { await rpc.reply(index + 1, .failure(MobileShellConnectionError.rpcError("permission_denied", "SECRET"))) }
+            else if mode == "malformed" { await rpc.reply(index + 1, .success(Data("{}".utf8))) }
+            else {
+                let result: [String: Any]
+                if mode == "directory" { result = rooted(object(["file"], path: "dir"), root) }
+                else if ["next", "rootChanged"].contains(mode) {
+                    result = rooted(object(names(99..<100), offset: 100, total: 101), mode == "rootChanged" ? String(repeating: "b", count: 64) : root)
+                } else { result = page }
+                await rpc.reply(index + 1, .success(try data(result)))
+            }
+            await task?.value
+            #expect(await rpc.requests.count == index + 2)
+        } else { #expect(await rpc.requests.count == index + 1) }
+        let failure: MobileLocalDirectFilesSession.Failure? = ["error": .permissionDenied, "malformed": .invalidResponse,
+            "rootChanged": .directoryChanged, "invalidDirectory": .invalidSelection, "invalidate": .disconnected][mode]
+        #expect(session.state == (failure.map { .failed($0) } ?? .ready))
+        #expect(session.previewSession == nil)
+        if failure != nil { #expect(session.rootID == nil); empty(session) }
+        if mode == "next" {
+            #expect(session.entries.count == 101 && session.openFile(path: names(99..<100)[0]))
+            #expect(session.previewSession?.state == .idle)
+        }
+        #expect(await rpc.disconnects == 0)
+    }
+
+    @Test func previewCapabilityAloneCannotEnableParent() async throws {
+        let rpc = RPC()
+        let session = try MobileLocalDirectFilesSession(rpc: rpc, workspaceID: Self.workspace, connectionGeneration: 7,
+            capabilities: [CmxLocalDirectCapabilities.workspaceFilesPreview])
+        session.refresh()
+        #expect(!session.canPreviewFiles && !session.openFile(path: "file") && session.previewSession == nil)
+        #expect(session.state == .failed(.unsupported))
+        #expect(await rpc.requests.isEmpty)
+    }
 }
