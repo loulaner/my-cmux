@@ -5,7 +5,9 @@ import Observation
 
 /// Explicit metadata navigation on an existing connection, without owning that connection.
 ///
-/// Checks detect obvious pagination drift, not an atomic snapshot or stable root across requests.
+/// This session rejects observed root-marker changes during navigation and pagination; refresh or
+/// recovery can rebind. Legacy responses cannot reliably reveal root changes. Neither mode provides an atomic directory
+/// snapshot, stable cursor, strong inode ABA protection, authorization token or preview permission.
 ///
 /// ```swift
 /// let session = try MobileLocalDirectFilesSession(
@@ -61,6 +63,17 @@ public final class MobileLocalDirectFilesSession {
     public private(set) var totalCount: Int?
     /// Next explicit page offset, or nil when complete or cleared.
     public private(set) var nextOffset: Int?
+    /// Most recently accepted root marker; nil for an unbound session or legacy host.
+    /// This observable consistency value does not grant access to file contents.
+    public var rootID: String? {
+        if case .observed(let marker) = rootBinding { return marker }
+        return nil
+    }
+    private enum RootBinding {
+        case unbound
+        case observed(String?)
+    }
+    private var rootBinding: RootBinding = .unbound
     /// Current read readiness.
     public private(set) var state: LoadState = .idle
     /// The only allowed upward navigation target; nil at the root.
@@ -91,9 +104,10 @@ public final class MobileLocalDirectFilesSession {
 
     deinit { requestTask?.cancel() }
 
-    /// Discards previous pages and explicitly reads the current directory again.
+    /// Discards previous pages and root binding, explicitly rebinding the current directory.
     public func refresh() {
         guard active else { return }
+        clearPages()
         start(path: currentPath, offset: 0)
     }
 
@@ -117,7 +131,7 @@ public final class MobileLocalDirectFilesSession {
 
     /// Requests exactly one next page, without prefetch or a concurrent request.
     public func loadNextPage() {
-        guard active, state == .ready, let nextOffset else { return }
+        guard active, state == .ready, let nextOffset, case .observed = rootBinding else { return }
         start(path: currentPath, offset: nextOffset)
     }
 
@@ -130,8 +144,9 @@ public final class MobileLocalDirectFilesSession {
 
     private func start(path: String, offset: Int) {
         requestTask?.cancel(); requestTask = nil; token &+= 1
+        let expectedBinding = rootBinding
         currentPath = path
-        if offset == 0 { clearPages() }
+        if offset == 0 { clearPages(preservingRoot: true) }
         guard capable else { clearPages(); state = .failed(.unsupported); return }
         state = .loading
         let token = token, rpc = rpc
@@ -144,7 +159,7 @@ public final class MobileLocalDirectFilesSession {
                 do {
                     let data = try await rpc.sendRequest(request, timeoutNanoseconds: nil)
                     guard let self, self.active, self.token == token else { return }
-                    try self.accept(MobileWorkspaceFileListResponse.decode(data), path: path, offset: offset)
+                    try self.accept(MobileWorkspaceFileListResponse.decode(data), path: path, offset: offset, expectedBinding: expectedBinding)
                     self.state = .ready
                 } catch {
                     guard let self, self.active, self.token == token else { return }
@@ -155,9 +170,10 @@ public final class MobileLocalDirectFilesSession {
         } catch { clearPages(); state = .failed(.unavailable) }
     }
 
-    private func accept(_ page: MobileWorkspaceFileListResponse, path: String, offset: Int) throws {
+    private func accept(_ page: MobileWorkspaceFileListResponse, path: String, offset: Int, expectedBinding: RootBinding) throws {
         guard UUID(uuidString: page.workspaceID) == workspaceUUID, page.path.utf8.elementsEqual(path.utf8),
               page.limit == 100, page.offset == offset else { throw Failure.invalidResponse }
+        if case .observed(let previous) = expectedBinding, page.rootID != previous { throw Failure.directoryChanged }
         if offset != 0 {
             guard offset == entries.count else { throw Failure.invalidResponse }
             guard page.totalCount == totalCount else { throw Failure.directoryChanged }
@@ -167,11 +183,15 @@ public final class MobileLocalDirectFilesSession {
             guard page.entries.allSatisfy({ identities.insert($0.path).inserted }),
                   entries.count + page.entries.count <= 10_000 else { throw Failure.invalidResponse }
         }
+        rootBinding = .observed(page.rootID)
         entries.append(contentsOf: page.entries)
         totalCount = page.totalCount; nextOffset = page.nextOffset
     }
 
-    private func clearPages() { entries = []; totalCount = nil; nextOffset = nil }
+    private func clearPages(preservingRoot: Bool = false) {
+        entries = []; totalCount = nil; nextOffset = nil
+        if !preservingRoot { rootBinding = .unbound }
+    }
 
     private static func validRequestPath(_ path: String) -> Bool {
         path.utf8.count <= 4_096 && !path.contains("\0") && !path.isEmpty &&

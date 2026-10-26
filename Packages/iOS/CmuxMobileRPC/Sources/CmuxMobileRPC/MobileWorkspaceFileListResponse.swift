@@ -54,6 +54,8 @@ public struct MobileWorkspaceFileListResponse: Decodable, Sendable, Equatable {
 
     /// UUID identifying the workspace represented by this page.
     public let workspaceID: String
+    /// Root consistency marker, or nil for a legacy host; never a preview permission or secret.
+    public let rootID: String?
     /// Safe root-relative directory; empty means the root.
     public let path: String
     /// Exact relative parent; null at the root.
@@ -71,7 +73,7 @@ public struct MobileWorkspaceFileListResponse: Decodable, Sendable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case workspaceID = "workspace_id", path, parentPath = "parent_path", entries, offset, limit
-        case totalCount = "total_count", nextOffset = "next_offset"
+        case totalCount = "total_count", nextOffset = "next_offset", rootID = "root_id"
     }
 
     /// Decodes a complete page and checks its ordering, parent and pagination invariants.
@@ -80,6 +82,14 @@ public struct MobileWorkspaceFileListResponse: Decodable, Sendable, Equatable {
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         workspaceID = try values.decode(String.self, forKey: .workspaceID)
+        if values.contains(.rootID) {
+            let marker = try values.decode(String.self, forKey: .rootID)
+            guard marker.utf8.count == 64,
+                  marker.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }) else {
+                throw Self.invalid(decoder)
+            }
+            rootID = marker
+        } else { rootID = nil }
         path = try values.decode(String.self, forKey: .path)
         guard values.contains(.parentPath), values.contains(.nextOffset) else { throw Self.invalid(decoder) }
         parentPath = try values.decodeIfPresent(String.self, forKey: .parentPath)

@@ -1,6 +1,7 @@
 import CMUXMobileCore
 import CmuxMobileRPC
 import Foundation
+import Observation
 import Testing
 @testable import CmuxMobileShell
 
@@ -317,6 +318,130 @@ struct MobileLocalDirectFilesSessionTests {
             _ = try MobileWorkspaceFileListResponse.decode(data(page))
             Issue.record("Present invalid root_id must fail decoding")
         } catch is DecodingError {}
+    }
+
+    private func rooted(_ page: [String: Any], _ marker: String?) -> [String: Any] {
+        var result = page
+        if let marker { result["root_id"] = marker }
+        return result
+    }
+
+    @Test func rootMarkerDecodingAndObservation() async throws {
+        let a = String(repeating: "a", count: 64)
+        #expect(try MobileWorkspaceFileListResponse.decode(data(object())).rootID == nil)
+        var marked = rooted(object(), a); marked["future_field"] = true
+        #expect(try MobileWorkspaceFileListResponse.decode(data(marked)).rootID == a)
+        let rpc = RPC(), session = try model(rpc)
+        #expect(session.rootID == nil && session.state == .idle)
+        #expect(await rpc.requests.isEmpty)
+        session.refresh(); await rpc.wait(1)
+        let (events, signal) = AsyncStream<Void>.makeStream()
+        withObservationTracking { _ = session.rootID } onChange: { signal.yield(()) }
+        try await finish(session, rpc, index: 0, value: marked)
+        #expect(session.rootID == a)
+        var iterator = events.makeAsyncIterator()
+        #expect(await iterator.next() != nil)
+        signal.finish()
+        session.invalidate(); #expect(session.rootID == nil)
+    }
+
+    @Test(arguments: ["same", "changed", "lost", "gained", "legacy"])
+    func rootBindingAcrossPages(mode: String) async throws {
+        let a = String(repeating: "a", count: 64), b = String(repeating: "b", count: 64)
+        let first: String? = ["legacy", "gained"].contains(mode) ? nil : a
+        let second: String? = mode == "changed" ? b : ["legacy", "lost"].contains(mode) ? nil : a
+        let rpc = RPC(), session = try model(rpc)
+        session.refresh()
+        try await finish(session, rpc, index: 0, value: rooted(object(names(0..<100), total: 101), first))
+        try #require(session.state == .ready)
+        #expect(session.rootID == first)
+        session.loadNextPage(); #expect(session.rootID == first)
+        try await finish(session, rpc, index: 1, value: rooted(object(names(100..<101), offset: 100, total: 101), second))
+        if ["same", "legacy"].contains(mode) {
+            #expect(session.state == .ready && session.entries.count == 101 && session.rootID == second)
+        } else {
+            #expect(session.state == .failed(.directoryChanged) && session.rootID == nil)
+            empty(session)
+        }
+        #expect(await rpc.requests.count == 2)
+    }
+
+    @Test(arguments: ["stable", "childChanged", "parentChanged"])
+    func rootBindingAcrossDirectoryNavigation(mode: String) async throws {
+        let a = String(repeating: "a", count: 64), b = String(repeating: "b", count: 64)
+        let rpc = RPC(), session = try model(rpc)
+        session.refresh(); try await finish(session, rpc, index: 0, value: rooted(object(["dir"], kind: "directory"), a))
+        session.openDirectory(path: "dir")
+        #expect(session.rootID == a && session.currentPath == "dir")
+        try await finish(session, rpc, index: 1, value: rooted(object(path: "dir"), mode == "childChanged" ? b : a))
+        if mode == "childChanged" {
+            #expect(session.state == .failed(.directoryChanged) && session.rootID == nil && session.currentPath == "dir")
+            empty(session)
+            session.refresh(); try await finish(session, rpc, index: 2, value: rooted(object(path: "dir"), b))
+            #expect(session.state == .ready && session.rootID == b && session.currentPath == "dir")
+        } else {
+            try #require(session.state == .ready)
+            session.goToParent(); #expect(session.rootID == a)
+            try await finish(session, rpc, index: 2, value: rooted(object(), mode == "parentChanged" ? b : a))
+            #expect(session.currentPath == "")
+            if mode == "stable" { #expect(session.state == .ready && session.rootID == a) }
+            else { #expect(session.state == .failed(.directoryChanged) && session.rootID == nil); empty(session) }
+        }
+        #expect(await rpc.requests.count == 3)
+    }
+
+    @Test(arguments: ["a", "b"])
+    func parentDuringNavigationKeepsCapturedRootAndIgnoresLateChild(late: String) async throws {
+        let a = String(repeating: "a", count: 64), b = String(repeating: "b", count: 64)
+        let rpc = RPC(), session = try model(rpc)
+        session.refresh(); try await finish(session, rpc, index: 0, value: rooted(object(["dir"], kind: "directory"), a))
+        session.openDirectory(path: "dir"); await rpc.wait(2); let child = session.requestTask
+        #expect(session.entries.isEmpty && session.rootID == a)
+        session.goToParent(); #expect(session.rootID == a)
+        try await finish(session, rpc, index: 2, value: rooted(object(), b))
+        #expect(session.state == .failed(.directoryChanged) && session.rootID == nil)
+        empty(session)
+        session.refresh(); try await finish(session, rpc, index: 3, value: rooted(object(), b))
+        await rpc.reply(1, .success(try data(rooted(object(path: "dir"), String(repeating: late, count: 64))))); await child?.value
+        #expect(session.state == .ready && session.rootID == b && session.currentPath == "")
+        #expect(await rpc.requests.count == 4)
+    }
+
+    @Test func explicitRefreshRebindsAndLatePageCannotClearNewRoot() async throws {
+        let a = String(repeating: "a", count: 64), b = String(repeating: "b", count: 64)
+        let rpc = RPC(), session = try model(rpc)
+        session.refresh(); try await finish(session, rpc, index: 0, value: rooted(object(names(0..<100), total: 101), a))
+        session.loadNextPage(); await rpc.wait(2); let old = session.requestTask
+        session.refresh(); #expect(session.rootID == nil); empty(session)
+        try await finish(session, rpc, index: 2, value: rooted(object(), b))
+        await rpc.reply(1, .failure(MobileShellConnectionError.connectionClosed)); await old?.value
+        #expect(session.state == .ready && session.rootID == b)
+        session.refresh(); await rpc.wait(4); let invalidated = session.requestTask
+        session.invalidate(); await rpc.reply(3, .success(try data(rooted(object(), a)))); await invalidated?.value
+        #expect(session.state == .failed(.disconnected) && session.rootID == nil)
+        session.refresh(); #expect(await rpc.requests.count == 4)
+    }
+
+    @Test(arguments: ["error", "cancel", "selection", "malformed"])
+    func currentFailureClearsRootAndParentCanRecover(mode: String) async throws {
+        let a = String(repeating: "a", count: 64), b = String(repeating: "b", count: 64)
+        let rpc = RPC(), session = try model(rpc)
+        session.refresh(); try await finish(session, rpc, index: 0, value: rooted(object(["dir"], kind: "directory"), a))
+        session.openDirectory(path: "dir")
+        if mode == "selection" {
+            try await finish(session, rpc, index: 1, value: rooted(object(["file"], path: "dir"), a))
+            session.openDirectory(path: "dir/file")
+            #expect(session.state == .failed(.invalidSelection))
+        } else {
+            await rpc.wait(2); let task = session.requestTask
+            if mode == "malformed" { await rpc.reply(1, .success(Data("{}".utf8))) }
+            else { await rpc.reply(1, .failure(mode == "cancel" ? CancellationError() : MobileShellConnectionError.connectionClosed)) }
+            await task?.value
+            #expect(session.state == (mode == "cancel" ? .idle : .failed(mode == "malformed" ? .invalidResponse : .disconnected)))
+        }
+        #expect(session.rootID == nil && session.currentPath == "dir"); empty(session)
+        session.goToParent(); try await finish(session, rpc, index: 2, value: rooted(object(), b))
+        #expect(session.state == .ready && session.rootID == b && session.currentPath == "")
     }
 
 }

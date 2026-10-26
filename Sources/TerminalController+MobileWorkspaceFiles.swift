@@ -49,6 +49,7 @@ extension TerminalController {
                 "parent_path": page.parentRelativePath.map { $0 as Any } ?? NSNull(), "entries": entries,
                 "offset": page.offset, "limit": page.limit, "total_count": page.totalCount,
                 "next_offset": page.nextOffset.map { $0 as Any } ?? NSNull(),
+                "root_id": page.rootID,
             ])
         } catch {
             if let error = Self.mobileFileTransferPolicyError() { return error }
