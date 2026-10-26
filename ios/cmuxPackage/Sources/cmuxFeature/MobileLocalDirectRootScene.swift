@@ -10,6 +10,11 @@ import SwiftUI
 public struct MobileLocalDirectRootScene: View {
     @Bindable private var controller: MobileLocalDirectClientController
     @State private var confirmsForget = false
+    @State private var changesPresentation: ChangesPresentation?
+    private struct ChangesPresentation: Identifiable {
+        let session: MobileLocalDirectChangesSession
+        var id: ObjectIdentifier { ObjectIdentifier(session) }
+    }
     private let keyboardFrameTracker: MobileKeyboardFrameTracker
     /// Uses the application's foreground connection owner and app-lifetime keyboard tracker.
     public init(controller: MobileLocalDirectClientController, keyboardFrameTracker: MobileKeyboardFrameTracker) {
@@ -63,6 +68,18 @@ public struct MobileLocalDirectRootScene: View {
                             }
                         }
                         .navigationTitle(selectedTitle ?? "")
+                        .toolbar {
+                            ToolbarItem(placement: .primaryAction) {
+                                if let changesSession = controller.changesSession {
+                                    Button {
+                                        changesPresentation = ChangesPresentation(session: changesSession)
+                                    } label: {
+                                        Label(String(localized: "direct.changes.title", defaultValue: "Git Changes"),
+                                              systemImage: "doc.text.magnifyingglass")
+                                    }
+                                }
+                            }
+                        }
                     } else {
                         Text(String(localized: "direct.ipad.choose", defaultValue: "Choose an existing terminal"))
                     }
@@ -115,6 +132,14 @@ public struct MobileLocalDirectRootScene: View {
                     }
                     .navigationTitle(String(localized: "direct.ipad.title", defaultValue: "Mac Direct Connection"))
                 }
+            }
+        }
+        .sheet(item: $changesPresentation) { presentation in
+            MobileLocalDirectChangesView(session: presentation.session)
+        }
+        .onChange(of: controller.changesSession.map { ObjectIdentifier($0) }) { _, identity in
+            if let presentation = changesPresentation, presentation.id != identity {
+                changesPresentation = nil
             }
         }
         .confirmationDialog(String(localized: "direct.ipad.forgetTitle", defaultValue: "Forget this Mac?"),
