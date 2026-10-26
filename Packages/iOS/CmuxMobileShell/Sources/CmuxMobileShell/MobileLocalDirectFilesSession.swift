@@ -74,6 +74,9 @@ public final class MobileLocalDirectFilesSession {
     /// Whether this ready, marked directory permits explicit file previews.
     public var canPreviewFiles: Bool { active && state == .ready && capable && previewCapable && rootID != nil }
 
+    /// Whether a ready marked directory can open a file context for preview or download.
+    public var canOpenFiles: Bool { active && state == .ready && capable && rootID != nil && (previewCapable || downloadCapable) }
+
     private enum RootBinding {
         case unbound
         case observed(String?)
@@ -89,6 +92,7 @@ public final class MobileLocalDirectFilesSession {
     @ObservationIgnored private let workspaceUUID: UUID
     @ObservationIgnored private let capable: Bool
     @ObservationIgnored private let previewCapable: Bool
+    @ObservationIgnored private let downloadCapable: Bool
     @ObservationIgnored private var active = true
     @ObservationIgnored private var token: UInt64 = 0
     // Internal read-only completion handle, including cancellation-ignoring replies.
@@ -107,6 +111,7 @@ public final class MobileLocalDirectFilesSession {
         self.connectionGeneration = connectionGeneration
         capable = capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesList)
         previewCapable = capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesPreview)
+        downloadCapable = capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesDownload)
     }
 
     deinit { requestTask?.cancel() }
@@ -149,12 +154,15 @@ public final class MobileLocalDirectFilesSession {
     public func openFile(path: String) -> Bool {
         guard active, state == .ready else { return false }
         closePreview()
-        guard canPreviewFiles, Self.validRequestPath(path), let rootID,
+        guard canOpenFiles, Self.validRequestPath(path), let rootID,
               entries.contains(where: { $0.kind == .file && $0.path.utf8.elementsEqual(path.utf8) }) else { return false }
+        var capabilities: Set<String> = []
+        if previewCapable { capabilities.insert(CmxLocalDirectCapabilities.workspaceFilesPreview) }
+        if downloadCapable { capabilities.insert(CmxLocalDirectCapabilities.workspaceFilesDownload) }
         do {
             previewSession = try MobileLocalDirectFilePreviewSession(
                 rpc: rpc, workspaceID: workspaceID, connectionGeneration: connectionGeneration,
-                path: path, rootID: rootID, capabilities: [CmxLocalDirectCapabilities.workspaceFilesPreview]
+                path: path, rootID: rootID, capabilities: capabilities
             )
             return true
         } catch { return false }

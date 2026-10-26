@@ -73,7 +73,22 @@ public final class MobileLocalDirectFilePreviewSession {
     public private(set) var state: LoadState = .idle
     @ObservationIgnored private let rpc: any MobileSyncing
     @ObservationIgnored private let workspaceUUID: UUID
+    /// The owned verified download; only explicit startDownload issues its request.
+    public private(set) var downloadSession: MobileLocalDirectFileDownloadSession?
+    /// Whether this context permits an explicit complete-file read, independent of text displayability.
+    public var canDownload: Bool {
+        guard active, downloadCapable else { return false }
+        switch state {
+        case .ready, .failed(.unsupportedContent), .failed(.unsupported): break
+        default: return false
+        }
+        switch downloadSession?.state {
+        case .loading?, .failed(.directoryChanged)?, .failed(.disconnected)?: return false
+        default: return true
+        }
+    }
     @ObservationIgnored private let capable: Bool
+    @ObservationIgnored private let downloadCapable: Bool
     @ObservationIgnored private var active = true
     @ObservationIgnored private var token: UInt64 = 0
     // Internal read-only completion handle for cancellation-ignoring test responses.
@@ -98,6 +113,7 @@ public final class MobileLocalDirectFilePreviewSession {
         self.rpc = rpc; self.workspaceID = workspaceID; workspaceUUID = uuid
         self.connectionGeneration = connectionGeneration; self.path = path; self.rootID = rootID
         capable = capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesPreview)
+        downloadCapable = capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesDownload)
     }
 
     deinit { requestTask?.cancel() }
@@ -105,6 +121,7 @@ public final class MobileLocalDirectFilePreviewSession {
     /// Replaces any pending read with one explicit request; never retries automatically.
     public func refresh() {
         guard active else { return }
+        closeDownload()
         requestTask?.cancel(); requestTask = nil; token &+= 1; clearContent()
         guard capable else { state = .failed(.unsupported); return }
         state = .loading
@@ -136,9 +153,33 @@ public final class MobileLocalDirectFilePreviewSession {
         } catch { clearContent(); state = .failed(.unavailable) }
     }
 
+    /// Starts one explicit download without changing preview text or connection ownership.
+    /// - Returns: Whether a fresh owned child was created and explicitly refreshed once.
+    @discardableResult
+    public func startDownload() -> Bool {
+        guard canDownload else { return false }
+        closeDownload()
+        do {
+            let child = try MobileLocalDirectFileDownloadSession(
+                rpc: rpc, workspaceID: workspaceID, connectionGeneration: connectionGeneration,
+                path: path, rootID: rootID, capabilities: [CmxLocalDirectCapabilities.workspaceFilesDownload]
+            )
+            downloadSession = child
+            child.refresh()
+            return true
+        } catch { return false }
+    }
+
+    /// Retires only the download child; preview text and the shared connection remain intact.
+    public func closeDownload() {
+        downloadSession?.invalidate()
+        downloadSession = nil
+    }
+
     /// Permanently clears this selection and cancels only its own request.
     public func invalidate() {
         guard active else { return }
+        closeDownload()
         active = false; token &+= 1; requestTask?.cancel(); requestTask = nil
         clearContent(); state = .failed(.disconnected)
     }
