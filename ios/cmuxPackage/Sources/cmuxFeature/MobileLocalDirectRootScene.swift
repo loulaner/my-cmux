@@ -10,10 +10,16 @@ import SwiftUI
 public struct MobileLocalDirectRootScene: View {
     @Bindable private var controller: MobileLocalDirectClientController
     @State private var confirmsForget = false
-    @State private var changesPresentation: ChangesPresentation?
-    private struct ChangesPresentation: Identifiable {
-        let session: MobileLocalDirectChangesSession
-        var id: ObjectIdentifier { ObjectIdentifier(session) }
+    @State private var workspacePresentation: WorkspacePresentation?
+    private enum WorkspacePresentation: Identifiable {
+        case changes(MobileLocalDirectChangesSession)
+        case files(MobileLocalDirectFilesSession)
+        var id: ObjectIdentifier {
+            switch self {
+            case .changes(let session): ObjectIdentifier(session)
+            case .files(let session): ObjectIdentifier(session)
+            }
+        }
     }
     private let keyboardFrameTracker: MobileKeyboardFrameTracker
     /// Uses the application's foreground connection owner and app-lifetime keyboard tracker.
@@ -69,13 +75,20 @@ public struct MobileLocalDirectRootScene: View {
                         }
                         .navigationTitle(selectedTitle ?? "")
                         .toolbar {
-                            ToolbarItem(placement: .primaryAction) {
+                            ToolbarItemGroup(placement: .primaryAction) {
                                 if let changesSession = controller.changesSession {
                                     Button {
-                                        changesPresentation = ChangesPresentation(session: changesSession)
+                                        workspacePresentation = .changes(changesSession)
                                     } label: {
                                         Label(String(localized: "direct.changes.title", defaultValue: "Git Changes"),
                                               systemImage: "doc.text.magnifyingglass")
+                                    }
+                                }
+                                if let filesSession = controller.filesSession {
+                                    Button {
+                                        workspacePresentation = .files(filesSession)
+                                    } label: {
+                                        Label(String(localized: "direct.files.title", defaultValue: "Files"), systemImage: "folder")
                                     }
                                 }
                             }
@@ -134,12 +147,22 @@ public struct MobileLocalDirectRootScene: View {
                 }
             }
         }
-        .sheet(item: $changesPresentation) { presentation in
-            MobileLocalDirectChangesView(session: presentation.session)
+        .sheet(item: $workspacePresentation) { presentation in
+            switch presentation {
+            case .changes(let session):
+                MobileLocalDirectChangesView(session: session)
+            case .files(let session):
+                MobileLocalDirectFilesView(session: session)
+            }
         }
         .onChange(of: controller.changesSession.map { ObjectIdentifier($0) }) { _, identity in
-            if let presentation = changesPresentation, presentation.id != identity {
-                changesPresentation = nil
+            if case .changes(let session) = workspacePresentation, ObjectIdentifier(session) != identity {
+                workspacePresentation = nil
+            }
+        }
+        .onChange(of: controller.filesSession.map { ObjectIdentifier($0) }) { _, identity in
+            if case .files(let session) = workspacePresentation, ObjectIdentifier(session) != identity {
+                workspacePresentation = nil
             }
         }
         .confirmationDialog(String(localized: "direct.ipad.forgetTitle", defaultValue: "Forget this Mac?"),
