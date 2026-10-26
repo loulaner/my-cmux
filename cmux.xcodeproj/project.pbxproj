@@ -2622,6 +2622,7 @@
 		C1B1810000000000000008 /* MobileHostV2Installation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1B1810000000000000018 /* MobileHostV2Installation.swift */; };
 		C0DE73840000000000000001 /* MobileHostWorkspaceTicketAuthorizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0DE73840000000000000002 /* MobileHostWorkspaceTicketAuthorizationTests.swift */; };
 		86BEAF78BDAB4871996E9EF2 /* MobileIOSPairingTargetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1148AEDC5E59435E879326ED /* MobileIOSPairingTargetStore.swift */; };
+		F9CBE8F0EA482CEF8D572437 /* MobileLocalDirectChangesPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75F8180C125EBD7A72035FED /* MobileLocalDirectChangesPolicyTests.swift */; };
 		CE9EE5008EDE1D5968138765 /* MobileLocalDirectConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF21E585BB53F41CA6FD215B /* MobileLocalDirectConfigurationStore.swift */; };
 		47F0C01B0E12D7AD6953AAE3 /* MobileLocalDirectHostConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = D110E60CFADF1D2004FD07E1 /* MobileLocalDirectHostConfiguration.swift */; };
 		6E0509B68C9F95CCB35F9EE8 /* MobileLocalDirectHostController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE2F88BC033BAA2A5E866D69 /* MobileLocalDirectHostController.swift */; };
@@ -7143,6 +7144,7 @@
 		C1B1810000000000000018 /* MobileHostV2Installation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MobileHostV2Installation.swift; sourceTree = "<group>"; };
 		C0DE73840000000000000002 /* MobileHostWorkspaceTicketAuthorizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileHostWorkspaceTicketAuthorizationTests.swift; sourceTree = "<group>"; };
 		1148AEDC5E59435E879326ED /* MobileIOSPairingTargetStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MobileIOSPairingTargetStore.swift; sourceTree = "<group>"; };
+		75F8180C125EBD7A72035FED /* MobileLocalDirectChangesPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MobileLocalDirectChangesPolicyTests.swift"; sourceTree = "<group>"; };
 		EF21E585BB53F41CA6FD215B /* MobileLocalDirectConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileLocalDirectConfigurationStore.swift; sourceTree = "<group>"; };
 		D110E60CFADF1D2004FD07E1 /* MobileLocalDirectHostConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileLocalDirectHostConfiguration.swift; sourceTree = "<group>"; };
 		EE2F88BC033BAA2A5E866D69 /* MobileLocalDirectHostController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileLocalDirectHostController.swift; sourceTree = "<group>"; };
@@ -13781,6 +13783,7 @@
 				CDC5BB14919E79D131948949 /* PresenceServiceEndpointTests.swift */,
 				596FEC1D39F600E76CC47CD8 /* MacAuthCompositionLaunchOptionsTests.swift */,
 				607A4FF2F8D6FAC84C6EB1CD /* MobileFileTransferPolicyTests.swift */,
+				75F8180C125EBD7A72035FED /* MobileLocalDirectChangesPolicyTests.swift */,
 			);
 			path = cmuxTests;
 			sourceTree = "<group>";
@@ -18428,6 +18431,7 @@
 				A2111A137939488266F270C5 /* MobileHostSurfaceEventLaneTests.swift in Sources */,
 				7A1B2C3D4E5F60718293A4B6 /* MobileHostTerminalThemeTests.swift in Sources */,
 				C0DE73840000000000000001 /* MobileHostWorkspaceTicketAuthorizationTests.swift in Sources */,
+				F9CBE8F0EA482CEF8D572437 /* MobileLocalDirectChangesPolicyTests.swift in Sources */,
 				63A526F4A0283CAC1BF5F90B /* MobileLocalDirectHostControllerTests.swift in Sources */,
 				2717C39948C1C369E83E9EA5 /* MobileLocalDirectMemoryStorage.swift in Sources */,
 				EA8836477B60D13FF454651C /* MobileLocalDirectSessionServerTests.swift in Sources */,

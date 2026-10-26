@@ -140,6 +140,7 @@ extension TerminalController {
     /// package independently validates the network-supplied relative path.
     @MainActor
     func v2MobileWorkspaceChangesFileDiff(params: [String: Any]) async -> V2CallResult {
+        if let error = Self.mobileFileTransferPolicyError() { return error }
         guard let workspaceID = explicitMobileWorkspaceChangesID(params: params) else {
             return .err(code: "invalid_params", message: Self.mobileWorkspaceChangesInvalidWorkspaceID, data: nil)
         }
@@ -166,6 +167,7 @@ extension TerminalController {
                 path: path,
                 maxLines: maxLines
             )
+            if let error = Self.mobileFileTransferPolicyError() { return error }
             var payload: [String: Any] = [
                 "path": diff.path,
                 "old_path": v2OrNull(diff.oldPath),

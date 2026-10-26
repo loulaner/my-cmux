@@ -19,7 +19,7 @@ struct MobileLocalDirectSessionServerTests {
         #expect(error.code == "method_not_found")
     }
     @Test func allowedMethodsAndTopicBoundary() {
-        let policy = MobileLocalDirectRPCPolicy()
+        let policy = MobileLocalDirectRPCPolicy(workspaceChangesEnabled: false, fileTransferDisabled: false)
         for method in policy.methods where method != "mobile.events.subscribe" {
             #expect(policy.authorizationError(for: MobileHostRPCRequest(id: "test", method: method, params: [:], auth: nil)) == nil)
         }
