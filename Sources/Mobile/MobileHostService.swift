@@ -1940,16 +1940,7 @@ actor MobileHostConnection {
             return nil
         }
         guard await isAuthorizationCurrent() else {
-            return PreparedResponse(
-                data: MobileHostRPCEnvelope.encodeResponse(
-                    id: request.id,
-                    result: .failure(MobileHostRPCError(
-                        code: "admission_expired",
-                        message: "The remote device authorization has expired. Reconnect to continue."
-                    ))
-                ),
-                readinessContribution: nil
-            )
+            return authorizationExpiredResponse(for: request)
         }
         let tracksInteractiveActivity = Self.isInteractiveMobileRequest(request.method)
         if tracksInteractiveActivity {
@@ -1995,6 +1986,15 @@ actor MobileHostConnection {
         guard !isClosed, !Task.isCancelled else {
             return nil
         }
+        // Recheck after business work, before encoding. This snapshot is not
+        // atomic with the later queued transport write or prior side effects.
+        let authorized = await isAuthorizationCurrent()
+        guard !isClosed, !Task.isCancelled else {
+            return nil
+        }
+        guard authorized else {
+            return authorizationExpiredResponse(for: request)
+        }
         return PreparedResponse(
             data: MobileHostRPCEnvelope.encodeResponse(
                 id: request.id,
@@ -2004,6 +2004,19 @@ actor MobileHostConnection {
                 for: request,
                 result: result
             )
+        )
+    }
+
+    private func authorizationExpiredResponse(for request: MobileHostRPCRequest) -> PreparedResponse {
+        PreparedResponse(
+            data: MobileHostRPCEnvelope.encodeResponse(
+                id: request.id,
+                result: .failure(MobileHostRPCError(
+                    code: "admission_expired",
+                    message: "The remote device authorization has expired. Reconnect to continue."
+                ))
+            ),
+            readinessContribution: nil
         )
     }
 

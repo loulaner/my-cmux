@@ -119,6 +119,61 @@ extension MobileHostAuthorizationTests {
         await runTask.value
     }
 
+    @Test(arguments: [false, true], [false, true])
+    func testIrohAdmissionRechecksAuthorizationAfterBusinessResult(
+        revoke: Bool,
+        businessFailure: Bool
+    ) async throws {
+        let transport = MobileHostFramedTestTransport()
+        let gate = MobileResponseAuthorizationTestGate(businessFailure: businessFailure)
+        let session = MobileHostConnection(
+            id: UUID(),
+            transport: transport,
+            firstFrameTimeoutNanoseconds: 0,
+            authorizeRequest: { _ in nil },
+            onAuthorizedRequest: { _ in },
+            onUsableSession: { await gate.noteReadiness(); return true },
+            isAuthorizationCurrent: { await gate.checkAuthorization() },
+            handleRequest: { _ in await gate.handle() },
+            onClose: { _ in }
+        )
+        let runTask = Task { await session.run() }
+        let request = Data(#"{"id":"post-handler","method":"workspace.list","params":{}}"#.utf8)
+        await transport.enqueue(try MobileSyncFrameCodec.encodeFrame(request))
+        await gate.waitForHandler()
+        await gate.finish(allowed: !revoke)
+        var responseBuffer = await transport.waitForSentBuffer()
+        await transport.finishReceiving()
+        _ = await runTask.value
+
+        let data = try #require(MobileSyncFrameCodec.decodeFrames(from: &responseBuffer).first)
+        let response = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let counts = await gate.counts()
+        #expect(counts.checks == 2)
+        #expect(counts.handlers == 1)
+        // No subscription was requested, so there must be no usable-session publication.
+        #expect(counts.readiness == 0)
+        #expect(response["id"] as? String == "post-handler")
+        if revoke {
+            let error = try #require(response["error"] as? [String: Any])
+            #expect(response["ok"] as? Bool == false)
+            #expect(error["code"] as? String == "admission_expired")
+            #expect(error["message"] as? String == "The remote device authorization has expired. Reconnect to continue.")
+            #expect(error["data"] == nil)
+            #expect(response["result"] == nil)
+            #expect(!String(decoding: data, as: UTF8.self).contains(MobileResponseAuthorizationTestGate.secret))
+        } else if businessFailure {
+            let error = try #require(response["error"] as? [String: Any])
+            #expect(response["ok"] as? Bool == false)
+            #expect(error["code"] as? String == "synthetic_failure")
+            #expect(error["message"] as? String == MobileResponseAuthorizationTestGate.secret)
+            #expect((error["data"] as? [String: String])?["detail"] == MobileResponseAuthorizationTestGate.secret)
+        } else {
+            #expect(response["ok"] as? Bool == true)
+            #expect((response["result"] as? [String: [String]])?["workspaces"] == [MobileResponseAuthorizationTestGate.secret])
+        }
+    }
+
     // V2InboundAdmissionAuthorityTests covers the current directory lease and identity contract.
 
     @Test func testPairingPayloadDefaultsCanDiscloseOnlyIrohIdentity() throws {
@@ -1052,5 +1107,42 @@ private actor MobileHostFramedTestTransport: CmxByteTransport {
             return sentBuffer
         }
         return await withCheckedContinuation { sentWaiters.append($0) }
+    }
+}
+
+// Per-test actor coordinates real connection callbacks; no registry or service singleton.
+private actor MobileResponseAuthorizationTestGate {
+    static let secret = "SYNTHETIC_RESPONSE_SECRET_NOT_A_CREDENTIAL"
+    private let businessFailure: Bool
+    private var allowed = true
+    private var checks = 0
+    private var handlers = 0
+    private var readiness = 0
+    private var entered = false
+    private var arrivals: [CheckedContinuation<Void, Never>] = []
+    private var release: CheckedContinuation<Void, Never>?
+
+    init(businessFailure: Bool) { self.businessFailure = businessFailure }
+    func checkAuthorization() -> Bool { checks += 1; return allowed }
+    func noteReadiness() { readiness += 1 }
+    func counts() -> (checks: Int, handlers: Int, readiness: Int) { (checks, handlers, readiness) }
+    func waitForHandler() async {
+        if !entered { await withCheckedContinuation { arrivals.append($0) } }
+    }
+    func finish(allowed: Bool) {
+        self.allowed = allowed
+        release?.resume(); release = nil
+    }
+    func handle() async -> MobileHostRPCResult {
+        handlers += 1
+        entered = true
+        arrivals.forEach { $0.resume() }; arrivals = []
+        await withCheckedContinuation { release = $0 }
+        if businessFailure {
+            return .failure(MobileHostRPCError(
+                code: "synthetic_failure", message: Self.secret, data: ["detail": Self.secret]
+            ))
+        }
+        return .ok(["workspaces": [Self.secret]])
     }
 }
