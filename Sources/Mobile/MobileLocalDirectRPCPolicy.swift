@@ -30,7 +30,7 @@ struct MobileLocalDirectRPCPolicy: Sendable {
 
     var methods: Set<String> {
         var allowed = workspaceChangesEnabled && !fileTransferDisabled ? baseMethods.union(changesMethods) : baseMethods
-        if !fileTransferDisabled { allowed.formUnion(["mobile.workspace.files.list", "mobile.workspace.files.preview"]) }
+        if !fileTransferDisabled { allowed.formUnion(["mobile.workspace.files.list", "mobile.workspace.files.preview", "mobile.workspace.files.download"]) }
         return allowed
     }
 
@@ -45,12 +45,12 @@ struct MobileLocalDirectRPCPolicy: Sendable {
          MobileTerminalInputDelivery.capability, MobileHostService.terminalSharedSizingCapability]
         let changes = workspaceChangesEnabled && !fileTransferDisabled
             ? [CmxLocalDirectCapabilities.workspaceChangesRead] : []
-        return base + changes + (fileTransferDisabled ? [] : [CmxLocalDirectCapabilities.workspaceFilesList, CmxLocalDirectCapabilities.workspaceFilesPreview])
+        return base + changes + (fileTransferDisabled ? [] : [CmxLocalDirectCapabilities.workspaceFilesList, CmxLocalDirectCapabilities.workspaceFilesPreview, CmxLocalDirectCapabilities.workspaceFilesDownload])
     }
 
     /// Runs before subscription handling as well as before terminal dispatch.
     func authorizationError(for request: MobileHostRPCRequest) -> MobileHostRPCResult? {
-        if request.method == "mobile.workspace.files.list" || request.method == "mobile.workspace.files.preview" {
+        if request.method == "mobile.workspace.files.list" || request.method == "mobile.workspace.files.preview" || request.method == "mobile.workspace.files.download" {
             if fileTransferDisabled {
                 return .failure(MobileHostRPCError(
                     code: "file_transfer_disabled", message: ManagedFileTransferPolicy.disabledMessage

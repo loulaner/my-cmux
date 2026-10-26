@@ -1,6 +1,8 @@
 public import Foundation
 
-/// Validates a fixed, bounded raw-prefix preview request without filesystem access.
+/// Validates shared selection for preview and bounded complete downloads without filesystem access.
+///
+/// The historical type name is retained; both operations require the same three fields.
 ///
 /// ```swift
 /// let request = MobileWorkspaceFilePreviewRequest(params: [

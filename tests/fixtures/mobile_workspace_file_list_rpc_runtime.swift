@@ -211,9 +211,9 @@ enum MobileHostConnectionAuthorizationContext { case localDirect; case stackBear
                 let current = MobileLocalDirectRPCPolicy()
                 let admittedChanges = enabled && !disabled
                 check(current.methods == base.methods.union(admittedChanges ? ["mobile.workspace.changes.files", "mobile.workspace.changes.file_diff"] : [])
-                    .union(disabled ? [] : [method, "mobile.workspace.files.preview"]))
+                    .union(disabled ? [] : [method, "mobile.workspace.files.preview", "mobile.workspace.files.download"]))
                 check(current.capabilities == base.capabilities + (admittedChanges ? [CmxLocalDirectCapabilities.workspaceChangesRead] : [])
-                    + (disabled ? [] : [CmxLocalDirectCapabilities.workspaceFilesList, CmxLocalDirectCapabilities.workspaceFilesPreview]))
+                    + (disabled ? [] : [CmxLocalDirectCapabilities.workspaceFilesList, CmxLocalDirectCapabilities.workspaceFilesPreview, CmxLocalDirectCapabilities.workspaceFilesDownload]))
                 check(current.topics == base.topics)
                 check(policyCode(current, method, params) == (disabled ? "file_transfer_disabled" : nil))
                 check(policyCode(current, method, [:]) == (disabled ? "file_transfer_disabled" : "invalid_params"))
