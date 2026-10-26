@@ -22,6 +22,8 @@ public final class MobileLocalDirectClientController {
     public private(set) var terminalSession: MobileLocalDirectTerminalSession?
     /// Read-only changes for the selected workspace; reconciliation sends no automatic requests.
     public private(set) var changesSession: MobileLocalDirectChangesSession?
+    /// Metadata navigation for the selected workspace on this connection.
+    public private(set) var filesSession: MobileLocalDirectFilesSession?
     /// Authenticated host theme for the initial renderer, before the first frame.
     public private(set) var terminalTheme: TerminalTheme = .monokai
     @ObservationIgnored private var viewportGeneration: UInt64 = 0
@@ -191,6 +193,7 @@ public final class MobileLocalDirectClientController {
     private func reconcileSelectedSessions() {
         reconcileTerminalSession()
         reconcileChangesSession()
+        reconcileFilesSession()
     }
 
     private func reconcileChangesSession() {
@@ -205,6 +208,22 @@ public final class MobileLocalDirectClientController {
            session.connectionGeneration == connectionGeneration { return }
         changesSession?.invalidate()
         changesSession = try? MobileLocalDirectChangesSession(
+            rpc: rpc, workspaceID: workspaceID, connectionGeneration: connectionGeneration, capabilities: capabilities
+        )
+    }
+
+    private func reconcileFilesSession() {
+        guard state == .connected, let rpc, record != nil,
+              capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesList),
+              let workspaceID = selectedWorkspaceID, UUID(uuidString: workspaceID) != nil,
+              let surfaceID = selectedSurfaceID,
+              workspaces.contains(where: { $0.id == workspaceID && $0.terminals.contains(where: { $0.id == surfaceID }) }) else {
+            filesSession?.invalidate(); filesSession = nil; return
+        }
+        if let session = filesSession, session.workspaceID == workspaceID,
+           session.connectionGeneration == connectionGeneration { return }
+        filesSession?.invalidate()
+        filesSession = try? MobileLocalDirectFilesSession(
             rpc: rpc, workspaceID: workspaceID, connectionGeneration: connectionGeneration, capabilities: capabilities
         )
     }
@@ -329,6 +348,7 @@ public final class MobileLocalDirectClientController {
         if epoch == token {
             terminalSession?.invalidate(); terminalSession = nil
             changesSession?.invalidate(); changesSession = nil
+            filesSession?.invalidate(); filesSession = nil
         }
         await active?.disconnect()
         if active == nil { await transport?.close() }
@@ -440,6 +460,7 @@ extension MobileLocalDirectClientController {
         let releaseRPC = releaseTerminalControl && state == .connected ? rpc : nil
         terminalSession?.invalidate(); terminalSession = nil
         changesSession?.invalidate(); changesSession = nil
+        filesSession?.invalidate(); filesSession = nil
         state = .disconnected
         // Keep the admitted stream alive until the explicit release is acknowledged.
         // Ordinary backgrounding, renderer teardown and connection loss never send this.
