@@ -20,6 +20,8 @@ public final class MobileLocalDirectClientController {
     public private(set) var connectionGeneration: UInt64 = 0
     /// Owner of only the selected existing terminal; never exposes a capability token.
     public private(set) var terminalSession: MobileLocalDirectTerminalSession?
+    /// Read-only changes for the selected workspace; reconciliation sends no automatic requests.
+    public private(set) var changesSession: MobileLocalDirectChangesSession?
     /// Authenticated host theme for the initial renderer, before the first frame.
     public private(set) var terminalTheme: TerminalTheme = .monokai
     @ObservationIgnored private var viewportGeneration: UInt64 = 0
@@ -183,7 +185,28 @@ public final class MobileLocalDirectClientController {
     public func select(workspaceID: String, surfaceID: String) {
         guard workspaces.contains(where: { $0.id == workspaceID && $0.terminals.contains(where: { $0.id == surfaceID }) }) else { return }
         selectedWorkspaceID = workspaceID; selectedSurfaceID = surfaceID
+        reconcileSelectedSessions()
+    }
+
+    private func reconcileSelectedSessions() {
         reconcileTerminalSession()
+        reconcileChangesSession()
+    }
+
+    private func reconcileChangesSession() {
+        guard state == .connected, let rpc, record != nil,
+              capabilities.contains(CmxLocalDirectCapabilities.workspaceChangesRead),
+              let workspaceID = selectedWorkspaceID, UUID(uuidString: workspaceID) != nil,
+              let surfaceID = selectedSurfaceID,
+              workspaces.contains(where: { $0.id == workspaceID && $0.terminals.contains(where: { $0.id == surfaceID }) }) else {
+            changesSession?.invalidate(); changesSession = nil; return
+        }
+        if let session = changesSession, session.workspaceID == workspaceID,
+           session.connectionGeneration == connectionGeneration { return }
+        changesSession?.invalidate()
+        changesSession = try? MobileLocalDirectChangesSession(
+            rpc: rpc, workspaceID: workspaceID, connectionGeneration: connectionGeneration, capabilities: capabilities
+        )
     }
 
     private func reconcileTerminalSession() {
@@ -251,7 +274,7 @@ public final class MobileLocalDirectClientController {
                 terminalTheme = status.theme ?? .monokai
                 connectionGeneration &+= 1
                 state = .connected; retries = 0
-                reconcileTerminalSession()
+                reconcileSelectedSessions()
                 try await consumeEvents(events, rpc: connection.rpc, epoch: token)
             } catch {
                 guard await retireFailedAttempt(error, active: active, transport: transport,
@@ -303,7 +326,10 @@ public final class MobileLocalDirectClientController {
         #if DEBUG
         trace("attempt.failed", error: error)
         #endif
-        if epoch == token { terminalSession?.invalidate(); terminalSession = nil }
+        if epoch == token {
+            terminalSession?.invalidate(); terminalSession = nil
+            changesSession?.invalidate(); changesSession = nil
+        }
         await active?.disconnect()
         if active == nil { await transport?.close() }
         guard current(token), !manuallyDisconnected else { return false }
@@ -355,7 +381,7 @@ public final class MobileLocalDirectClientController {
                 while self.current(token), self.refreshAgain {
                     self.refreshAgain = false
                     let list = try await self.loadList(rpc)
-                    if self.current(token) { self.workspaces = list; self.reconcileTerminalSession() }
+                    if self.current(token) { self.workspaces = list; self.reconcileSelectedSessions() }
                 }
             } catch {
                 guard self.current(token) else { return }
@@ -413,6 +439,7 @@ extension MobileLocalDirectClientController {
         let previousEpoch = epoch
         let releaseRPC = releaseTerminalControl && state == .connected ? rpc : nil
         terminalSession?.invalidate(); terminalSession = nil
+        changesSession?.invalidate(); changesSession = nil
         state = .disconnected
         // Keep the admitted stream alive until the explicit release is acknowledged.
         // Ordinary backgrounding, renderer teardown and connection loss never send this.
