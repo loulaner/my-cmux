@@ -13,4 +13,6 @@ public enum CmxLocalDirectCapabilities {
     /// Reads one complete file up to 2 MiB beneath an explicitly authorized workspace root.
     /// Does not grant ranges, streams, resume, unbounded downloads, uploads or writes.
     public static let workspaceFilesDownload = "workspace.files.download.v1"
+    /// Complete new-file upload within an explicitly authorized workspace directory.
+    public static let workspaceFilesUpload = "workspace.files.upload.v1"
 }

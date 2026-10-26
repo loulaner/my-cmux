@@ -57,7 +57,8 @@ class RuntimeContract(unittest.TestCase):
         template = (ROOT / 'tests/fixtures/mobile_workspace_file_list_rpc_runtime.swift').read_text()
         records = {}
         for token, path in [('LEAF', LEAF), ('PARSER', PARSER),
-                            ('PREVIEW_PARSER', PARSER.with_name('MobileWorkspaceFilePreviewRequest.swift')), ('POLICY', POLICY), ('CAP', CAP), ('QUOTA', QUOTA)]:
+                            ('PREVIEW_PARSER', PARSER.with_name('MobileWorkspaceFilePreviewRequest.swift')),
+                            ('UPLOAD_PARSER', PARSER.with_name('MobileWorkspaceFileUploadRequest.swift')), ('POLICY', POLICY), ('CAP', CAP), ('QUOTA', QUOTA)]:
             source = path.read_text()
             # Preserve complete declarations; only unavailable module-import lines are omitted.
             body = '\n'.join(line for line in source.splitlines() if not line.startswith(('import ', 'public import ')))

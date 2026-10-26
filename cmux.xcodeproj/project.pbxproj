@@ -3870,6 +3870,7 @@
 		C36AF5C7998046E28D06DF01 /* TerminalController+MobileWorkspaceFileDownload.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36AF5C7998046E28D06DF02 /* TerminalController+MobileWorkspaceFileDownload.swift */; };
 		B98F58482A054F91A530CB01 /* TerminalController+MobileWorkspaceFilePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = B98F58482A054F91A530CB02 /* TerminalController+MobileWorkspaceFilePreview.swift */; };
 		A80EB1ABD83311712271BC40 /* TerminalController+MobileWorkspaceFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD71828F63C956A318F9D37E /* TerminalController+MobileWorkspaceFiles.swift */; };
+		E1F86987C9076841771DC845 /* TerminalController+MobileWorkspaceFileUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = E79B124A5215D011EDBCA711 /* TerminalController+MobileWorkspaceFileUpload.swift */; };
 		C7A50B000000000000000012 /* TerminalController+MobileWorkspaceList.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A50B000000000000000011 /* TerminalController+MobileWorkspaceList.swift */; };
 		D7AB0000000000000000000B /* TerminalController+MoveTabToNewWorkspace.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7AB0000000000000000000C /* TerminalController+MoveTabToNewWorkspace.swift */; };
 		A049D3EEEF099C2E793679D0 /* TerminalController+ProcessDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73B29F22CCC610EAEED4C0C /* TerminalController+ProcessDiagnostics.swift */; };
@@ -8382,6 +8383,7 @@
 		C36AF5C7998046E28D06DF02 /* TerminalController+MobileWorkspaceFileDownload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileWorkspaceFileDownload.swift"; sourceTree = "<group>"; };
 		B98F58482A054F91A530CB02 /* TerminalController+MobileWorkspaceFilePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileWorkspaceFilePreview.swift"; sourceTree = "<group>"; };
 		BD71828F63C956A318F9D37E /* TerminalController+MobileWorkspaceFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileWorkspaceFiles.swift"; sourceTree = "<group>"; };
+		E79B124A5215D011EDBCA711 /* TerminalController+MobileWorkspaceFileUpload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileWorkspaceFileUpload.swift"; sourceTree = "<group>"; };
 		C7A50B000000000000000011 /* TerminalController+MobileWorkspaceList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MobileWorkspaceList.swift"; sourceTree = "<group>"; };
 		D7AB0000000000000000000C /* TerminalController+MoveTabToNewWorkspace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+MoveTabToNewWorkspace.swift"; sourceTree = "<group>"; };
 		C73B29F22CCC610EAEED4C0C /* TerminalController+ProcessDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+ProcessDiagnostics.swift"; sourceTree = "<group>"; };
@@ -12205,6 +12207,7 @@
 				C36AF5C7998046E28D06DF02 /* TerminalController+MobileWorkspaceFileDownload.swift */,
 				B98F58482A054F91A530CB02 /* TerminalController+MobileWorkspaceFilePreview.swift */,
 				BD71828F63C956A318F9D37E /* TerminalController+MobileWorkspaceFiles.swift */,
+				E79B124A5215D011EDBCA711 /* TerminalController+MobileWorkspaceFileUpload.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -16759,6 +16762,7 @@
 				C36AF5C7998046E28D06DF01 /* TerminalController+MobileWorkspaceFileDownload.swift in Sources */,
 				B98F58482A054F91A530CB01 /* TerminalController+MobileWorkspaceFilePreview.swift in Sources */,
 				A80EB1ABD83311712271BC40 /* TerminalController+MobileWorkspaceFiles.swift in Sources */,
+				E1F86987C9076841771DC845 /* TerminalController+MobileWorkspaceFileUpload.swift in Sources */,
 				C7A50B000000000000000012 /* TerminalController+MobileWorkspaceList.swift in Sources */,
 				D7AB0000000000000000000B /* TerminalController+MoveTabToNewWorkspace.swift in Sources */,
 				A049D3EEEF099C2E793679D0 /* TerminalController+ProcessDiagnostics.swift in Sources */,

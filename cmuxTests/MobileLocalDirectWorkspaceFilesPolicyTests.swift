@@ -37,6 +37,14 @@ struct MobileLocalDirectWorkspaceFilesPolicyTests {
                 #expect(policy.capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesDownload) == !disabled)
                 #expect(code(policy, method: download, params: previewParams) == (disabled ? "file_transfer_disabled" : nil))
                 #expect(code(policy, method: download, params: [:]) == (disabled ? "file_transfer_disabled" : "invalid_params"))
+                let upload = "mobile.workspace.files.upload"
+                let uploadParams: [String: Any] = ["workspace_id": identifier, "path": "", "root_id": String(repeating: "a", count: 64),
+                    "file_name": "file", "data_base64": "", "byte_count": 0, "sha256": String(repeating: "b", count: 64)]
+                #expect(policy.methods.contains(upload) == !disabled)
+                #expect(policy.capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesUpload) == !disabled)
+                #expect(code(policy, method: upload, params: uploadParams) == (disabled ? "file_transfer_disabled" : nil))
+                #expect(code(policy, method: upload, params: [:]) == (disabled ? "file_transfer_disabled" : "invalid_params"))
+                #expect(code(policy, method: "mobile.task.attachment.upload", params: uploadParams) == "method_not_found")
                 #expect(policy.topics == base.topics)
                 for terminal in base.methods where terminal != "mobile.events.subscribe" {
                     #expect(code(policy, method: terminal, params: [:]) == nil)
@@ -95,5 +103,20 @@ struct MobileLocalDirectWorkspaceFilesPolicyTests {
         #expect(code(denied, method: "mobile.workspace.files.download", params: badRoot) == "file_transfer_disabled")
         #expect(allowed.methods.contains(method) && !denied.methods.contains(method))
         #expect(code(allowed, method: method, params: ["workspace_id": identifier, "path": "%2e%2e/~", "offset": Int.max]) == nil)
+        let upload = "mobile.workspace.files.upload"
+        let uploadValid: [String: Any] = ["workspace_id": identifier, "path": "", "root_id": String(repeating: "a", count: 64),
+            "file_name": "file", "data_base64": "", "byte_count": 0, "sha256": String(repeating: "b", count: 64)]
+        for key in uploadValid.keys {
+            var params = uploadValid; params.removeValue(forKey: key)
+            #expect(code(allowed, method: upload, params: params) == "invalid_params")
+            #expect(code(denied, method: upload, params: params) == "file_transfer_disabled")
+            params = uploadValid; params[key] = NSNull()
+            #expect(code(allowed, method: upload, params: params) == "invalid_params")
+        }
+        for key in ["auth", "offset", "overwrite", "absolute_path", "command"] {
+            var params = uploadValid; params[key] = "forged"
+            #expect(code(allowed, method: upload, params: params) == "invalid_params")
+            #expect(code(denied, method: upload, params: params) == "file_transfer_disabled")
+        }
     }
 }

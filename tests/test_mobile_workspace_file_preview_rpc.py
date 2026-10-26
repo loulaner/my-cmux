@@ -41,6 +41,7 @@ def source_fixture(integration):
     template = (ROOT / 'tests/fixtures/mobile_workspace_file_list_rpc_runtime.swift').read_text().split('// A continuation-controlled service spy;')[0]
     paths = {'PARSER': HOST / 'MobileWorkspaceFileListRequest.swift',
              'PREVIEW_PARSER': HOST / 'MobileWorkspaceFilePreviewRequest.swift',
+             'UPLOAD_PARSER': HOST / 'MobileWorkspaceFileUploadRequest.swift',
              'POLICY': ROOT / 'Sources/Mobile/MobileLocalDirectRPCPolicy.swift',
              'CAP': ROOT / 'Packages/Shared/CMUXMobileCore/Sources/CMUXMobileCore/CmxLocalDirectCapabilities.swift',
              'QUOTA': HOST.parent / 'TaskDirectory/MobileTaskFilesystemJobQuota.swift',

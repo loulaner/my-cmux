@@ -15583,6 +15583,12 @@ class TerminalController {
                 authorization: executionContext?.authorization,
                 filesystemJobQuota: mobileTaskFilesystemJobQuota
             )
+        case "mobile.workspace.files.upload":
+            result = await v2MobileWorkspaceFileUpload(
+                params: request.params,
+                executionContext: executionContext,
+                filesystemJobQuota: mobileTaskFilesystemJobQuota
+            )
         case "mobile.directory.search":
             result = await v2MobileDirectorySearch(
                 params: request.params,
