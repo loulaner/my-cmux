@@ -77,6 +77,15 @@ public final class MobileLocalDirectFilesSession {
     /// Whether a ready marked directory can open a file context for preview or download.
     public var canOpenFiles: Bool { active && state == .ready && capable && rootID != nil && (previewCapable || downloadCapable) }
 
+    /// The owned one-shot upload; construction alone does not prepare or submit bytes.
+    public private(set) var uploadSession: MobileLocalDirectFileUploadSession?
+    /// Directory epoch captured together with this parent before any asynchronous picker.
+    public var directoryRevision: UInt64 { token }
+    /// Whether this ready marked directory can capture a new explicit upload selection.
+    public var canUploadFiles: Bool {
+        active && state == .ready && capable && uploadCapable && rootID != nil && uploadSession == nil
+    }
+
     private enum RootBinding {
         case unbound
         case observed(String?)
@@ -93,6 +102,7 @@ public final class MobileLocalDirectFilesSession {
     @ObservationIgnored private let capable: Bool
     @ObservationIgnored private let previewCapable: Bool
     @ObservationIgnored private let downloadCapable: Bool
+    @ObservationIgnored private let uploadCapable: Bool
     @ObservationIgnored private var active = true
     @ObservationIgnored private var token: UInt64 = 0
     // Internal read-only completion handle, including cancellation-ignoring replies.
@@ -112,6 +122,7 @@ public final class MobileLocalDirectFilesSession {
         capable = capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesList)
         previewCapable = capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesPreview)
         downloadCapable = capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesDownload)
+        uploadCapable = capabilities.contains(CmxLocalDirectCapabilities.workspaceFilesUpload)
     }
 
     deinit { requestTask?.cancel() }
@@ -153,6 +164,7 @@ public final class MobileLocalDirectFilesSession {
     @discardableResult
     public func openFile(path: String) -> Bool {
         guard active, state == .ready else { return false }
+        closeUpload()
         closePreview()
         guard canOpenFiles, Self.validRequestPath(path), let rootID,
               entries.contains(where: { $0.kind == .file && $0.path.utf8.elementsEqual(path.utf8) }) else { return false }
@@ -166,6 +178,33 @@ public final class MobileLocalDirectFilesSession {
             )
             return true
         } catch { return false }
+    }
+
+    /// Captures a selection only for the same ready directory epoch, with zero RPC and hashing.
+    /// - Parameters:
+    ///   - fileName: Literal safe destination leaf.
+    ///   - data: Complete bytes, at most 2 MiB.
+    ///   - directoryRevision: Epoch captured before the asynchronous picker, not merely a matching path.
+    /// - Returns: Whether a new child was stored; invalid input leaves preview and existing upload unchanged.
+    @discardableResult
+    public func prepareUpload(fileName: String, data: Data, directoryRevision: UInt64) -> Bool {
+        guard directoryRevision == token, canUploadFiles, let rootID else { return false }
+        do {
+            let child = try MobileLocalDirectFileUploadSession(
+                rpc: rpc, workspaceID: workspaceID, connectionGeneration: connectionGeneration,
+                path: currentPath, rootID: rootID, fileName: fileName, data: data,
+                capabilities: uploadCapable ? [CmxLocalDirectCapabilities.workspaceFilesUpload] : []
+            )
+            closePreview()
+            uploadSession = child
+            return true
+        } catch { return false }
+    }
+
+    /// Retires only the owned upload, preserving folder, root, preview and shared connection.
+    public func closeUpload() {
+        uploadSession?.invalidate()
+        uploadSession = nil
     }
 
     /// Invalidates only the owned preview, preserving directory state and the shared connection.
@@ -182,6 +221,7 @@ public final class MobileLocalDirectFilesSession {
     }
 
     private func start(path: String, offset: Int) {
+        closeUpload()
         closePreview()
         requestTask?.cancel(); requestTask = nil; token &+= 1
         let expectedBinding = rootBinding
@@ -229,6 +269,7 @@ public final class MobileLocalDirectFilesSession {
     }
 
     private func clearPages(preservingRoot: Bool = false) {
+        closeUpload()
         closePreview()
         entries = []; totalCount = nil; nextOffset = nil
         if !preservingRoot { rootBinding = .unbound }
