@@ -295,4 +295,28 @@ struct MobileLocalDirectFilesSessionTests {
             #expect(await rpc.disconnects == 0)
         }
     }
+    @Test(arguments: ["null", "bool", "number", "array", "object", "empty", "short", "long", "uppercase", "nonASCII", "nonHex"])
+    func invalidRootMarkerMustNotBeIgnored(mode: String) throws {
+        var page = object()
+        let invalid: Any
+        switch mode {
+        case "null": invalid = NSNull()
+        case "bool": invalid = true
+        case "number": invalid = 12
+        case "array": invalid = [] as [String]
+        case "object": invalid = [:] as [String: String]
+        case "empty": invalid = ""
+        case "short": invalid = String(repeating: "a", count: 63)
+        case "long": invalid = String(repeating: "a", count: 65)
+        case "uppercase": invalid = String(repeating: "A", count: 64)
+        case "nonASCII": invalid = String(repeating: "é", count: 64)
+        default: invalid = String(repeating: "g", count: 64)
+        }
+        page["root_id"] = invalid
+        do {
+            _ = try MobileWorkspaceFileListResponse.decode(data(page))
+            Issue.record("Present invalid root_id must fail decoding")
+        } catch is DecodingError {}
+    }
+
 }

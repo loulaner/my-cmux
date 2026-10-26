@@ -175,7 +175,8 @@ enum MobileHostConnectionAuthorizationContext { case localDirect; case stackBear
         if let expected { error(result, expected) }
         else {
             guard case .ok(let raw) = result, let payload = raw as? [String: Any] else { preconditionFailure("Expected page") }
-            check(Set(payload.keys) == ["workspace_id", "path", "parent_path", "entries", "offset", "limit", "total_count", "next_offset"])
+            check(Set(payload.keys) == ["workspace_id", "path", "parent_path", "entries", "offset", "limit", "total_count", "next_offset", "root_id"])
+            check(payload["root_id"] as? String == String(repeating: "0", count: 64), "root marker")
             check(payload["workspace_id"] as? String == identifier.uuidString)
             check(payload["path"] as? String == expectedPath)
             check(payload["offset"] as? Int == expectedOffset && payload["limit"] as? Int == expectedLimit)
