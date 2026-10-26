@@ -33,7 +33,9 @@ public struct WorkspaceChangesService: Sendable {
 
     /// Creates a production workspace-changes service.
     public init() {
-        let runner = SystemWorkspaceChangesGitRunner(disableFilesystemMonitor: true)
+        let runner = SystemWorkspaceChangesGitRunner(
+            disableFilesystemMonitor: true, localObjectsOnly: true
+        )
         self.runner = runner
         snapshotLoader = WorkspaceChangesSnapshotLoader(runner: runner)
         summaryCache = WorkspaceChangesSummaryCache()

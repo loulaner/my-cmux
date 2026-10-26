@@ -36,7 +36,8 @@ struct SystemWorkspaceChangesGitRunner: WorkspaceChangesGitRunning {
         boundedCommandWallTimeLimit: TimeInterval = 30,
         isolateRepositoryConfig: Bool = false,
         fallbackExecutableURLs: [URL]? = nil,
-        disableFilesystemMonitor: Bool = false
+        disableFilesystemMonitor: Bool = false,
+        localObjectsOnly: Bool = false
     ) {
         let candidates = if let executableURL {
             [executableURL] + (fallbackExecutableURLs ?? [])
@@ -69,6 +70,12 @@ struct SystemWorkspaceChangesGitRunner: WorkspaceChangesGitRunning {
         scopedEnvironment["GIT_OPTIONAL_LOCKS"] = "0"
         // Changes reads opt out of repository-configured fsmonitor programs; refs retain the default.
         self.startupArguments = disableFilesystemMonitor ? ["-c", "core.fsmonitor=false"] : []
+        if localObjectsOnly {
+            // Do not implicitly fetch missing objects or start a transport during changes reads.
+            scopedEnvironment["GIT_NO_LAZY_FETCH"] = "1"
+            scopedEnvironment["GIT_ALLOW_PROTOCOL"] = ""
+            scopedEnvironment["GIT_TERMINAL_PROMPT"] = "0"
+        }
         self.environment = scopedEnvironment
         self.boundedCommandWallTimeLimit = max(0, boundedCommandWallTimeLimit)
     }
