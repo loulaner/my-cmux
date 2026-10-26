@@ -27,8 +27,8 @@ struct MobileLocalDirectFilesView: View {
             List {
                 Section {
                     if session.state == .ready {
-                        if session.canPreviewFiles {
-                            Text(String(localized: "direct.preview.availability", defaultValue: "Open a text file to preview it. Downloads and uploads are not available yet."))
+                        if session.canOpenFiles {
+                            Text(String(localized: "direct.preview.availability", defaultValue: "Open a file to preview it or download it when supported by this Mac. Uploads are not available yet."))
                                 .foregroundStyle(.secondary)
                         } else {
                             Text(String(localized: "direct.files.metadataOnly", defaultValue: "Only folder browsing is available. File previews and transfers are not supported yet."))
@@ -61,7 +61,7 @@ struct MobileLocalDirectFilesView: View {
                         }
                         .disabled(session.state != .ready || entry.path.utf8.count > 4_096)
                         .accessibilityHint(String(localized: "direct.files.openHint", defaultValue: "Open Folder"))
-                    } else if entry.kind == .file && session.canPreviewFiles {
+                    } else if entry.kind == .file && session.canOpenFiles {
                         Button {
                             if session.openFile(path: entry.path), let child = session.previewSession {
                                 previewPresentation = PreviewPresentation(session: child)
@@ -74,7 +74,7 @@ struct MobileLocalDirectFilesView: View {
                             }
                         }
                         .disabled(entry.path.utf8.count > 4_096)
-                        .accessibilityHint(String(localized: "direct.preview.openHint", defaultValue: "Open Preview"))
+                        .accessibilityHint(String(localized: "direct.preview.openHint", defaultValue: "Open File"))
                     } else {
                         entryLabel(entry)
                     }

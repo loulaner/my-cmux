@@ -14,6 +14,9 @@ struct MobileLocalDirectFilePreviewView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                MobileLocalDirectFileDownloadView(session: session)
+                    .id(ObjectIdentifier(session))
+                Divider()
                 switch session.state {
                 case .idle, .loading:
                     ProgressView(String(localized: "direct.preview.loading", defaultValue: "Loading preview…"))

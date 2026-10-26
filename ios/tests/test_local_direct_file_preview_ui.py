@@ -35,7 +35,7 @@ class LocalDirectFilePreviewUIGuardTests(unittest.TestCase):
                         "ObjectIdentifier(lhs.session) == ObjectIdentifier(rhs.session)", "hasher.combine(ObjectIdentifier(session))",
                         ".navigationDestination(item: $previewPresentation)",
                         "MobileLocalDirectFilePreviewView(session: presentation.session)",
-                        "else if entry.kind == .file && session.canPreviewFiles",
+                        "else if entry.kind == .file && session.canOpenFiles",
                         "if session.openFile(path: entry.path), let child = session.previewSession",
                         "previewPresentation = PreviewPresentation(session: child)",
                         ".disabled(entry.path.utf8.count > 4_096)"]:
@@ -48,7 +48,7 @@ class LocalDirectFilePreviewUIGuardTests(unittest.TestCase):
         self.assertNotIn("controller", view)
         self.assertRegex(view, r"else \{\s+entryLabel\(entry\)\s+\}")
         notice = block(view, "if session.state == .ready")
-        self.assertIn("if session.canPreviewFiles", notice)
+        self.assertIn("if session.canOpenFiles", notice)
         self.assertIn('localized: "direct.preview.availability"', notice)
         self.assertIn('localized: "direct.files.metadataOnly"', notice)
 
