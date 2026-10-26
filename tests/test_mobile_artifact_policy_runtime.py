@@ -92,6 +92,48 @@ def mutants(snippets):
         yield label, changed, expected, {"snippet": key, "before": before, "after": after}
 
 
+def run_swift_variant(directory, source_text, compiler, record):
+    """Compile/run in a private environment; retain full logs and actual exits.
+
+    Caller owns the record and assertions. A compile failure never runs a binary.
+    Timeouts propagate with partial logs preserved; no shared environment changes.
+    """
+    directory.mkdir()
+    home = directory / "home"
+    tmp = directory / "tmp"
+    cache = directory / "module-cache"
+    for path in (home, tmp, cache, home / ".config", home / ".cache", home / ".local/share"):
+        path.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    for key in list(env):
+        if key.startswith(("CMUX_", "CMUXD_")):
+            env.pop(key)
+    env.update({
+        "HOME": str(home), "CFFIXED_USER_HOME": str(home),
+        "XDG_CONFIG_HOME": str(home / ".config"),
+        "XDG_CACHE_HOME": str(home / ".cache"),
+        "XDG_DATA_HOME": str(home / ".local/share"),
+        "TMPDIR": str(tmp) + "/", "SWIFT_MODULECACHE_PATH": str(cache),
+        "CLANG_MODULE_CACHE_PATH": str(cache),
+    })
+    source = directory / "fixture.swift"
+    source.write_text(source_text)
+    binary = directory / "fixture"
+    command = [compiler, "-swift-version", "6", "-parse-as-library", "-module-cache-path", str(cache), str(source), "-o", str(binary)]
+    record["compileCommand"] = command
+    with (directory / "compile.log").open("w") as log:
+        compiled = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=180)
+    record["compileExit"] = compiled.returncode
+    (directory / "compile.exit").write_text(str(compiled.returncode) + "\n")
+    if compiled.returncode != 0:
+        return ""
+    with (directory / "run.log").open("w") as log:
+        ran = subprocess.run([str(binary)], env=env, stdout=log, stderr=subprocess.STDOUT, timeout=60)
+    record["runExit"] = ran.returncode
+    (directory / "run.exit").write_text(str(ran.returncode) + "\n")
+    return (directory / "run.log").read_text()
+
+
 @unittest.skipUnless(sys.platform == "darwin", "Runtime fixture requires macOS Foundation")
 class MobileArtifactPolicyRuntimeTests(unittest.TestCase):
     def test_baseline_and_six_boundary_mutations(self):
@@ -123,51 +165,20 @@ class MobileArtifactPolicyRuntimeTests(unittest.TestCase):
             for name, variant, expected_failure, mutation in variants:
                 with self.subTest(variant=name):
                     directory = root / name
-                    directory.mkdir()
-                    home = directory / "home"
-                    tmp = directory / "tmp"
-                    cache = directory / "module-cache"
-                    for path in (home, tmp, cache, home / ".config", home / ".cache", home / ".local/share"):
-                        path.mkdir(parents=True, exist_ok=True)
-                    env = os.environ.copy()
-                    for key in list(env):
-                        if key.startswith(("CMUX_", "CMUXD_")):
-                            env.pop(key)
-                    env.update({
-                        "HOME": str(home), "CFFIXED_USER_HOME": str(home),
-                        "XDG_CONFIG_HOME": str(home / ".config"),
-                        "XDG_CACHE_HOME": str(home / ".cache"),
-                        "XDG_DATA_HOME": str(home / ".local/share"),
-                        "TMPDIR": str(tmp) + "/", "SWIFT_MODULECACHE_PATH": str(cache),
-                        "CLANG_MODULE_CACHE_PATH": str(cache),
-                    })
-                    source = directory / "fixture.swift"
-                    source.write_text(render(template, variant))
-                    binary = directory / "fixture"
                     record = {"variant": name, "expectedFailure": expected_failure, "mutation": mutation}
                     records.append(record)
-                    command = [compiler, "-swift-version", "6", "-parse-as-library", "-module-cache-path", str(cache), str(source), "-o", str(binary)]
-                    record["compileCommand"] = command
-                    with (directory / "compile.log").open("w") as log:
-                        compiled = subprocess.run(command, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=180)
-                    record["compileExit"] = compiled.returncode
-                    (directory / "compile.exit").write_text(str(compiled.returncode) + "\n")
-                    self.assertEqual(compiled.returncode, 0, f"Swift 6 compilation failed: {directory / 'compile.log'}")
-                    with (directory / "run.log").open("w") as log:
-                        ran = subprocess.run([str(binary)], env=env, stdout=log, stderr=subprocess.STDOUT, timeout=60)
-                    record["runExit"] = ran.returncode
-                    (directory / "run.exit").write_text(str(ran.returncode) + "\n")
-                    output = (directory / "run.log").read_text()
+                    output = run_swift_variant(directory, render(template, variant), compiler, record)
+                    self.assertEqual(record["compileExit"], 0, f"Swift 6 compilation failed: {directory / 'compile.log'}")
                     self.assertIn("ISOLATION home=", output, f"Isolation proof missing: {directory}")
                     summary = re.search(r"^SUMMARY assertions=14 failures=(\d+)$", output, re.MULTILINE)
                     if summary is None:
                         self.fail(f"Incomplete assertions/crash: {directory}")
                     if expected_failure is None:
-                        self.assertEqual(ran.returncode, 0, f"Baseline failed: {directory / 'run.log'}")
+                        self.assertEqual(record["runExit"], 0, f"Baseline failed: {directory / 'run.log'}")
                         self.assertEqual(summary.group(1), "0")
                         self.assertNotRegex(output, r"(?m)^FAIL ")
                     else:
-                        self.assertEqual(ran.returncode, 1, f"Mutation must fail assertions, not compilation/crash: {directory}")
+                        self.assertEqual(record["runExit"], 1, f"Mutation must fail assertions, not compilation/crash: {directory}")
                         self.assertGreater(int(summary.group(1)), 0)
                         self.assertIn(f"FAIL {expected_failure}\n", output, f"Wrong boundary failed: {directory}")
                     record["verified"] = True
