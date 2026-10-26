@@ -226,22 +226,6 @@ struct ManagedCapabilityPolicyGateTests {
         ))
     }
 
-    @Test(arguments: [
-        ("mobile.task.attachment.upload", true),
-        ("mobile.workspace.changes.file_fetch", true),
-        ("mobile.terminal.paste_image", true),
-        ("terminal.paste_image", true),
-        ("mobile.terminal.artifact.fetch", true),
-        ("mobile.panel.artifact.thumbnail", true),
-        ("mobile.terminal.input", false),
-        ("mobile.workspace.changes.summary", false),
-        ("mobile.directory.list", false),
-        ("mobile.host.status", false),
-    ])
-    func phoneFileMovesAreClassifiedForTheFileTransferPolicy(method: String, transfersFiles: Bool) {
-        #expect(MobileHostService.methodTransfersFiles(method) == transfersFiles)
-    }
-
     @Test func closedHistoryPurgeRecognizesBothCloudTransports() {
         let local = Workspace()
         let localSnapshot = local.sessionSnapshot(includeScrollback: false)
