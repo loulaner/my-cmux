@@ -118,7 +118,7 @@ struct MobileLocalDirectFilesView: View {
         .safeAreaInset(edge: .bottom) {
             if previewPresentation == nil {
                 MobileLocalDirectFileUploadView(session: session, importSession: importSession,
-                                                chooseFile: chooseFile, doneAndRefresh: doneAndRefresh,
+                                                chooseFile: chooseFile, choosePhoto: choosePhoto, doneAndRefresh: doneAndRefresh,
                                                 terminalTitle: terminalTitle, canQueuePath: canQueuePath,
                                                 queuePath: queuePathAndShowTerminal)
             }
@@ -126,27 +126,35 @@ struct MobileLocalDirectFilesView: View {
         .background {
             if let selection = importSession {
                 @Bindable var selection = selection
-                Color.clear.fileImporter(
-                    isPresented: $selection.isPickerPresented,
-                    allowedContentTypes: [.data], allowsMultipleSelection: false,
-                    onCompletion: { [selection] result in
-                        Task { @MainActor in
-                            guard importSession === selection else { return }
-                            switch result {
-                            case .success(let urls):
-                                guard urls.count == 1, let url = urls.first else { selection.pickerFailed(); return }
-                                selection.select(url: url)
-                            case .failure: selection.pickerFailed()
+                switch selection.source {
+                case .file:
+                    Color.clear.fileImporter(
+                        isPresented: $selection.isPickerPresented,
+                        allowedContentTypes: [.data], allowsMultipleSelection: false,
+                        onCompletion: { [selection] result in
+                            Task { @MainActor in
+                                guard importSession === selection else { return }
+                                switch result {
+                                case .success(let urls):
+                                    guard urls.count == 1, let url = urls.first else { selection.pickerFailed(); return }
+                                    selection.select(url: url)
+                                case .failure: selection.pickerFailed()
+                                }
+                            }
+                        },
+                        onCancellation: { [selection] in
+                            Task { @MainActor in
+                                guard importSession === selection else { return }
+                                selection.cancel()
                             }
                         }
-                    },
-                    onCancellation: { [selection] in
-                        Task { @MainActor in
-                            guard importSession === selection else { return }
-                            selection.cancel()
-                        }
+                    )
+                case .photo:
+                    MobileLocalDirectPhotoPickerView(selection: selection) { [selection] in
+                        importSession === selection
                     }
-                )
+                    .id(ObjectIdentifier(selection))
+                }
             }
         }
         .onChange(of: session.previewSession.map { ObjectIdentifier($0) }) { _, identity in
@@ -172,13 +180,19 @@ struct MobileLocalDirectFilesView: View {
     }
 
     private var importBusy: Bool {
-        importSession?.state == .choosing || importSession?.state == .reading
+        importSession?.isBusy == true
     }
 
     private func chooseFile() {
         guard session.canUploadFiles, !importBusy else { return }
         retireImport()
         importSession = MobileLocalDirectFileImportSession(files: session, reader: importReader)
+    }
+
+    private func choosePhoto() {
+        guard session.canUploadFiles, !importBusy else { return }
+        retireImport()
+        importSession = MobileLocalDirectFileImportSession(files: session, reader: importReader, source: .photo)
     }
 
     private func retireImport() {

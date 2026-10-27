@@ -46,6 +46,20 @@ public final class MobileLocalDirectFileImportSession {
         case failed(Failure)
     }
 
+    /// The system picker supplying this one-shot selection.
+    public enum Source: Sendable {
+        /// System file importer, with explicit completion/cancellation callbacks.
+        case file
+        /// Single image picker; dismissal may precede its selected item callback.
+        case photo
+    }
+    /// Immutable picker source; changing sources requires a new selection owner.
+    public let source: Source
+    /// Reading always occupies the selection; a dismissed image picker can be replaced explicitly.
+    public var isBusy: Bool {
+        state == .reading || (state == .choosing && (source == .file || isPickerPresented))
+    }
+
     /// Directory epoch captured at construction, never replaced by a newer lease.
     public let directoryRevision: UInt64
     /// Literal original destination directory, empty for workspace root.
@@ -65,14 +79,15 @@ public final class MobileLocalDirectFileImportSession {
     /// - Parameters:
     ///   - files: Strongly held parent, which must allow uploading with no open preview.
     ///   - reader: Stable caller-owned reader, reused across selections.
-    public convenience init(files: MobileLocalDirectFilesSession, reader: MobileLocalDirectFileImportReader) {
-        self.init(files: files, read: { try await reader.read($0) })
+    ///   - source: Picker policy, defaulting to the existing file importer behavior.
+    public convenience init(files: MobileLocalDirectFilesSession, reader: MobileLocalDirectFileImportReader, source: Source = .file) {
+        self.init(files: files, read: { try await reader.read($0) }, source: source)
     }
 
     /// Instance-only async seam; public construction uses the actual reader actor.
     init(files: MobileLocalDirectFilesSession,
-         read: @escaping @Sendable (URL) async throws -> MobileLocalDirectFileImportReader.Selection) {
-        self.files = files; self.read = read
+         read: @escaping @Sendable (URL) async throws -> MobileLocalDirectFileImportReader.Selection, source: Source = .file) {
+        self.files = files; self.read = read; self.source = source
         directoryRevision = files.directoryRevision; path = files.currentPath
         active = files.canUploadFiles && files.previewSession == nil
         state = active ? .choosing : .failed(.unavailable)
@@ -84,12 +99,19 @@ public final class MobileLocalDirectFileImportSession {
     /// Consumes at most one selected URL and prepares, but never starts, its upload.
     /// - Parameter url: The single system-selected source URL.
     public func select(url: URL) {
+        let read = read
+        select(load: { try await read(url) })
+    }
+
+    /// Loads one bounded selection and transfers it to an idle upload without submitting it.
+    /// Late results are accepted only while this original directory and selection still own the operation.
+    public func select(load: @escaping @Sendable () async throws -> MobileLocalDirectFileImportReader.Selection) {
         guard active, state == .choosing else { return }
         isPickerPresented = false; state = .reading
-        let token = token, read = read
+        let token = token
         requestTask = Task { [weak self] in
             do {
-                let selection = try await read(url)
+                let selection = try await load()
                 guard let self, self.active, self.token == token else { return }
                 if self.files.state == .failed(.disconnected) { throw Failure.disconnected }
                 guard self.directoryRevision == self.files.directoryRevision else { throw Failure.directoryChanged }

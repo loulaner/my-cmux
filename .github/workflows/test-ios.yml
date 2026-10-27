@@ -434,6 +434,9 @@ jobs:
       - name: Guard local direct file upload UI wiring
         run: python3 ios/tests/test_local_direct_file_upload_ui.py
 
+      - name: Guard local direct photo upload UI wiring
+        run: python3 ios/tests/test_local_direct_photo_upload_ui.py
+
       - name: Lint iOS package conventions
         run: |
           python3 scripts/tests/test_ios_package_conventions.py

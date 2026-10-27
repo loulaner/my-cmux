@@ -8,6 +8,7 @@ struct MobileLocalDirectFileUploadView: View {
     @Bindable var session: MobileLocalDirectFilesSession
     let importSession: MobileLocalDirectFileImportSession?
     let chooseFile: () -> Void
+    let choosePhoto: () -> Void
     let doneAndRefresh: () -> Void
     let terminalTitle: String?
     let canQueuePath: (MobileLocalDirectFileUploadSession) -> Bool
@@ -33,6 +34,10 @@ struct MobileLocalDirectFileUploadView: View {
                 }
                 Button(String(localized: "direct.upload.choose", defaultValue: "Choose File…"), action: chooseFile)
                     .disabled(!session.canUploadFiles || importBusy)
+                Button(String(localized: "direct.upload.choosePhoto", defaultValue: "Choose Photo…"), action: choosePhoto)
+                    .disabled(!session.canUploadFiles || importBusy)
+                Text(String(localized: "direct.upload.photoHint", defaultValue: "Select one image up to 2 MiB. This app doesn't resize or convert it."))
+                    .font(.caption).foregroundStyle(.secondary)
             }
         }
         .padding()
@@ -41,7 +46,7 @@ struct MobileLocalDirectFileUploadView: View {
     }
 
     private var importBusy: Bool {
-        importSession?.state == .choosing || importSession?.state == .reading
+        importSession?.isBusy == true
     }
 
     @ViewBuilder
