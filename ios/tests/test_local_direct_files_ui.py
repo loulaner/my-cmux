@@ -51,7 +51,7 @@ class LocalDirectFilesUIGuardTests(unittest.TestCase):
                         "ByteCountFormatter.string(fromByteCount: size, countStyle: .file)", "entry.kind == .file, let size = entry.size"]:
             self.assertIn(snippet, view)
         self.assertEqual(view.count("session.openDirectory("), 1)
-        self.assertEqual(view.count("@State"), 1)
+        self.assertEqual(view.count("@State"), 3)
         self.assertIn("@State private var previewPresentation: PreviewPresentation?", view)
         self.assertIn("private struct PreviewPresentation: Hashable", view)
         self.assertIn("let session: MobileLocalDirectFilePreviewSession", view)
@@ -78,9 +78,9 @@ class LocalDirectFilesUIGuardTests(unittest.TestCase):
             self.assertIn(f"case .{failure}:", view)
             self.assertIn(f'localized: "direct.files.error.{failure}"', view)
         self.assertIn('localized: "direct.files.metadataOnly"', view)
-        self.assertEqual(view.count(".onChange("), 2)
+        self.assertEqual(view.count(".onChange("), 3)
         self.assertEqual(view.count(".onDisappear"), 1)
-        self.assertIn("\n        .onDisappear { session.closePreview() }", view)
+        self.assertIn("\n        .onDisappear { retireImport(); session.closeUpload(); session.closePreview() }", view)
         self.assertNotIn("\n            .onDisappear", view)
         self.assertIn("ObjectIdentifier(presentation.session) != identity", view)
         self.assertIn("if let old, new == nil, session.previewSession === old.session", view)
@@ -96,11 +96,13 @@ class LocalDirectFilesUIGuardTests(unittest.TestCase):
     def test_metadata_only_no_connection_or_content_actions(self):
         view = source("MobileLocalDirectFilesView.swift")
         self.assertTrue(view)
-        for forbidden in ["sendRequest", "MobileLocalDirectFilesSession(", "MobileLocalDirectFilePreviewSession(", "disconnect(", "invalidate(", "subscribe(",
+        for forbidden in ["sendRequest", "MobileLocalDirectFilesSession(", "MobileLocalDirectFilePreviewSession(", "disconnect(", "session.invalidate(", "controller.invalidate(", "connection.invalidate(", "subscribe(",
                           "clear_all", "sendInput", "controller", "localizedDescription", "QuickLook", "WKWebView",
                           "Markdown", "AttributedString", "URL(", "openURL", "ShareLink", "UIPasteboard", "FileManager",
                           ".sheet(", "interactiveDismissDisabled", "UIScreen", "GeometryReader", "keyboard", "rootDirectory"]:
             self.assertNotIn(forbidden, view)
+        self.assertEqual(re.findall(r"([A-Za-z_][A-Za-z_0-9]*\??)\.invalidate\(", view), ["importSession?"])
+        self.assertEqual(view.count("guard importSession === selection else { return }"), 2)
         self.assertIn(".presentationDetents([.large])", view)
         self.assertIn("ToolbarItem(placement: .cancellationAction)", view)
 

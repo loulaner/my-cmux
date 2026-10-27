@@ -42,7 +42,7 @@ class LocalDirectFilePreviewUIGuardTests(unittest.TestCase):
             self.assertIn(snippet, view)
         self.assertEqual(view.count("NavigationStack {"), 1)
         self.assertEqual(view.count(".navigationDestination("), 1)
-        self.assertEqual(view.count("@State"), 1)
+        self.assertEqual(view.count("@State"), 3)
         self.assertNotIn("navigationPath", view)
         self.assertNotIn("MobileLocalDirectFilePreviewSession(", view)
         self.assertNotIn("controller", view)
@@ -54,12 +54,14 @@ class LocalDirectFilePreviewUIGuardTests(unittest.TestCase):
 
     def test_pop_and_owner_exit_retire_only_captured_child(self):
         view = source("MobileLocalDirectFilesView.swift")
-        self.assertEqual(view.count(".onChange("), 2)
+        self.assertEqual(view.count(".onChange("), 3)
         identity = re.search(r"\.onChange\(of: session.previewSession.map.*?\n        \}", view, re.S)
         if identity is None:
             self.fail("Missing preview owner identity retirement")
         self.assertIn("ObjectIdentifier(presentation.session) != identity", identity.group())
         self.assertIn("previewPresentation = nil", identity.group())
+        self.assertIn("if identity != nil { retireImport() }", identity.group())
+        self.assertEqual(view.count("guard importSession === selection else { return }"), 2)
         pop = block(view, ".onChange(of: previewPresentation)")
         self.assertIn("if let old, new == nil, session.previewSession === old.session", pop)
         self.assertEqual(pop.count("session.closePreview()"), 1)
@@ -67,13 +69,13 @@ class LocalDirectFilePreviewUIGuardTests(unittest.TestCase):
             for forbidden in ["refresh()", "invalidate(", "disconnect(", "openFile("]:
                 self.assertNotIn(forbidden, handler)
         self.assertEqual(view.count(".onDisappear"), 1)
-        self.assertIn("\n        .onDisappear { session.closePreview() }", view)
+        self.assertIn("\n        .onDisappear { retireImport(); session.closeUpload(); session.closePreview() }", view)
         stack = block(view, "NavigationStack")
         self.assertNotIn(".onDisappear", stack)
         self.assertIn("session.closePreview(); dismiss()", stack)
         self.assertEqual(view.count(".task("), 1)
         self.assertIn(".task(id: ObjectIdentifier(session))", view)
-        self.assertEqual(view.count("session.refresh()"), 3)
+        self.assertEqual(view.count("session.refresh()"), 4)
         self.assertNotIn(".onDisappear", source("MobileLocalDirectFilePreviewView.swift"))
 
     def test_detail_is_plain_bounded_model_text(self):

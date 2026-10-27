@@ -79,7 +79,7 @@ class LocalDirectFileDownloadUIGuardTests(unittest.TestCase):
                     ["ios/cmux/Resources/Localizable.xcstrings", "Resources/Localizable.xcstrings"]]
         for catalog in catalogs:
             self.assertEqual({k for k in catalog if k.startswith("direct.download.")}, set(keys))
-        keys.update({"direct.preview.availability": "Open a file to preview it or download it when supported by this Mac. Uploads are not available yet.",
+        keys.update({"direct.preview.availability": "Open a file to preview it or download it when supported by this Mac.",
                      "direct.preview.openHint": "Open File"})
         for key, english in keys.items():
             self.assertEqual(catalogs[0][key], catalogs[1][key])

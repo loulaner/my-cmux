@@ -2,6 +2,7 @@ import CmuxMobileRPC
 import CmuxMobileShell
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Single-page directory browser with a captured, separately owned text preview.
 @MainActor
@@ -9,6 +10,8 @@ struct MobileLocalDirectFilesView: View {
     @Bindable var session: MobileLocalDirectFilesSession
     @Environment(\.dismiss) private var dismiss
     @State private var previewPresentation: PreviewPresentation?
+    @State private var importReader = MobileLocalDirectFileImportReader()
+    @State private var importSession: MobileLocalDirectFileImportSession?
 
     private struct PreviewPresentation: Hashable {
         let session: MobileLocalDirectFilePreviewSession
@@ -28,10 +31,10 @@ struct MobileLocalDirectFilesView: View {
                 Section {
                     if session.state == .ready {
                         if session.canOpenFiles {
-                            Text(String(localized: "direct.preview.availability", defaultValue: "Open a file to preview it or download it when supported by this Mac. Uploads are not available yet."))
+                            Text(String(localized: "direct.preview.availability", defaultValue: "Open a file to preview it or download it when supported by this Mac."))
                                 .foregroundStyle(.secondary)
                         } else {
-                            Text(String(localized: "direct.files.metadataOnly", defaultValue: "Only folder browsing is available. File previews and transfers are not supported yet."))
+                            Text(String(localized: "direct.files.metadataOnly", defaultValue: "File previews and downloads are unavailable for this folder."))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -101,7 +104,7 @@ struct MobileLocalDirectFilesView: View {
             .navigationTitle(String(localized: "direct.files.title", defaultValue: "Files"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "direct.changes.close", defaultValue: "Close")) { session.closePreview(); dismiss() }
+                    Button(String(localized: "direct.changes.close", defaultValue: "Close")) { retireImport(); session.closeUpload(); session.closePreview(); dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button(String(localized: "direct.changes.refresh", defaultValue: "Refresh")) { session.refresh() }
@@ -109,7 +112,40 @@ struct MobileLocalDirectFilesView: View {
                 }
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            if previewPresentation == nil {
+                MobileLocalDirectFileUploadView(session: session, importSession: importSession,
+                                                chooseFile: chooseFile, doneAndRefresh: doneAndRefresh)
+            }
+        }
+        .background {
+            if let selection = importSession {
+                @Bindable var selection = selection
+                Color.clear.fileImporter(
+                    isPresented: $selection.isPickerPresented,
+                    allowedContentTypes: [.data], allowsMultipleSelection: false,
+                    onCompletion: { [selection] result in
+                        Task { @MainActor in
+                            guard importSession === selection else { return }
+                            switch result {
+                            case .success(let urls):
+                                guard urls.count == 1, let url = urls.first else { selection.pickerFailed(); return }
+                                selection.select(url: url)
+                            case .failure: selection.pickerFailed()
+                            }
+                        }
+                    },
+                    onCancellation: { [selection] in
+                        Task { @MainActor in
+                            guard importSession === selection else { return }
+                            selection.cancel()
+                        }
+                    }
+                )
+            }
+        }
         .onChange(of: session.previewSession.map { ObjectIdentifier($0) }) { _, identity in
+            if identity != nil { retireImport() }
             if let presentation = previewPresentation, ObjectIdentifier(presentation.session) != identity {
                 previewPresentation = nil
             }
@@ -119,7 +155,8 @@ struct MobileLocalDirectFilesView: View {
                 session.closePreview()
             }
         }
-        .onDisappear { session.closePreview() }
+        .onChange(of: session.directoryRevision) { _, _ in retireImport() }
+        .onDisappear { retireImport(); session.closeUpload(); session.closePreview() }
         .task(id: ObjectIdentifier(session)) {
             guard !Task.isCancelled, session.state != .loading else { return }
             session.refresh()
@@ -127,6 +164,24 @@ struct MobileLocalDirectFilesView: View {
         #if os(iOS)
         .presentationDetents([.large])
         #endif
+    }
+
+    private var importBusy: Bool {
+        importSession?.state == .choosing || importSession?.state == .reading
+    }
+
+    private func chooseFile() {
+        guard session.canUploadFiles, !importBusy else { return }
+        retireImport()
+        importSession = MobileLocalDirectFileImportSession(files: session, reader: importReader)
+    }
+
+    private func retireImport() {
+        importSession?.invalidate(); importSession = nil
+    }
+
+    private func doneAndRefresh() {
+        retireImport(); session.closeUpload(); session.refresh()
     }
 
     private func entryLabel(_ entry: MobileWorkspaceFileListResponse.Entry) -> some View {
