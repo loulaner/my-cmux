@@ -8,6 +8,9 @@ import UniformTypeIdentifiers
 @MainActor
 struct MobileLocalDirectFilesView: View {
     @Bindable var session: MobileLocalDirectFilesSession
+    let terminalTitle: String?
+    let canQueuePath: (MobileLocalDirectFileUploadSession) -> Bool
+    let queuePath: (MobileLocalDirectFileUploadSession) -> Bool
     @Environment(\.dismiss) private var dismiss
     @State private var previewPresentation: PreviewPresentation?
     @State private var importReader = MobileLocalDirectFileImportReader()
@@ -115,7 +118,9 @@ struct MobileLocalDirectFilesView: View {
         .safeAreaInset(edge: .bottom) {
             if previewPresentation == nil {
                 MobileLocalDirectFileUploadView(session: session, importSession: importSession,
-                                                chooseFile: chooseFile, doneAndRefresh: doneAndRefresh)
+                                                chooseFile: chooseFile, doneAndRefresh: doneAndRefresh,
+                                                terminalTitle: terminalTitle, canQueuePath: canQueuePath,
+                                                queuePath: queuePathAndShowTerminal)
             }
         }
         .background {
@@ -182,6 +187,12 @@ struct MobileLocalDirectFilesView: View {
 
     private func doneAndRefresh() {
         retireImport(); session.closeUpload(); session.refresh()
+    }
+
+    private func queuePathAndShowTerminal(_ child: MobileLocalDirectFileUploadSession) -> Bool {
+        guard queuePath(child) else { return false }
+        retireImport(); session.closePreview(); dismiss()
+        return true
     }
 
     private func entryLabel(_ entry: MobileWorkspaceFileListResponse.Entry) -> some View {

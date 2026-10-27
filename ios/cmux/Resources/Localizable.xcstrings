@@ -118773,6 +118773,242 @@
         }
       }
     },
+    "direct.upload.insert": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insert Path and Show Terminal"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pfad einfügen und Terminal anzeigen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insérer le chemin et afficher le terminal"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إدراج المسار وعرض الطرفية"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insertar ruta y mostrar terminal"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "插入路徑並顯示終端機"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "插入路径并显示终端"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "경로 삽입 및 터미널 표시"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスを挿入してターミナルを表示"
+          }
+        }
+      }
+    },
+    "direct.upload.insertHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Queues a quoted path without pressing Return. Check the active program and input first."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stellt einen in Anführungszeichen gesetzten Pfad in die Eingabewarteschlange, ohne Return zu drücken. Prüfe zuerst das aktive Programm und die Eingabe."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Place un chemin entre guillemets dans la file de saisie sans appuyer sur Retour. Vérifiez d’abord le programme actif et la saisie."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يضيف مسارًا محاطًا بعلامات اقتباس إلى طابور الإدخال دون الضغط على Return. تحقق أولًا من البرنامج النشط والإدخال."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añade una ruta entre comillas a la cola de entrada sin pulsar Retorno. Comprueba primero el programa activo y la entrada."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "將加上引號的路徑排入輸入佇列，不按下 Return。請先檢查目前程式與輸入內容。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将加引号的路径加入输入队列，不按下 Return。请先检查当前程序与输入内容。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Return 키를 누르지 않고 따옴표로 감싼 경로를 입력 대기열에 추가합니다. 먼저 활성 프로그램과 입력 내용을 확인하세요."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引用符で囲んだパスを Return を押さずに入力キューに追加します。先に実行中のプログラムと入力内容を確認してください。"
+          }
+        }
+      }
+    },
+    "direct.upload.insertFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The path was not queued. Check the selected terminal and its input, then try again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Pfad wurde nicht eingereiht. Prüfe das ausgewählte Terminal und seine Eingabe und versuche es erneut."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le chemin n’a pas été mis en file. Vérifiez le terminal sélectionné et sa saisie, puis réessayez."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم تتم إضافة المسار إلى الطابور. تحقق من الطرفية المحددة وإدخالها، ثم حاول مجددًا."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La ruta no se añadió a la cola. Comprueba el terminal seleccionado y su entrada e inténtalo de nuevo."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "路徑未排入佇列。請檢查所選終端機與輸入內容後再試一次。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "路径未加入队列。请检查所选终端与输入内容后重试。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "경로가 대기열에 추가되지 않았습니다. 선택한 터미널과 입력 내용을 확인한 후 다시 시도하세요."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスはキューに追加されませんでした。選択したターミナルと入力内容を確認してから、もう一度お試しください。"
+          }
+        }
+      }
+    },
+    "direct.upload.terminalTarget": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selected terminal"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgewähltes Terminal"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal sélectionné"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الطرفية المحددة"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminal seleccionado"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所選終端機"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选终端"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "선택한 터미널"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択したターミナル"
+          }
+        }
+      }
+    },
     "direct.upload.title": {
       "extractionState": "manual",
       "localizations": {

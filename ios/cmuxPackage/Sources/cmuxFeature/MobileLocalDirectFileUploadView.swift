@@ -9,6 +9,10 @@ struct MobileLocalDirectFileUploadView: View {
     let importSession: MobileLocalDirectFileImportSession?
     let chooseFile: () -> Void
     let doneAndRefresh: () -> Void
+    let terminalTitle: String?
+    let canQueuePath: (MobileLocalDirectFileUploadSession) -> Bool
+    let queuePath: (MobileLocalDirectFileUploadSession) -> Bool
+    @State private var failedInsertion: MobileLocalDirectFileUploadSession?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -64,6 +68,20 @@ struct MobileLocalDirectFileUploadView: View {
             Text(String(localized: "direct.upload.succeeded", defaultValue: "Upload confirmed by the Mac."))
             if let receipt = child.uploadedFile {
                 Text(verbatim: receipt.path).lineLimit(2).truncationMode(.middle)
+            }
+            if let terminalTitle {
+                LabeledContent(String(localized: "direct.upload.terminalTarget", defaultValue: "Selected terminal")) {
+                    Text(verbatim: terminalTitle)
+                }
+            }
+            Text(String(localized: "direct.upload.insertHint", defaultValue: "Queues a quoted path without pressing Return. Check the active program and input first."))
+                .font(.caption).foregroundStyle(.secondary)
+            Button(String(localized: "direct.upload.insert", defaultValue: "Insert Path and Show Terminal")) {
+                if !queuePath(child) { failedInsertion = child }
+            }
+            .disabled(!canQueuePath(child))
+            if failedInsertion === child {
+                Text(String(localized: "direct.upload.insertFailed", defaultValue: "The path was not queued. Check the selected terminal and its input, then try again."))
             }
         case .failed(let failure): Text(failureMessage(failure))
         case .cancelled:

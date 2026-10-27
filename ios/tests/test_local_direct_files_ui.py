@@ -26,7 +26,17 @@ class LocalDirectFilesUIGuardTests(unittest.TestCase):
             self.assertIn(f"case .{kind}(let session): ObjectIdentifier(session)", root)
             self.assertIn(f"if let {kind}Session = controller.{kind}Session", root)
             self.assertIn(f"workspacePresentation = .{kind}({kind}Session)", root)
-            self.assertIn(f"case .{kind}(let session):\n                {view}(session: session)", root)
+            if kind == "changes":
+                self.assertIn(f"case .{kind}(let session):\n                {view}(session: session)", root)
+            else:
+                self.assertIn("case .files(let session):\n                let terminal = controller.terminalSession", root)
+                self.assertIn("let terminalTitle = terminal.flatMap { target in", root)
+                self.assertIn(".terminals.first(where: { $0.id == target.surfaceID })?.title", root)
+                self.assertIn("MobileLocalDirectFilesView(session: session, terminalTitle: terminalTitle,", root)
+                for action in ["canQueue", "queue"]:
+                    self.assertIn(f"{action}Path: {{ [session, terminal] child in", root)
+                    self.assertIn(f"controller.{action}UploadedPath(from: session, upload: child, into: terminal)", root)
+                self.assertEqual(root.count("guard let terminal else { return false }"), 2)
             pattern = (rf"\.onChange\(of: controller\.{kind}Session.map.*?\n        \}}")
             handler = re.search(pattern, root, re.S)
             if handler is None:
@@ -72,7 +82,11 @@ class LocalDirectFilesUIGuardTests(unittest.TestCase):
             self.assertIn(snippet, view)
         self.assertEqual(view.count(".task("), 1)
         self.assertEqual(view.count("session.loadNextPage()"), 1)
-        self.assertEqual(view.count("dismiss()"), 1)
+        self.assertEqual(view.count("dismiss()"), 2)
+        self.assertIn("private func queuePathAndShowTerminal(_ child: MobileLocalDirectFileUploadSession) -> Bool {\n"
+                      "        guard queuePath(child) else { return false }\n"
+                      "        retireImport(); session.closePreview(); dismiss()\n"
+                      "        return true\n    }", view)
         for failure in ["invalidSelection", "unsupported", "unsupportedWorkspace", "permissionDenied", "directoryUnavailable",
                         "directoryChanged", "limitExceeded", "invalidResponse", "unavailable", "disconnected"]:
             self.assertIn(f"case .{failure}:", view)

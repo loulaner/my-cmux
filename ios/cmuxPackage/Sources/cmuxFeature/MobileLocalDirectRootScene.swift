@@ -152,7 +152,20 @@ public struct MobileLocalDirectRootScene: View {
             case .changes(let session):
                 MobileLocalDirectChangesView(session: session)
             case .files(let session):
-                MobileLocalDirectFilesView(session: session)
+                let terminal = controller.terminalSession
+                let terminalTitle = terminal.flatMap { target in
+                    controller.workspaces.first(where: { $0.id == target.workspaceID })?
+                        .terminals.first(where: { $0.id == target.surfaceID })?.title
+                }
+                MobileLocalDirectFilesView(session: session, terminalTitle: terminalTitle,
+                    canQueuePath: { [session, terminal] child in
+                        guard let terminal else { return false }
+                        return controller.canQueueUploadedPath(from: session, upload: child, into: terminal)
+                    },
+                    queuePath: { [session, terminal] child in
+                        guard let terminal else { return false }
+                        return controller.queueUploadedPath(from: session, upload: child, into: terminal)
+                    })
             }
         }
         .onChange(of: controller.changesSession.map { ObjectIdentifier($0) }) { _, identity in

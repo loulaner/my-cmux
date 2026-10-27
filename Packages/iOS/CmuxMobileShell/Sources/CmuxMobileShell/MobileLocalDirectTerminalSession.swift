@@ -175,9 +175,22 @@ public final class MobileLocalDirectTerminalSession {
     }
 
     /// Synchronously enqueues UTF-8/control bytes, preserving callback order and incomplete scalar boundaries.
-    public func input(_ bytes: Data) {
-        guard state == .ready, current(epoch), !viewportPending else { return }
-        guard utf8Tail.count + bytes.count <= MobileTerminalInputSendBuffer.maximumPendingByteCount else { stopInput(); return }
+    public func input(_ bytes: Data) { _ = enqueueInput(bytes) }
+
+    /// Admits literal UTF-8 without Return or framing, preserving pending typed input on rejection.
+    /// True means locally queued, not acknowledged by the host or safe in every active program.
+    public func enqueueLiteralText(_ text: String) -> Bool {
+        guard state == .ready, current(epoch), !viewportPending, utf8Tail.isEmpty, !text.isEmpty,
+              !text.unicodeScalars.contains(where: {
+                  CharacterSet.controlCharacters.contains($0) || CharacterSet.newlines.contains($0)
+              }),
+              text.utf8.count <= MobileTerminalInputSendBuffer.maximumPendingByteCount - inputBuffer.pendingByteCount else { return false }
+        return enqueueInput(Data(text.utf8))
+    }
+
+    private func enqueueInput(_ bytes: Data) -> Bool {
+        guard state == .ready, current(epoch), !viewportPending else { return false }
+        guard utf8Tail.count + bytes.count <= MobileTerminalInputSendBuffer.maximumPendingByteCount else { stopInput(); return false }
         utf8Tail.append(bytes)
         var complete = utf8Tail.count
         var text: String?
@@ -185,11 +198,11 @@ public final class MobileLocalDirectTerminalSession {
             complete = utf8Tail.count - suffix
             if let decoded = String(data: utf8Tail.prefix(complete), encoding: .utf8) { text = decoded; break }
         }
-        guard let text, utf8Tail.count - complete <= 3 else { stopInput(); return }
+        guard let text, utf8Tail.count - complete <= 3 else { stopInput(); return false }
         utf8Tail.removeFirst(complete)
         let result = inputBuffer.enqueue(text, workspaceID: .init(rawValue: workspaceID), terminalID: .init(rawValue: surfaceID))
-        if result == .rejected { stopInput(); return }
-        guard inputTask == nil else { return }
+        if result == .rejected { stopInput(); return false }
+        guard inputTask == nil else { return true }
         let token = epoch
         let generation = inputGeneration
         inputTask = Task { [weak self] in
@@ -217,6 +230,7 @@ public final class MobileLocalDirectTerminalSession {
             }
             if self.epoch == token, self.inputGeneration == generation { self.inputBuffer.clear() }
         }
+        return true
     }
 
     /// Alternate-screen wheel gestures use the host's existing mode-aware scroll handler.
