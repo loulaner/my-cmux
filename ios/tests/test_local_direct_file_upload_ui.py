@@ -101,6 +101,33 @@ class LocalDirectFileUploadUIGuardTests(unittest.TestCase):
         self.assertIn("File previews and downloads are unavailable for this folder.", source("MobileLocalDirectFilesView.swift"))
         self.assertNotIn("direct.upload.", source("MobileLocalDirectFilesView.swift"))
 
+    def test_explicit_captured_terminal_insertion(self):
+        root = source("MobileLocalDirectRootScene.swift")
+        files = source("MobileLocalDirectFilesView.swift")
+        upload = source("MobileLocalDirectFileUploadView.swift")
+        for text in ["let terminal = controller.terminalSession", "terminalTitle: terminalTitle",
+                     "canQueuePath: { [session, terminal] child in", "queuePath: { [session, terminal] child in",
+                     "controller.canQueueUploadedPath(from: session, upload: child, into: terminal)",
+                     "controller.queueUploadedPath(from: session, upload: child, into: terminal)"]:
+            self.assertIn(text, root)
+        self.assertEqual(root.count("guard let terminal else { return false }"), 2)
+        for view in [files, upload]:
+            self.assertIn("let terminalTitle: String?", view)
+            self.assertIn("let canQueuePath: (MobileLocalDirectFileUploadSession) -> Bool", view)
+            self.assertIn("let queuePath: (MobileLocalDirectFileUploadSession) -> Bool", view)
+        self.assertIn("queuePath: queuePathAndShowTerminal", files)
+        succeeded = upload.split("case .succeeded:", 1)[1].split("case .failed", 1)[0]
+        for text in ["Text(verbatim: terminalTitle)", 'localized: "direct.upload.insert"',
+                     "if !queuePath(child) { failedInsertion = child }", ".disabled(!canQueuePath(child))",
+                     "if failedInsertion === child", 'localized: "direct.upload.insertFailed"',
+                     "Queues a quoted path without pressing Return. Check the active program and input first."]:
+            self.assertIn(text, succeeded)
+        self.assertIn("@State private var failedInsertion: MobileLocalDirectFileUploadSession?", upload)
+        self.assertEqual(upload.count("queuePath(child)"), 1)
+        for view in [files, upload]:
+            for forbidden in ["enqueueLiteralText", "terminal.input", "sendRequest", "shellQuotedPath"]:
+                self.assertNotIn(forbidden, view)
+
     def test_linux_guard_wiring(self):
         workflow = (ROOT / ".github/workflows/test-ios.yml").read_text()
         self.assertIn("      - name: Guard local direct file download UI wiring\n        run: python3 ios/tests/test_local_direct_file_download_ui.py\n\n"
